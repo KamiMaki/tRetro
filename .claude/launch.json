@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tretro-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "watch", "server.ts"],
+      "port": 3000
+    }
+  ]
+}

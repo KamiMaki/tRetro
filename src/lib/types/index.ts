@@ -76,6 +76,58 @@ export interface ActionItem {
   updatedAt: string;
 }
 
+// V2 types
+export interface Comment {
+  id: string;
+  cardId: string;
+  roomId: string;
+  authorId: string;
+  authorNickname: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface Reaction {
+  emoji: string;
+  count: number;
+  hasReacted: boolean; // whether current user reacted
+}
+
+export interface Vote {
+  cardId: string;
+  count: number;
+  hasVoted: boolean;
+}
+
+export interface Drawing {
+  id: string;
+  cardId: string;
+  roomId: string;
+  data: string; // base64 image data
+  createdAt: string;
+}
+
+// Extended CardDTO with v2 features
+export interface CardDTOv2 extends CardDTO {
+  comments: Comment[];
+  reactions: Reaction[];
+  voteCount: number;
+  hasVoted: boolean;
+  drawings: Drawing[];
+}
+
+// Room summary for dashboard
+export interface RoomSummary {
+  id: string;
+  name: string;
+  status: RoomStatus;
+  createdAt: string;
+  closedAt: string | null;
+  participantCount: number;
+  cardCount: number;
+  actionItemCount: number;
+}
+
 // Socket event payloads
 export interface JoinRoomPayload {
   roomId: string;
@@ -124,4 +176,24 @@ export interface UpdateActionItemPayload {
   assignee?: string | null;
   dueDate?: string | null;
   isCompleted?: boolean;
+}
+
+// V2 payloads
+export interface CreateCommentPayload {
+  cardId: string;
+  content: string;
+}
+
+export interface ToggleReactionPayload {
+  cardId: string;
+  emoji: string;
+}
+
+export interface ToggleVotePayload {
+  cardId: string;
+}
+
+export interface CreateDrawingPayload {
+  cardId: string;
+  data: string; // base64
 }

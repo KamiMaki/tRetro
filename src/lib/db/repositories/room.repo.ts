@@ -1,6 +1,6 @@
 import { getDb } from '../connection';
 import { generateRoomId } from '../../utils/id';
-import type { Room } from '../../types';
+import type { Room, RoomSummary } from '../../types';
 
 interface RoomRow {
   id: string;
@@ -36,6 +36,30 @@ export const roomRepo = {
     const db = getDb();
     const row = db.prepare('SELECT * FROM rooms WHERE id = ?').get(id) as RoomRow | undefined;
     return row ? toRoom(row) : null;
+  },
+
+  findAll(): RoomSummary[] {
+    const db = getDb();
+    const rows = db.prepare(`
+      SELECT
+        r.id, r.name, r.status, r.created_at, r.closed_at,
+        (SELECT COUNT(*) FROM participants p WHERE p.room_id = r.id) as participant_count,
+        (SELECT COUNT(*) FROM cards c WHERE c.room_id = r.id) as card_count,
+        (SELECT COUNT(*) FROM action_items a WHERE a.room_id = r.id) as action_item_count
+      FROM rooms r
+      ORDER BY r.created_at DESC
+    `).all() as Array<RoomRow & { participant_count: number; card_count: number; action_item_count: number }>;
+
+    return rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      status: r.status as Room['status'],
+      createdAt: r.created_at,
+      closedAt: r.closed_at,
+      participantCount: r.participant_count,
+      cardCount: r.card_count,
+      actionItemCount: r.action_item_count,
+    }));
   },
 
   close(id: string): Room | null {

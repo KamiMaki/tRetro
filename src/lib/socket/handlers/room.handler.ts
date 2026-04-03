@@ -5,7 +5,7 @@ import { participantRepo } from '../../db/repositories/participant.repo';
 import { cardRepo } from '../../db/repositories/card.repo';
 import { tagRepo } from '../../db/repositories/tag.repo';
 import { actionItemRepo } from '../../db/repositories/action-item.repo';
-import { toCardDTO } from '../dto';
+import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 
 export function registerRoomHandlers(io: Server, socket: Socket): void {
@@ -27,7 +27,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       isOnline: p.isOnline,
     }));
     const cardsDB = cardRepo.findByRoomId(roomId);
-    const cards = cardsDB.map(c => toCardDTO(c, participantId));
+    const cards = cardsDB.map(c => toCardDTOv2(c, participantId));
     const tags = tagRepo.findByRoomId(roomId);
     const actionItems = actionItemRepo.findByRoomId(roomId);
 

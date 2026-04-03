@@ -1,6 +1,6 @@
 'use client';
 
-import type { CardDTO, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
+import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTION_LABELS } from '@/lib/types';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
@@ -30,13 +30,17 @@ const SECTION_STYLES: Record<SectionType, { header: string; border: string; coun
 
 interface SectionProps {
   section: SectionType;
-  cards: CardDTO[];
+  cards: CardDTOv2[];
   tags: Tag[];
   isScrumMaster: boolean;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
+  onAddComment: (cardId: string, content: string) => void;
+  onToggleReaction: (cardId: string, emoji: string) => void;
+  onToggleVote: (cardId: string) => void;
+  onAddDrawing: (cardId: string, data: string) => void;
 }
 
 export function Section({
@@ -48,6 +52,10 @@ export function Section({
   onDeleteCard,
   onRevealCard,
   onCreateTag,
+  onAddComment,
+  onToggleReaction,
+  onToggleVote,
+  onAddDrawing,
 }: SectionProps) {
   const styles = SECTION_STYLES[section];
 
@@ -77,6 +85,10 @@ export function Section({
             isScrumMaster={isScrumMaster}
             onDelete={onDeleteCard}
             onReveal={onRevealCard}
+            onAddComment={onAddComment}
+            onToggleReaction={onToggleReaction}
+            onToggleVote={onToggleVote}
+            onAddDrawing={onAddDrawing}
           />
         ))}
       </div>

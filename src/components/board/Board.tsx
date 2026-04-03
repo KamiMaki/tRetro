@@ -1,13 +1,13 @@
 'use client';
 
-import type { CardDTO, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
+import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTIONS } from '@/lib/types';
 import { Section } from '@/components/board/Section';
 import { TagFilter } from '@/components/board/TagFilter';
 import { SortControls } from '@/components/board/SortControls';
 
 interface BoardProps {
-  cards: CardDTO[];
+  cards: CardDTOv2[];
   tags: Tag[];
   isScrumMaster: boolean;
   activeTagFilters: string[];
@@ -20,6 +20,10 @@ interface BoardProps {
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
+  onAddComment: (cardId: string, content: string) => void;
+  onToggleReaction: (cardId: string, emoji: string) => void;
+  onToggleVote: (cardId: string) => void;
+  onAddDrawing: (cardId: string, data: string) => void;
 }
 
 export function Board({
@@ -36,8 +40,12 @@ export function Board({
   onDeleteCard,
   onRevealCard,
   onCreateTag,
+  onAddComment,
+  onToggleReaction,
+  onToggleVote,
+  onAddDrawing,
 }: BoardProps) {
-  const filterAndSort = (sectionCards: CardDTO[]) => {
+  const filterAndSort = (sectionCards: CardDTOv2[]) => {
     let result = sectionCards;
 
     if (activeTagFilters.length > 0) {
@@ -91,6 +99,10 @@ export function Board({
             onDeleteCard={onDeleteCard}
             onRevealCard={onRevealCard}
             onCreateTag={onCreateTag}
+            onAddComment={onAddComment}
+            onToggleReaction={onToggleReaction}
+            onToggleVote={onToggleVote}
+            onAddDrawing={onAddDrawing}
           />
         ))}
       </div>

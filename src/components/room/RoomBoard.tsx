@@ -34,6 +34,10 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     updateActionItem,
     deleteActionItem,
     closeRoom,
+    addComment,
+    toggleReaction,
+    toggleVote,
+    addDrawing,
   } = roomState;
 
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
@@ -68,6 +72,10 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           onDeleteCard={deleteCard}
           onRevealCard={revealCard}
           onCreateTag={createTag}
+          onAddComment={addComment}
+          onToggleReaction={toggleReaction}
+          onToggleVote={toggleVote}
+          onAddDrawing={addDrawing}
         />
 
         <ActionItemList

@@ -7,6 +7,10 @@ import type {
   Room,
   Participant,
   CardDTO,
+  CardDTOv2,
+  Comment,
+  Reaction,
+  Drawing,
   Tag,
   ActionItem,
   RoomJoinedPayload,
@@ -32,7 +36,7 @@ interface UseRoomReturn {
   connectionStatus: ConnectionStatus;
   room: Room | null;
   participants: ParticipantSummary[];
-  cards: CardDTO[];
+  cards: CardDTOv2[];
   tags: Tag[];
   actionItems: ActionItem[];
   isScrumMaster: boolean;
@@ -47,11 +51,27 @@ interface UseRoomReturn {
   updateActionItem: (payload: UpdateActionItemPayload) => void;
   deleteActionItem: (actionItemId: string) => void;
   closeRoom: () => void;
+  addComment: (cardId: string, content: string) => void;
+  toggleReaction: (cardId: string, emoji: string) => void;
+  toggleVote: (cardId: string) => void;
+  addDrawing: (cardId: string, data: string) => void;
 }
 
 interface UseRoomOptions {
   roomId: string;
   sessionToken: string;
+}
+
+function toCardDTOv2(card: CardDTOv2 | CardDTO): CardDTOv2 {
+  const v2 = card as Partial<CardDTOv2>;
+  return {
+    ...card,
+    comments: v2.comments ?? [],
+    reactions: v2.reactions ?? [],
+    voteCount: v2.voteCount ?? 0,
+    hasVoted: v2.hasVoted ?? false,
+    drawings: v2.drawings ?? [],
+  };
 }
 
 export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn {
@@ -60,7 +80,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [room, setRoom] = useState<Room | null>(null);
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
-  const [cards, setCards] = useState<CardDTO[]>([]);
+  const [cards, setCards] = useState<CardDTOv2[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [toastMessage, setToastMessage] = useState<UseRoomReturn['toastMessage']>(null);
@@ -89,6 +109,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socket.on('connect', () => {
       setIsConnected(true);
       setConnectionStatus('connected');
+      socket.emit(SOCKET_EVENTS.ROOM_JOIN);
     });
 
     socket.on('disconnect', () => {
@@ -104,17 +125,17 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socket.on(SOCKET_EVENTS.ROOM_JOINED, (payload: RoomJoinedPayload) => {
       setRoom(payload.room);
       setParticipants(payload.participants);
-      setCards(payload.cards);
+      setCards(payload.cards.map(toCardDTOv2));
       setTags(payload.tags);
       setActionItems(payload.actionItems);
     });
 
-    socket.on(SOCKET_EVENTS.CARD_CREATED, (card: CardDTO) => {
-      setCards((prev) => [...prev, card]);
+    socket.on(SOCKET_EVENTS.CARD_CREATED, (card: CardDTOv2) => {
+      setCards((prev) => [...prev, toCardDTOv2(card)]);
     });
 
-    socket.on(SOCKET_EVENTS.CARD_UPDATED, (card: CardDTO) => {
-      setCards((prev) => prev.map((c) => (c.id === card.id ? card : c)));
+    socket.on(SOCKET_EVENTS.CARD_UPDATED, (card: CardDTOv2) => {
+      setCards((prev) => prev.map((c) => (c.id === card.id ? { ...toCardDTOv2(card), comments: c.comments, reactions: c.reactions, voteCount: c.voteCount, hasVoted: c.hasVoted, drawings: c.drawings } : c)));
     });
 
     socket.on(SOCKET_EVENTS.CARD_DELETED, (payload: { cardId: string }) => {
@@ -164,6 +185,50 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socket.on(SOCKET_EVENTS.ROOM_CLOSED, () => {
       setRoom((prev) => (prev ? { ...prev, status: 'closed' } : prev));
       setToastMessage({ message: 'The room has been closed by the Scrum Master.', type: 'info' });
+    });
+
+    // V2: Comments
+    socket.on(SOCKET_EVENTS.COMMENT_CREATED, (comment: Comment) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === comment.cardId
+            ? { ...c, comments: [...c.comments, comment] }
+            : c
+        )
+      );
+    });
+
+    // V2: Reactions
+    socket.on(SOCKET_EVENTS.REACTION_UPDATED, (payload: { cardId: string; reactions: Reaction[] }) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === payload.cardId
+            ? { ...c, reactions: payload.reactions }
+            : c
+        )
+      );
+    });
+
+    // V2: Votes
+    socket.on(SOCKET_EVENTS.VOTE_UPDATED, (payload: { cardId: string; voteCount: number; hasVoted: boolean }) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === payload.cardId
+            ? { ...c, voteCount: payload.voteCount, hasVoted: payload.hasVoted }
+            : c
+        )
+      );
+    });
+
+    // V2: Drawings
+    socket.on(SOCKET_EVENTS.DRAWING_CREATED, (drawing: Drawing) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === drawing.cardId
+            ? { ...c, drawings: [...c.drawings, drawing] }
+            : c
+        )
+      );
     });
 
     socket.on(SOCKET_EVENTS.ERROR, (payload: { message: string }) => {
@@ -224,6 +289,22 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.ROOM_CLOSE, { roomId });
   }, [roomId]);
 
+  const addComment = useCallback((cardId: string, content: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.COMMENT_CREATE, { cardId, content });
+  }, []);
+
+  const toggleReaction = useCallback((cardId: string, emoji: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.REACTION_TOGGLE, { cardId, emoji });
+  }, []);
+
+  const toggleVote = useCallback((cardId: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.VOTE_TOGGLE, { cardId });
+  }, []);
+
+  const addDrawing = useCallback((cardId: string, data: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.DRAWING_CREATE, { cardId, data });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -245,5 +326,9 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     updateActionItem,
     deleteActionItem,
     closeRoom,
+    addComment,
+    toggleReaction,
+    toggleVote,
+    addDrawing,
   };
 }

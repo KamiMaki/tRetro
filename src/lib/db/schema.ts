@@ -60,4 +60,46 @@ CREATE INDEX IF NOT EXISTS idx_cards_room ON cards(room_id);
 CREATE INDEX IF NOT EXISTS idx_cards_section ON cards(room_id, section);
 CREATE INDEX IF NOT EXISTS idx_tags_room ON tags(room_id);
 CREATE INDEX IF NOT EXISTS idx_action_items_room ON action_items(room_id);
+
+CREATE TABLE IF NOT EXISTS comments (
+  id            TEXT PRIMARY KEY,
+  card_id       TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  author_id     TEXT NOT NULL REFERENCES participants(id),
+  content       TEXT NOT NULL,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS reactions (
+  id            TEXT PRIMARY KEY,
+  card_id       TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  participant_id TEXT NOT NULL REFERENCES participants(id),
+  emoji         TEXT NOT NULL,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(card_id, participant_id, emoji)
+);
+
+CREATE TABLE IF NOT EXISTS votes (
+  id            TEXT PRIMARY KEY,
+  card_id       TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  participant_id TEXT NOT NULL REFERENCES participants(id),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(card_id, participant_id)
+);
+
+CREATE TABLE IF NOT EXISTS drawings (
+  id            TEXT PRIMARY KEY,
+  card_id       TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  author_id     TEXT NOT NULL REFERENCES participants(id),
+  data          TEXT NOT NULL,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_card ON comments(card_id);
+CREATE INDEX IF NOT EXISTS idx_reactions_card ON reactions(card_id);
+CREATE INDEX IF NOT EXISTS idx_votes_card ON votes(card_id);
+CREATE INDEX IF NOT EXISTS idx_drawings_card ON drawings(card_id);
 `;

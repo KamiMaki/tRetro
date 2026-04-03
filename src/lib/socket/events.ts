@@ -33,6 +33,22 @@ export const SOCKET_EVENTS = {
   ACTION_DELETE: 'action:delete',
   ACTION_DELETED: 'action:deleted',
 
+  // Comments
+  COMMENT_CREATE: 'comment:create',
+  COMMENT_CREATED: 'comment:created',
+
+  // Reactions
+  REACTION_TOGGLE: 'reaction:toggle',
+  REACTION_UPDATED: 'reaction:updated',
+
+  // Votes
+  VOTE_TOGGLE: 'vote:toggle',
+  VOTE_UPDATED: 'vote:updated',
+
+  // Drawings
+  DRAWING_CREATE: 'drawing:create',
+  DRAWING_CREATED: 'drawing:created',
+
   // Error
   ERROR: 'error',
 } as const;

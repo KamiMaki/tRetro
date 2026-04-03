@@ -2,7 +2,7 @@ import type { Server, Socket } from 'socket.io';
 import { SOCKET_EVENTS } from '../events';
 import { cardRepo } from '../../db/repositories/card.repo';
 import { participantRepo } from '../../db/repositories/participant.repo';
-import { toCardDTO } from '../dto';
+import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 import type { CreateCardPayload, UpdateCardPayload } from '../../types';
 
@@ -16,7 +16,7 @@ function broadcastCard(io: Server, roomId: string, card: ReturnType<typeof cardR
     const targetSocket = io.sockets.sockets.get(socketId);
     if (!targetSocket) continue;
     const targetData = targetSocket.data as SocketData;
-    const dto = toCardDTO(card, targetData.participantId);
+    const dto = toCardDTOv2(card, targetData.participantId);
     targetSocket.emit(SOCKET_EVENTS.CARD_CREATED, dto);
   }
 }
@@ -60,7 +60,7 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
         const targetSocket = io.sockets.sockets.get(socketId);
         if (!targetSocket) continue;
         const targetData = targetSocket.data as SocketData;
-        targetSocket.emit(SOCKET_EVENTS.CARD_UPDATED, toCardDTO(updated, targetData.participantId));
+        targetSocket.emit(SOCKET_EVENTS.CARD_UPDATED, toCardDTOv2(updated, targetData.participantId));
       }
     } catch (err) {
       socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to update card', code: 'UPDATE_FAILED' });

@@ -5,6 +5,10 @@ import { registerRoomHandlers } from './handlers/room.handler';
 import { registerCardHandlers } from './handlers/card.handler';
 import { registerTagHandlers } from './handlers/tag.handler';
 import { registerActionItemHandlers } from './handlers/action-item.handler';
+import { registerCommentHandlers } from './handlers/comment.handler';
+import { registerReactionHandlers } from './handlers/reaction.handler';
+import { registerVoteHandlers } from './handlers/vote.handler';
+import { registerDrawingHandlers } from './handlers/drawing.handler';
 import { SOCKET_EVENTS } from './events';
 
 let io: SocketIOServer | null = null;
@@ -24,6 +28,10 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
     registerCardHandlers(io!, socket);
     registerTagHandlers(io!, socket);
     registerActionItemHandlers(io!, socket);
+    registerCommentHandlers(io!, socket);
+    registerReactionHandlers(io!, socket);
+    registerVoteHandlers(io!, socket);
+    registerDrawingHandlers(io!, socket);
   });
 
   return io;
