@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Drawing } from '@/lib/types';
 import { GlassPanel } from '@/components/ui/Aurora';
 
@@ -10,6 +11,8 @@ interface DrawingThumbnailProps {
 
 export function DrawingThumbnail({ drawing }: DrawingThumbnailProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   return (
     <>
@@ -42,7 +45,7 @@ export function DrawingThumbnail({ drawing }: DrawingThumbnailProps) {
         <img src={drawing.data} alt="Drawing" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       </button>
 
-      {lightboxOpen && (
+      {lightboxOpen && mounted && createPortal(
         <div
           onClick={() => setLightboxOpen(false)}
           className="modal-backdrop"
@@ -75,7 +78,8 @@ export function DrawingThumbnail({ drawing }: DrawingThumbnailProps) {
               </div>
             </GlassPanel>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

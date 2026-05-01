@@ -1,16 +1,16 @@
 'use client';
 
 import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
-import { SECTION_LABELS } from '@/lib/types';
+import { SECTION_LABELS, SECTION_EMOJIS } from '@/lib/types';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
 import { GlassPanel } from '@/components/ui/Aurora';
 
-const SECTION_META: Record<SectionType, { symbol: string; tone: 'mint' | 'pink' | 'amber' | 'violet' }> = {
-  'went-well':  { symbol: '✓', tone: 'mint'   },
-  'to-improve': { symbol: '!', tone: 'pink'   },
-  'thanks':     { symbol: '★', tone: 'amber'  },
-  'deep-dive':  { symbol: '?', tone: 'violet' },
+const SECTION_TONES: Record<SectionType, 'mint' | 'pink' | 'amber' | 'violet'> = {
+  'went-well':  'mint',
+  'to-improve': 'amber',
+  'thanks':     'pink',
+  'deep-dive':  'violet',
 };
 
 interface SectionProps {
@@ -42,7 +42,8 @@ export function Section({
   onToggleVote,
   onAddDrawing,
 }: SectionProps) {
-  const meta = SECTION_META[section];
+  const tone = SECTION_TONES[section];
+  const emoji = SECTION_EMOJIS[section];
 
   return (
     <div className="col" data-col={section} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -57,7 +58,7 @@ export function Section({
       >
         {/* Header */}
         <div className="col-header" style={{ paddingRight: 14 }}>
-          <div className="col-icon" aria-hidden="true">{meta.symbol}</div>
+          <div className="col-icon" aria-hidden="true">{emoji}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="text-display" style={{ fontSize: 15, fontWeight: 600 }}>
               {SECTION_LABELS[section]}
@@ -96,7 +97,7 @@ export function Section({
                 <Card
                   key={card.id}
                   card={card}
-                  tone={meta.tone}
+                  tone={tone}
                   isScrumMaster={isScrumMaster}
                   onDelete={onDeleteCard}
                   onReveal={onRevealCard}

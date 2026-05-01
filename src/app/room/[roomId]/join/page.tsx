@@ -155,10 +155,6 @@ export default function JoinPage() {
             </button>
           </form>
         </GlassPanel>
-
-        <div className="text-mono fg-3" style={{ fontSize: 11, textAlign: 'center', marginTop: 16 }}>
-          Aurora liquid-glass · anonymous by default
-        </div>
       </div>
     </main>
   );

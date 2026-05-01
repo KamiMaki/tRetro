@@ -3,9 +3,16 @@ export type SectionType = 'went-well' | 'to-improve' | 'thanks' | 'deep-dive';
 
 export const SECTION_LABELS: Record<SectionType, string> = {
   'went-well': 'Went Well',
-  'to-improve': 'To Improve',
+  'to-improve': "Didn't Go Well",
   'thanks': 'Thanks',
-  'deep-dive': 'Deep Dive',
+  'deep-dive': 'Deep Discussion',
+};
+
+export const SECTION_EMOJIS: Record<SectionType, string> = {
+  'went-well': '😆',
+  'to-improve': '🥲',
+  'thanks': '😍',
+  'deep-dive': '🧐',
 };
 
 export const SECTIONS: SectionType[] = ['went-well', 'to-improve', 'thanks', 'deep-dive'];
@@ -141,6 +148,8 @@ export interface RoomJoinedPayload {
   cards: CardDTO[];
   tags: Tag[];
   actionItems: ActionItem[];
+  metricsAggregate: MetricAggregate[];
+  ownMetricScores: OwnMetricScores;
 }
 
 export interface CreateCardPayload {
@@ -196,4 +205,61 @@ export interface ToggleVotePayload {
 export interface CreateDrawingPayload {
   cardId: string;
   data: string; // base64
+}
+
+// ───── Sprint Metrics ─────
+// Anonymous, team-aggregated. Individual scores are stored server-side
+// for dedup (one submission per metric per participant per room) but are
+// NEVER exposed via any API. Clients only see the team average and the
+// total submission count.
+
+export type MetricKey =
+  | 'speed'
+  | 'comms'
+  | 'mood'
+  | 'fun'
+  | 'quality'
+  | 'refactor'
+  | 'incident';
+
+export interface MetricDef {
+  key: MetricKey;
+  label: string;        // Chinese display label
+  shortLabel: string;   // English short label
+  emoji: string;
+  tone: 'mint' | 'cyan' | 'violet' | 'pink' | 'amber';
+}
+
+export const METRIC_DEFS: MetricDef[] = [
+  { key: 'speed',    label: '開發速度',   shortLabel: 'Speed',     emoji: '⚡', tone: 'mint'   },
+  { key: 'comms',    label: '溝通',       shortLabel: 'Comms',     emoji: '💬', tone: 'cyan'   },
+  { key: 'mood',     label: '心情',       shortLabel: 'Mood',      emoji: '☀️', tone: 'amber'  },
+  { key: 'fun',      label: '有趣度',     shortLabel: 'Fun',       emoji: '🎈', tone: 'pink'   },
+  { key: 'quality',  label: '開發品質',   shortLabel: 'Quality',   emoji: '◆',  tone: 'violet' },
+  { key: 'refactor', label: 'Refactor',  shortLabel: 'Refactor',  emoji: '⟳',  tone: 'mint'   },
+  { key: 'incident', label: '解報案時間', shortLabel: 'Incident',  emoji: '⏱',  tone: 'cyan'   },
+];
+
+export const METRIC_KEYS: MetricKey[] = METRIC_DEFS.map((d) => d.key);
+
+/** Team aggregate for a single metric — what every client sees. */
+export interface MetricAggregate {
+  metricKey: MetricKey;
+  average: number | null;      // null when no submissions yet
+  submissions: number;         // count, not identities
+}
+
+/** Submitter's own scores — only sent privately to the submitter. */
+export type OwnMetricScores = Partial<Record<MetricKey, number>>;
+
+export interface SubmitMetricsPayload {
+  scores: OwnMetricScores; // sparse — submit only the metrics you scored
+}
+
+export interface MetricsHistoryEntry {
+  roomId: string;
+  roomName: string;
+  createdAt: string;
+  closedAt: string | null;
+  metrics: MetricAggregate[];
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { GlassPanel } from '@/components/ui/Aurora';
 
 const COLORS = ['#1e1e1e', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
@@ -14,11 +15,19 @@ interface DrawingModalProps {
 
 export function DrawingModal({ cardId, onSave, onClose }: DrawingModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mounted, setMounted] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState(COLORS[0]);
   const [brushSize, setBrushSize] = useState(BRUSH_SIZES[1]);
   const [isEraser, setIsEraser] = useState(false);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -93,7 +102,9 @@ export function DrawingModal({ cardId, onSave, onClose }: DrawingModalProps) {
     onClose();
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       onClick={onClose}
       className="modal-backdrop"
@@ -211,6 +222,7 @@ export function DrawingModal({ cardId, onSave, onClose }: DrawingModalProps) {
           </div>
         </GlassPanel>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -51,9 +51,9 @@ export function CommentList({ cardId, comments, onAddComment }: CommentListProps
             paddingRight: 4,
           }}
         >
-          {comments.map((comment, i) => (
+          {comments.map((comment) => (
             <div key={comment.id} style={{ display: 'flex', gap: 8 }}>
-              <Avatar name={comment.authorNickname} size={20} colorIndex={i + 1} />
+              <Avatar anon size={20} />
               <div
                 style={{
                   flex: 1,
@@ -68,7 +68,7 @@ export function CommentList({ cardId, comments, onAddComment }: CommentListProps
                   className="text-mono"
                   style={{ fontSize: 10, marginBottom: 2, color: 'var(--fg-2)' }}
                 >
-                  <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{comment.authorNickname}</span>{' '}
+                  <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>Anonymous</span>{' '}
                   <span style={{ color: 'var(--fg-3)' }}>
                     · {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>

@@ -25,10 +25,10 @@ interface RoomHeaderProps {
 }
 
 const STATUS_COLORS: Record<RoomHeaderProps['connectionStatus'], string> = {
-  connected: 'oklch(0.82 0.16 175)',
-  connecting: 'oklch(0.85 0.14 75)',
-  disconnected: 'oklch(0.55 0.04 270)',
-  error: 'oklch(0.65 0.18 25)',
+  connected: 'var(--status-live-fg)',
+  connecting: 'var(--status-warn-fg)',
+  disconnected: 'var(--fg-3)',
+  error: 'var(--status-error-fg)',
 };
 
 const STATUS_LABELS: Record<RoomHeaderProps['connectionStatus'], string> = {

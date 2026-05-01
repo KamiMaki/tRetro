@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { RoomSummary } from '@/lib/types';
-import { AuroraBg, GlassPanel, Logo, IconBtn, Avatar } from '@/components/ui/Aurora';
+import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 function formatDate(dateStr: string) {
@@ -161,12 +161,6 @@ export default function DashboardPage() {
             </span>
           </GlassPanel>
           <ThemeToggle />
-          <IconBtn title="Notifications">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-              <path d="M3 12V7a5 5 0 0110 0v5l1 2H2l1-2zM6 14a2 2 0 004 0" strokeLinecap="round" />
-            </svg>
-          </IconBtn>
-          <Avatar name="Aria" size={32} />
         </header>
 
         {/* Hero */}
@@ -185,9 +179,6 @@ export default function DashboardPage() {
           >
             Welcome back to <span className="aurora-text">tRetro</span>
           </h1>
-          <div className="fg-2" style={{ marginTop: 6, fontSize: 14 }}>
-            Aurora liquid-glass retros — anonymous by default, real-time always.
-          </div>
         </div>
 
         {/* Toolbar */}
@@ -405,15 +396,8 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
             {formatDate(room.createdAt)} · {relDate(room.createdAt)}
           </span>
           <span
-            className="text-mono"
-            style={{
-              fontSize: 10,
-              padding: '2px 8px',
-              borderRadius: 999,
-              background: isActive ? 'oklch(0.82 0.16 175 / 0.22)' : 'var(--glass-highlight)',
-              color: isActive ? 'oklch(0.92 0.12 175)' : 'var(--fg-2)',
-              border: '1px solid ' + (isActive ? 'oklch(0.82 0.16 175 / 0.3)' : 'var(--glass-border)'),
-            }}
+            className={`text-mono status-pill ${isActive ? 'status-live' : 'status-closed'}`}
+            style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999 }}
           >
             {isActive ? 'live' : 'closed'}
           </span>
