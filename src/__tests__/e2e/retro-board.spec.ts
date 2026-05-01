@@ -11,11 +11,10 @@ async function createAndJoinRoom(
   });
   const body = await res.json();
   await page.goto(body.joinUrl);
-  await page.getByPlaceholder('e.g. Alice').fill(nickname);
-  await page.getByRole('button', { name: 'Join' }).click();
-  // Wait for board AND socket connection
+  await page.getByPlaceholder('e.g. Aria').fill(nickname);
+  await page.getByRole('button', { name: /Enter retro/i }).click();
+  // Wait for the board to mount
   await expect(page.getByText('Went Well')).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText('Connected')).toBeVisible({ timeout: 15000 });
   return body.roomId as string;
 }
 
@@ -24,17 +23,31 @@ test.describe('tRetro E2E', () => {
     test('should show dashboard with create button', async ({ page }) => {
       await page.goto('/');
       await expect(page.locator('h1')).toContainText('tRetro');
-      await expect(page.getByText('New Retro')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'New retro' })).toBeVisible();
     });
 
     test('should create a new retro room from dashboard', async ({ page }) => {
       await page.goto('/');
-      await page.getByText('New Retro').click();
-      const nameInput = page.getByPlaceholder('e.g. Sprint 42 Retro');
+      await page.getByRole('button', { name: 'New retro' }).click();
+      const nameInput = page.locator('input#roomName');
       await expect(nameInput).toBeVisible({ timeout: 5000 });
       await nameInput.fill('Sprint 99 Retro');
-      await page.getByRole('button', { name: 'Create' }).click();
-      await expect(page).toHaveURL(/\/room\/\w+\/join/, { timeout: 15000 });
+      await page.getByRole('button', { name: 'Create board' }).click();
+      await expect(page).toHaveURL(/\/room\/[\w-]+\/join/, { timeout: 15000 });
+    });
+
+    test('should toggle theme between dark and light', async ({ page }) => {
+      await page.goto('/');
+      const html = page.locator('html');
+      await expect(html).toHaveAttribute('data-theme', 'dark');
+      await page.getByRole('button', { name: /Switch to (light|dark) mode/i }).click();
+      await expect(html).toHaveAttribute('data-theme', 'light');
+      // Persist across reload
+      await page.reload();
+      await expect(html).toHaveAttribute('data-theme', 'light');
+      // Switch back
+      await page.getByRole('button', { name: /Switch to (light|dark) mode/i }).click();
+      await expect(html).toHaveAttribute('data-theme', 'dark');
     });
   });
 
@@ -46,9 +59,9 @@ test.describe('tRetro E2E', () => {
       const body = await res.json();
       await page.goto(body.joinUrl);
       await expect(page.getByText('Join Flow Retro')).toBeVisible({ timeout: 10000 });
-      await page.getByPlaceholder('e.g. Alice').fill('TestUser');
-      await page.getByRole('button', { name: 'Join' }).click();
-      await expect(page).toHaveURL(/\/room\/\w+$/, { timeout: 10000 });
+      await page.getByPlaceholder('e.g. Aria').fill('TestUser');
+      await page.getByRole('button', { name: /Enter retro/i }).click();
+      await expect(page).toHaveURL(/\/room\/[\w-]+$/, { timeout: 10000 });
       await expect(page.getByText('Went Well')).toBeVisible({ timeout: 15000 });
       await expect(page.getByText('To Improve')).toBeVisible();
       await expect(page.getByText('Thanks')).toBeVisible();
@@ -59,39 +72,53 @@ test.describe('tRetro E2E', () => {
   test.describe('Board Functionality', () => {
     test('should create a card', async ({ page, request }) => {
       await createAndJoinRoom(page, request, 'Card Create Retro', 'CardUser');
-      const textarea = page.getByPlaceholder('Add a card... (Ctrl+Enter to submit)').first();
+      const textarea = page.getByPlaceholder(/Drop a thought/).first();
       await textarea.fill('Great teamwork this sprint!');
-      // Click the Add button in the same section form
-      const addBtn = textarea.locator('..').locator('..').getByRole('button', { name: 'Add' });
-      await addBtn.click();
+      const sendBtn = textarea.locator('..').locator('..').getByRole('button', { name: /Send/ });
+      await sendBtn.click();
       await expect(page.getByText('Great teamwork this sprint!')).toBeVisible({ timeout: 15000 });
     });
 
     test('should show own card with You label', async ({ page, request }) => {
       await createAndJoinRoom(page, request, 'Reveal Test Retro', 'RevealUser');
-      const textarea = page.getByPlaceholder('Add a card... (Ctrl+Enter to submit)').first();
+      const textarea = page.getByPlaceholder(/Drop a thought/).first();
       await textarea.fill('My anonymous card');
-      const addBtn = textarea.locator('..').locator('..').getByRole('button', { name: 'Add' });
-      await addBtn.click();
+      const sendBtn = textarea.locator('..').locator('..').getByRole('button', { name: /Send/ });
+      await sendBtn.click();
       await expect(page.getByText('My anonymous card')).toBeVisible({ timeout: 15000 });
       // Own card shows "You" label
-      await expect(page.getByText('You')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('You').first()).toBeVisible({ timeout: 5000 });
     });
 
     test('should reveal card author identity', async ({ page, request }) => {
       await createAndJoinRoom(page, request, 'Author Reveal Retro', 'Alice');
-      const textarea = page.getByPlaceholder('Add a card... (Ctrl+Enter to submit)').first();
+      const textarea = page.getByPlaceholder(/Drop a thought/).first();
       await textarea.fill('Reveal me please');
-      const addBtn = textarea.locator('..').locator('..').getByRole('button', { name: 'Add' });
-      await addBtn.click();
+      const sendBtn = textarea.locator('..').locator('..').getByRole('button', { name: /Send/ });
+      await sendBtn.click();
       await expect(page.getByText('Reveal me please')).toBeVisible({ timeout: 15000 });
-      // Hover over card to show the Reveal button (it uses opacity-0 group-hover:opacity-100)
-      const cardEl = page.locator('div').filter({ hasText: 'Reveal me please' }).first();
-      await cardEl.hover();
-      // Force-click the Reveal button since it may have opacity transition
-      const revealBtn = page.getByRole('button', { name: 'Reveal' });
+      // Click the reveal button (lowercase chip-style label)
+      const revealBtn = page.getByRole('button', { name: 'reveal' });
       await revealBtn.click({ force: true });
-      await expect(page.getByText('Alice')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('Alice').first()).toBeVisible({ timeout: 15000 });
+    });
+
+    test('emoji reaction picker should not overflow card', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Emoji Picker Retro', 'EmojiUser');
+      const textarea = page.getByPlaceholder(/Drop a thought/).first();
+      await textarea.fill('React to me');
+      const sendBtn = textarea.locator('..').locator('..').getByRole('button', { name: /Send/ });
+      await sendBtn.click();
+      await expect(page.getByText('React to me')).toBeVisible({ timeout: 15000 });
+      // Open emoji picker
+      const addReactionBtn = page.getByRole('button', { name: 'Add reaction' }).first();
+      await addReactionBtn.click();
+      // Picker should be visible with role=dialog
+      const picker = page.getByRole('dialog', { name: /Pick a reaction/i });
+      await expect(picker).toBeVisible({ timeout: 3000 });
+      // Pick a reaction
+      await page.getByRole('button', { name: /React with 🔥/ }).click();
+      await expect(page.getByRole('button', { name: /Remove 🔥 reaction/ })).toBeVisible({ timeout: 5000 });
     });
   });
 

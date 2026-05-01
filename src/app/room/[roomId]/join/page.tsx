@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function JoinPage() {
   const router = useRouter();
@@ -74,6 +75,10 @@ export default function JoinPage() {
       }}
     >
       <AuroraBg />
+
+      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}>
+        <ThemeToggle />
+      </div>
 
       <div style={{ position: 'relative', zIndex: 1, width: 'min(440px, 100%)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>

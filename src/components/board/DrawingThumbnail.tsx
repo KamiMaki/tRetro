@@ -45,21 +45,10 @@ export function DrawingThumbnail({ drawing }: DrawingThumbnailProps) {
       {lightboxOpen && (
         <div
           onClick={() => setLightboxOpen(false)}
-          className="fade-in"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 60,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 24,
-            background: 'oklch(0 0 0 / 0.65)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-          }}
+          className="modal-backdrop"
+          data-z="lightbox"
         >
-          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(540px, 100%)', width: '100%' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(540px, 100%)', width: '100%', position: 'relative', zIndex: 82 }}>
             <GlassPanel strong style={{ padding: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <h3 className="text-display" style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Drawing</h3>

@@ -6,10 +6,27 @@ export const metadata: Metadata = {
   description: 'Real-time anonymous retrospective board for agile teams. Aurora liquid-glass aesthetic.',
 };
 
+const NO_FLASH_THEME = `
+(function() {
+  try {
+    var t = localStorage.getItem('tretro-theme');
+    if (t !== 'light' && t !== 'dark') t = 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.style.colorScheme = t;
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.style.colorScheme = 'dark';
+  }
+})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" className="h-full">
-      <body className="min-h-full">
+    <html lang="en" suppressHydrationWarning className="h-full">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME }} />
+      </head>
+      <body className="min-h-full" suppressHydrationWarning>
         {children}
       </body>
     </html>

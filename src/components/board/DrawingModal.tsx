@@ -96,21 +96,10 @@ export function DrawingModal({ cardId, onSave, onClose }: DrawingModalProps) {
   return (
     <div
       onClick={onClose}
-      className="fade-in"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 60,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        background: 'oklch(0 0 0 / 0.65)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-      }}
+      className="modal-backdrop"
+      data-z="lightbox"
     >
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 100%)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 100%)', position: 'relative', zIndex: 82 }}>
         <GlassPanel strong style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 className="text-display" style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Drawing</h2>

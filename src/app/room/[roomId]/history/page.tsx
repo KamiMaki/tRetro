@@ -8,6 +8,7 @@ import { SECTIONS, SECTION_LABELS } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { AuroraBg, GlassPanel, Logo, Avatar } from '@/components/ui/Aurora';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface HistoryData {
   room: Room;
@@ -110,7 +111,7 @@ export default function HistoryPage() {
             gap: 12,
             flexWrap: 'wrap',
             borderBottom: '1px solid var(--glass-border)',
-            background: 'oklch(0.13 0.03 270 / 0.45)',
+            background: 'var(--glass-bg-strong)',
             backdropFilter: 'blur(20px) saturate(160%)',
             WebkitBackdropFilter: 'blur(20px) saturate(160%)',
           }}
@@ -126,6 +127,7 @@ export default function HistoryPage() {
             Dashboard
           </Link>
           <div style={{ flex: 1 }} />
+          <ThemeToggle />
           <button type="button" className="btn" onClick={handleExportMd}>Export MD</button>
           <button type="button" className="btn" onClick={handleExportHtml}>Export HTML</button>
         </header>

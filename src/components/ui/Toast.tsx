@@ -11,21 +11,18 @@ interface ToastProps {
   duration?: number;
 }
 
-const TYPE_STYLES: Record<ToastType, { bg: string; border: string; color: string }> = {
+const TYPE_STYLES: Record<ToastType, { border: string; color: string }> = {
   success: {
-    bg: 'oklch(0.82 0.16 175 / 0.18)',
-    border: 'oklch(0.82 0.16 175 / 0.4)',
-    color: 'oklch(0.92 0.12 175)',
+    border: 'oklch(0.82 0.16 175 / 0.45)',
+    color: 'oklch(0.55 0.18 175)',
   },
   error: {
-    bg: 'oklch(0.65 0.18 25 / 0.18)',
-    border: 'oklch(0.65 0.18 25 / 0.4)',
-    color: 'oklch(0.92 0.10 25)',
+    border: 'oklch(0.65 0.18 25 / 0.45)',
+    color: 'oklch(0.55 0.20 25)',
   },
   info: {
-    bg: 'oklch(0.78 0.14 210 / 0.18)',
-    border: 'oklch(0.78 0.14 210 / 0.4)',
-    color: 'oklch(0.92 0.10 210)',
+    border: 'oklch(0.78 0.14 210 / 0.45)',
+    color: 'oklch(0.55 0.16 210)',
   },
 };
 
@@ -82,13 +79,12 @@ export function Toast({ message, type, onDismiss, duration = 5000 }: ToastProps)
         padding: '12px 14px',
         borderRadius: 12,
         maxWidth: 380,
-        background: `${styles.bg}, var(--glass-bg-strong)`,
-        backgroundBlendMode: 'overlay',
+        background: 'var(--glass-bg-strong)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         border: `1px solid ${styles.border}`,
-        boxShadow: '0 8px 32px oklch(0 0 0 / 0.4)',
-        color: styles.color,
+        boxShadow: '0 8px 32px oklch(0 0 0 / 0.32)',
+        color: 'var(--fg-0)',
         fontSize: 13,
         lineHeight: 1.45,
         opacity: visible ? 1 : 0,
@@ -97,7 +93,7 @@ export function Toast({ message, type, onDismiss, duration = 5000 }: ToastProps)
         fontFamily: 'var(--font-body)',
       }}
     >
-      <span style={{ flexShrink: 0, marginTop: 1 }}>{ICONS[type]}</span>
+      <span style={{ flexShrink: 0, marginTop: 1, color: styles.color }}>{ICONS[type]}</span>
       <span style={{ flex: 1, color: 'var(--fg-0)' }}>{message}</span>
       <button
         type="button"

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { RoomSummary } from '@/lib/types';
 import { AuroraBg, GlassPanel, Logo, IconBtn, Avatar } from '@/components/ui/Aurora';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -159,6 +160,7 @@ export default function DashboardPage() {
               ⌘K
             </span>
           </GlassPanel>
+          <ThemeToggle />
           <IconBtn title="Notifications">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <path d="M3 12V7a5 5 0 0110 0v5l1 2H2l1-2zM6 14a2 2 0 004 0" strokeLinecap="round" />
@@ -485,23 +487,8 @@ function NewRoomModal({
   error: string | null;
 }) {
   return (
-    <div
-      onClick={onClose}
-      className="fade-in"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        background: 'oklch(0 0 0 / 0.55)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(460px, 100%)' }}>
+    <div onClick={onClose} className="modal-backdrop">
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(460px, 100%)', position: 'relative', zIndex: 81 }}>
         <GlassPanel strong style={{ padding: 28 }}>
           <div
             className="text-mono fg-3"

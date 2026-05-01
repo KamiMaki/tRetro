@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Room, CardDTO, ActionItem } from '@/lib/types';
-import { Avatar, GlassPanel, IconBtn, Logo } from '@/components/ui/Aurora';
+import { Avatar, Logo } from '@/components/ui/Aurora';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface ParticipantSummary {
   id: string;
@@ -100,7 +101,7 @@ export function RoomHeader({
         gap: 12,
         flexWrap: 'wrap',
         borderBottom: '1px solid var(--glass-border)',
-        background: 'oklch(0.13 0.03 270 / 0.45)',
+        background: 'var(--glass-bg-strong)',
         backdropFilter: 'blur(20px) saturate(160%)',
         WebkitBackdropFilter: 'blur(20px) saturate(160%)',
       }}
@@ -170,6 +171,8 @@ export function RoomHeader({
           </span>
         )}
       </div>
+
+      <ThemeToggle />
 
       {/* Share */}
       <button type="button" className="btn" onClick={handleCopyLink}>
