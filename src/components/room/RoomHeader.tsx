@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { Room, CardDTO, ActionItem } from '@/lib/types';
+import { Avatar, GlassPanel, IconBtn, Logo } from '@/components/ui/Aurora';
 
 interface ParticipantSummary {
   id: string;
@@ -21,17 +23,17 @@ interface RoomHeaderProps {
   onCloseRoom: () => void;
 }
 
-const STATUS_COLORS = {
-  connected: 'bg-green-500',
-  connecting: 'bg-yellow-400 animate-pulse',
-  disconnected: 'bg-gray-400',
-  error: 'bg-red-500',
+const STATUS_COLORS: Record<RoomHeaderProps['connectionStatus'], string> = {
+  connected: 'oklch(0.82 0.16 175)',
+  connecting: 'oklch(0.85 0.14 75)',
+  disconnected: 'oklch(0.55 0.04 270)',
+  error: 'oklch(0.65 0.18 25)',
 };
 
-const STATUS_LABELS = {
-  connected: 'Connected',
-  connecting: 'Connecting...',
-  disconnected: 'Disconnected',
+const STATUS_LABELS: Record<RoomHeaderProps['connectionStatus'], string> = {
+  connected: 'Live',
+  connecting: 'Connecting…',
+  disconnected: 'Offline',
   error: 'Error',
 };
 
@@ -41,14 +43,13 @@ export function RoomHeader({
   connectionStatus,
   isScrumMaster,
   roomId,
-  cards,
-  actionItems,
   onCloseRoom,
 }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const onlineCount = participants.filter((p) => p.isOnline).length;
+  const isLive = connectionStatus === 'connected';
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/room/${roomId}/join`;
@@ -88,100 +89,136 @@ export function RoomHeader({
   };
 
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm sticky top-0 z-20">
-      <div className="max-w-screen-2xl mx-auto px-4 md:px-6 py-3 flex flex-wrap items-center gap-3">
-        {/* Title */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <span className="text-indigo-600 dark:text-indigo-400 font-bold text-lg shrink-0">tRetro</span>
-          {room && (
-            <>
-              <span className="text-gray-300 dark:text-gray-700">/</span>
-              <h1 className="font-semibold text-gray-800 dark:text-gray-100 truncate">{room.name}</h1>
-              {room.status === 'closed' && (
-                <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium shrink-0">
-                  Closed
-                </span>
-              )}
-            </>
-          )}
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        padding: '14px clamp(16px, 3vw, 28px)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexWrap: 'wrap',
+        borderBottom: '1px solid var(--glass-border)',
+        background: 'oklch(0.13 0.03 270 / 0.45)',
+        backdropFilter: 'blur(20px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+      }}
+    >
+      <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Logo size={20} />
+      </Link>
+      <div style={{ width: 1, height: 22, background: 'var(--glass-border)' }} />
+
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          className="text-display"
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            color: 'var(--fg-0)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {room?.name ?? 'Loading…'}
         </div>
-
-        {/* Right controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Connection status */}
-          <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-            <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[connectionStatus]}`} />
-            <span className="hidden sm:inline">{STATUS_LABELS[connectionStatus]}</span>
-          </div>
-
-          {/* Online count */}
-          <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700 pl-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>{onlineCount}</span>
-          </div>
-
-          {/* Share link */}
-          <button
-            onClick={handleCopyLink}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            {copied ? 'Copied!' : 'Share'}
-          </button>
-
-          {/* SM-only: Export */}
-          {isScrumMaster && (
-            <>
-              <button
-                onClick={handleExportMD}
-                className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition"
-              >
-                Export MD
-              </button>
-              <button
-                onClick={handleExportHTML}
-                className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition"
-              >
-                Export HTML
-              </button>
-            </>
-          )}
-
-          {/* SM-only: Close room */}
-          {isScrumMaster && room?.status === 'active' && (
-            <>
-              {showCloseConfirm ? (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Close room?</span>
-                  <button
-                    onClick={handleCloseRoom}
-                    className="text-sm px-2 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white transition"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => setShowCloseConfirm(false)}
-                    className="text-sm px-2 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 transition"
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowCloseConfirm(true)}
-                  className="text-sm px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition"
-                >
-                  Close Room
-                </button>
-              )}
-            </>
+        <div className="text-mono fg-3" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {isLive && <span className="live-dot" />}
+          <span style={{ color: STATUS_COLORS[connectionStatus] }}>
+            {STATUS_LABELS[connectionStatus]}
+          </span>
+          <span>· {onlineCount} present</span>
+          {room?.status === 'closed' && (
+            <span
+              style={{
+                marginLeft: 4,
+                padding: '1px 8px',
+                borderRadius: 999,
+                background: 'oklch(0.65 0.18 25 / 0.18)',
+                color: 'oklch(0.92 0.10 25)',
+                fontSize: 10,
+                border: '1px solid oklch(0.65 0.18 25 / 0.3)',
+              }}
+            >
+              closed
+            </span>
           )}
         </div>
       </div>
+
+      {/* Avatars stack */}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {participants.slice(0, 5).map((p, i) => (
+          <div
+            key={p.id}
+            style={{
+              marginLeft: i ? -8 : 0,
+              opacity: p.isOnline ? 1 : 0.45,
+              filter: p.isOnline ? 'none' : 'grayscale(0.4)',
+            }}
+            title={`${p.nickname}${p.isScrumMaster ? ' (SM)' : ''}${p.isOnline ? '' : ' · offline'}`}
+          >
+            <Avatar name={p.nickname} size={26} colorIndex={i} />
+          </div>
+        ))}
+        {participants.length > 5 && (
+          <span className="text-mono fg-3" style={{ marginLeft: 6, fontSize: 11 }}>
+            +{participants.length - 5}
+          </span>
+        )}
+      </div>
+
+      {/* Share */}
+      <button type="button" className="btn" onClick={handleCopyLink}>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M5 8h6M8 5l3 3-3 3" />
+          <circle cx="13" cy="8" r="2" />
+          <circle cx="3" cy="8" r="2" />
+        </svg>
+        {copied ? 'Copied!' : 'Share'}
+      </button>
+
+      {/* SM-only actions */}
+      {isScrumMaster && (
+        <>
+          <button type="button" className="btn" onClick={handleExportMD} title="Export as Markdown">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 11V2M5 5l3-3 3 3M3 11v3h10v-3" />
+            </svg>
+            MD
+          </button>
+          <button type="button" className="btn" onClick={handleExportHTML} title="Export as HTML">
+            HTML
+          </button>
+        </>
+      )}
+
+      {isScrumMaster && room?.status === 'active' && (
+        <>
+          {showCloseConfirm ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span className="text-mono fg-2" style={{ fontSize: 11 }}>Close?</span>
+              <button type="button" className="btn btn-danger" onClick={handleCloseRoom} style={{ padding: '4px 10px' }}>
+                Yes
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowCloseConfirm(false)} style={{ padding: '4px 10px' }}>
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => setShowCloseConfirm(true)}
+            >
+              Close room
+            </button>
+          )}
+        </>
+      )}
     </header>
   );
 }

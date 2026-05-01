@@ -8,9 +8,11 @@ import { ReactionBar } from '@/components/board/ReactionBar';
 import { CommentList } from '@/components/board/CommentList';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { DrawingModal } from '@/components/board/DrawingModal';
+import { Avatar } from '@/components/ui/Aurora';
 
 interface CardProps {
   card: CardDTOv2;
+  tone?: 'mint' | 'pink' | 'amber' | 'violet';
   isScrumMaster: boolean;
   onDelete: (cardId: string) => void;
   onReveal: (cardId: string) => void;
@@ -22,6 +24,7 @@ interface CardProps {
 
 export function Card({
   card,
+  tone = 'violet',
   isScrumMaster,
   onDelete,
   onReveal,
@@ -35,125 +38,203 @@ export function Card({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
 
+  const authorLabel = card.isRevealed && card.authorNickname
+    ? card.authorNickname
+    : card.isOwnCard
+      ? 'You'
+      : 'Anonymous';
+
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 space-y-2 group">
-        {/* Content */}
-        <p className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed whitespace-pre-wrap break-words">
+      <div className="sticky-card" data-tone={tone} style={{ position: 'relative' }}>
+        {/* Card content */}
+        <div
+          style={{
+            fontSize: 13.5,
+            lineHeight: 1.55,
+            color: 'var(--fg-0)',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            marginBottom: 10,
+          }}
+        >
           {card.content}
-        </p>
+        </div>
 
         {/* Tags */}
         {card.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
             {card.tags.map((tag) => (
               <TagBadge key={tag.id} tag={tag} />
             ))}
           </div>
         )}
 
-        {/* Reaction bar */}
-        <ReactionBar
-          cardId={card.id}
-          reactions={card.reactions}
-          onToggleReaction={onToggleReaction}
-        />
-
-        {/* Drawing thumbnails */}
+        {/* Drawings */}
         {card.drawings.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {card.drawings.map((drawing) => (
               <DrawingThumbnail key={drawing.id} drawing={drawing} />
             ))}
           </div>
         )}
 
-        {/* Footer row */}
-        <div className="flex items-center justify-between pt-1 gap-2">
-          {/* Author info */}
-          <div className="min-w-0">
-            {card.isRevealed && card.authorNickname ? (
-              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                {card.authorNickname}
-              </span>
-            ) : card.isOwnCard ? (
-              <span className="text-xs text-indigo-400 dark:text-indigo-500">You</span>
-            ) : (
-              <span className="text-xs text-gray-300 dark:text-gray-600">Anonymous</span>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Vote button — always visible */}
-            <VoteButton
-              cardId={card.id}
-              voteCount={card.voteCount}
-              hasVoted={card.hasVoted}
-              onToggleVote={onToggleVote}
-            />
-
-            {/* Comments toggle */}
-            <button
-              onClick={() => setCommentsOpen((prev) => !prev)}
-              className={`flex items-center gap-0.5 px-2 py-1 rounded-full text-xs font-medium transition ${
-                commentsOpen
-                  ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-500'
-              }`}
-              title="Comments"
-              aria-label={`${card.comments.length} comments`}
-              aria-expanded={commentsOpen}
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.105-.895 2-2 2H7l-4 4V6c0-1.105.895-2 2-2h14c1.105 0 2 .895 2 2v10z" />
-              </svg>
-              <span>{card.comments.length}</span>
-            </button>
-
-            {/* Drawing button */}
-            <button
-              onClick={() => setDrawingModalOpen(true)}
-              className="p-1 rounded text-gray-300 dark:text-gray-600 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition opacity-0 group-hover:opacity-100 focus:opacity-100"
-              title="Add drawing"
-              aria-label="Add drawing"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
-
-            {canReveal && (
-              <button
-                onClick={() => onReveal(card.id)}
-                className="text-xs px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition opacity-0 group-hover:opacity-100 focus:opacity-100"
-                title="Reveal your identity"
-              >
-                Reveal
-              </button>
-            )}
-            {canDelete && (
-              <button
-                onClick={() => onDelete(card.id)}
-                className="p-1 rounded text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition opacity-0 group-hover:opacity-100 focus:opacity-100"
-                title="Delete card"
-                aria-label="Delete card"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
+        {/* Reaction bar */}
+        <div style={{ marginBottom: 10 }}>
+          <ReactionBar
+            cardId={card.id}
+            reactions={card.reactions}
+            onToggleReaction={onToggleReaction}
+          />
         </div>
 
-        {/* Expandable comments */}
-        {commentsOpen && (
-          <CommentList
-            cardId={card.id}
-            comments={card.comments}
-            onAddComment={onAddComment}
+        {/* Footer */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            paddingTop: 8,
+            borderTop: '1px solid var(--glass-border)',
+            fontSize: 11,
+          }}
+        >
+          <Avatar
+            name={card.authorNickname}
+            anon={!card.isRevealed && !card.isOwnCard}
+            size={20}
           />
+          <span
+            className="text-mono"
+            style={{
+              color: card.isRevealed
+                ? 'var(--fg-1)'
+                : card.isOwnCard
+                  ? 'var(--aurora-violet)'
+                  : 'var(--fg-3)',
+              fontSize: 11,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {authorLabel}
+          </span>
+          <div style={{ flex: 1 }} />
+
+          <VoteButton
+            cardId={card.id}
+            voteCount={card.voteCount}
+            hasVoted={card.hasVoted}
+            onToggleVote={onToggleVote}
+          />
+
+          <button
+            type="button"
+            onClick={() => setCommentsOpen((v) => !v)}
+            aria-label={`${card.comments.length} comments`}
+            aria-expanded={commentsOpen}
+            title="Comments"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '3px 8px',
+              borderRadius: 999,
+              fontSize: 11,
+              fontFamily: 'var(--font-mono)',
+              background: commentsOpen ? 'var(--glass-bg-strong)' : 'var(--glass-highlight)',
+              color: commentsOpen ? 'var(--fg-0)' : 'var(--fg-2)',
+              border: '1px solid ' + (commentsOpen ? 'var(--glass-border)' : 'transparent'),
+              cursor: 'pointer',
+              transition: 'all .15s',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 4h10v6H8l-3 3v-3H3z" />
+            </svg>
+            {card.comments.length}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDrawingModalOpen(true)}
+            aria-label="Add drawing"
+            title="Add drawing"
+            style={{
+              padding: 4,
+              borderRadius: 6,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--fg-3)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              transition: 'color .15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--fg-0)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M11 2l3 3-9 9H2v-3z" />
+            </svg>
+          </button>
+
+          {canReveal && (
+            <button
+              type="button"
+              onClick={() => onReveal(card.id)}
+              title="Reveal your identity"
+              style={{
+                padding: '3px 8px',
+                fontSize: 11,
+                fontFamily: 'var(--font-mono)',
+                borderRadius: 6,
+                background: 'oklch(0.68 0.20 285 / 0.22)',
+                color: 'oklch(0.92 0.14 285)',
+                border: '1px solid oklch(0.68 0.20 285 / 0.32)',
+                cursor: 'pointer',
+              }}
+            >
+              reveal
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(card.id)}
+              aria-label="Delete card"
+              title="Delete card"
+              style={{
+                padding: 4,
+                borderRadius: 6,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--fg-3)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                transition: 'color .15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'oklch(0.78 0.16 25)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                <path d="M3 3l10 10M13 3L3 13" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {commentsOpen && (
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--glass-border)' }}>
+            <CommentList
+              cardId={card.id}
+              comments={card.comments}
+              onAddComment={onAddComment}
+            />
+          </div>
         )}
       </div>
 

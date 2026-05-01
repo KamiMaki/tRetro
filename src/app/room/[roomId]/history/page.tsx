@@ -7,6 +7,7 @@ import type { CardDTOv2, Tag, ActionItem, Room } from '@/lib/types';
 import { SECTIONS, SECTION_LABELS } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
+import { AuroraBg, GlassPanel, Logo, Avatar } from '@/components/ui/Aurora';
 
 interface HistoryData {
   room: Room;
@@ -17,7 +18,7 @@ interface HistoryData {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString(undefined, {
+  return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -25,8 +26,7 @@ function formatDate(dateStr: string) {
 }
 
 function formatDateTime(dateStr: string) {
-  return new Date(dateStr).toLocaleString(undefined, {
-    year: 'numeric',
+  return new Date(dateStr).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -34,11 +34,11 @@ function formatDateTime(dateStr: string) {
   });
 }
 
-const SECTION_STYLES: Record<string, { header: string; border: string }> = {
-  'went-well':  { header: 'bg-green-500',  border: 'border-green-200 dark:border-green-800' },
-  'to-improve': { header: 'bg-red-500',    border: 'border-red-200 dark:border-red-800' },
-  'thanks':     { header: 'bg-blue-500',   border: 'border-blue-200 dark:border-blue-800' },
-  'deep-dive':  { header: 'bg-purple-500', border: 'border-purple-200 dark:border-purple-800' },
+const SECTION_META: Record<string, { tone: 'mint' | 'pink' | 'amber' | 'violet'; symbol: string }> = {
+  'went-well':  { tone: 'mint',   symbol: '✓' },
+  'to-improve': { tone: 'pink',   symbol: '!' },
+  'thanks':     { tone: 'amber',  symbol: '★' },
+  'deep-dive':  { tone: 'violet', symbol: '?' },
 };
 
 export default function HistoryPage() {
@@ -72,235 +72,294 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <p className="text-gray-400 dark:text-gray-500">Loading history…</p>
+      <main style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
+        <AuroraBg />
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <Logo size={28} />
+          <div className="text-mono fg-2" style={{ fontSize: 12, marginTop: 14 }}>Loading history…</div>
+        </div>
       </main>
     );
   }
 
   if (error || !data) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <div className="text-center space-y-3">
-          <p className="text-red-500">{error ?? 'Unknown error'}</p>
-          <Link href="/" className="text-indigo-600 dark:text-indigo-400 text-sm hover:underline">
-            ← Back to Dashboard
-          </Link>
+      <main style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
+        <AuroraBg />
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <div style={{ color: 'oklch(0.85 0.14 25)', marginBottom: 12 }}>{error ?? 'Unknown error'}</div>
+          <Link href="/" className="btn">← Back to dashboard</Link>
         </div>
       </main>
     );
   }
 
-  const { room, cards, actionItems } = data;
+  const { room, cards, actionItems, tags } = data;
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 px-4 py-8">
-      <div className="max-w-screen-2xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-1">
-            <Link
-              href="/"
-              className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Dashboard
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{room.name}</h1>
+    <main style={{ position: 'relative', minHeight: '100vh', isolation: 'isolate' }}>
+      <AuroraBg />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Top bar */}
+        <header
+          style={{
+            padding: '14px clamp(16px, 3vw, 28px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+            borderBottom: '1px solid var(--glass-border)',
+            background: 'oklch(0.13 0.03 270 / 0.45)',
+            backdropFilter: 'blur(20px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+          }}
+        >
+          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Logo size={20} />
+          </Link>
+          <div style={{ width: 1, height: 22, background: 'var(--glass-border)' }} />
+          <Link href="/" className="btn btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+              <path d="M10 3l-5 5 5 5" />
+            </svg>
+            Dashboard
+          </Link>
+          <div style={{ flex: 1 }} />
+          <button type="button" className="btn" onClick={handleExportMd}>Export MD</button>
+          <button type="button" className="btn" onClick={handleExportHtml}>Export HTML</button>
+        </header>
+
+        <div style={{ padding: 'clamp(20px, 3vw, 32px)', maxWidth: 1600, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Hero */}
+          <div>
+            <div className="text-mono fg-3" style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
+              Retro · history
+            </div>
+            <h1 className="text-display aurora-text" style={{ fontSize: 'clamp(28px, 4vw, 40px)', margin: 0, lineHeight: 1.1, fontWeight: 600 }}>
+              {room.name}
+            </h1>
             {room.closedAt && (
-              <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+              <div className="text-mono fg-2" style={{ marginTop: 8, fontSize: 12 }}>
                 Closed on {formatDate(room.closedAt)}
-              </span>
+              </div>
             )}
           </div>
 
-          {/* Export buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportMd}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export MD
-            </button>
-            <button
-              onClick={handleExportHtml}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export HTML
-            </button>
-          </div>
-        </div>
+          {/* Stats */}
+          <GlassPanel style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 24 }}>
+            <Stat label="Participants" value={data.participantCount} />
+            <Stat label="Cards" value={cards.length} />
+            <Stat label="Action items" value={actionItems.length} />
+            <Stat label="Tags" value={tags.length} />
+            <div style={{ flex: 1 }} />
+            <Stat label="Created" value={formatDate(room.createdAt)} />
+          </GlassPanel>
 
-        {/* Stats bar */}
-        <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-          <span>{data.participantCount} participants</span>
-          <span className="text-gray-300 dark:text-gray-600">·</span>
-          <span>{cards.length} cards</span>
-          <span className="text-gray-300 dark:text-gray-600">·</span>
-          <span>{actionItems.length} action items</span>
-          <span className="text-gray-300 dark:text-gray-600">·</span>
-          <span>Created {formatDate(room.createdAt)}</span>
-        </div>
-
-        {/* Board sections — read-only */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {SECTIONS.map((section) => {
-            const sectionCards = cards.filter((c) => c.section === section);
-            const styles = SECTION_STYLES[section];
-            return (
-              <div
-                key={section}
-                className={`flex flex-col rounded-xl border ${styles.border} bg-white dark:bg-gray-900 overflow-hidden shadow-sm`}
-              >
-                <div className={`${styles.header} px-4 py-3 flex items-center justify-between`}>
-                  <h2 className="text-white font-semibold text-sm tracking-wide">
-                    {SECTION_LABELS[section]}
-                  </h2>
-                  <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {sectionCards.length}
-                  </span>
+          {/* Board sections */}
+          <div className="history-grid">
+            {SECTIONS.map((section) => {
+              const sectionCards = cards.filter((c) => c.section === section);
+              const meta = SECTION_META[section];
+              return (
+                <div key={section} className="col" data-col={section} style={{ display: 'flex', flexDirection: 'column', minHeight: 320 }}>
+                  <GlassPanel style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div className="col-header">
+                      <div className="col-icon" aria-hidden="true">{meta.symbol}</div>
+                      <div style={{ flex: 1 }}>
+                        <div className="text-display" style={{ fontSize: 14, fontWeight: 600 }}>
+                          {SECTION_LABELS[section]}
+                        </div>
+                        <div className="text-mono fg-3" style={{ fontSize: 11 }}>
+                          {sectionCards.length} card{sectionCards.length === 1 ? '' : 's'}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ flex: 1, padding: '14px 12px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {sectionCards.length === 0 ? (
+                        <div className="fg-3 text-mono" style={{ textAlign: 'center', fontSize: 12, padding: '32px 0', opacity: 0.6 }}>no cards</div>
+                      ) : (
+                        sectionCards.map((card) => <HistoryCard key={card.id} card={card} tone={meta.tone} />)
+                      )}
+                    </div>
+                  </GlassPanel>
                 </div>
-                <div className="flex-1 p-3 space-y-2 overflow-y-auto">
-                  {sectionCards.length === 0 && (
-                    <p className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">No cards</p>
-                  )}
-                  {sectionCards.map((card) => (
-                    <HistoryCard key={card.id} card={card} />
-                  ))}
+              );
+            })}
+          </div>
+
+          {/* Action items */}
+          {actionItems.length > 0 && (
+            <GlassPanel style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)' }}>
+                <div className="text-display" style={{ fontSize: 16, fontWeight: 600 }}>
+                  Action items <span className="fg-2" style={{ fontSize: 13, fontWeight: 400 }}>· {actionItems.length}</span>
                 </div>
               </div>
-            );
-          })}
+              <ul style={{ listStyle: 'none', padding: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {actionItems.map((item) => (
+                  <li key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2,
+                        background: item.isCompleted ? 'var(--aurora-mint)' : 'transparent',
+                        border: '1px solid ' + (item.isCompleted ? 'var(--aurora-mint)' : 'var(--glass-border)'),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      {item.isCompleted && (
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="oklch(0.15 0.04 270)" strokeWidth={2.5} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3 3 7-7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          color: item.isCompleted ? 'var(--fg-3)' : 'var(--fg-0)',
+                          textDecoration: item.isCompleted ? 'line-through' : 'none',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {item.description}
+                      </div>
+                      <div className="text-mono fg-2" style={{ fontSize: 11, marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        {item.assignee && <span>→ {item.assignee}</span>}
+                        {item.dueDate && <span>due {item.dueDate}</span>}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </GlassPanel>
+          )}
         </div>
-
-        {/* Action items */}
-        {actionItems.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 space-y-3">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">
-              Action Items ({actionItems.length})
-            </h2>
-            <ul className="space-y-2">
-              {actionItems.map((item) => (
-                <li key={item.id} className="flex items-start gap-2 text-sm">
-                  <span className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                    item.isCompleted
-                      ? 'border-green-500 bg-green-500'
-                      : 'border-gray-300 dark:border-gray-600'
-                  }`}>
-                    {item.isCompleted && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </span>
-                  <span className={`flex-1 ${item.isCompleted ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                    {item.description}
-                    {item.assignee && (
-                      <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">→ {item.assignee}</span>
-                    )}
-                    {item.dueDate && (
-                      <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">due {item.dueDate}</span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
+
+      <style jsx>{`
+        .history-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        @media (min-width: 720px) {
+          .history-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        @media (min-width: 1280px) {
+          .history-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+      `}</style>
     </main>
   );
 }
 
-function HistoryCard({ card }: { card: CardDTOv2 }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div>
+      <div className="text-mono fg-3" style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>
+        {label}
+      </div>
+      <div className="text-display fg-0" style={{ fontSize: 18, fontWeight: 600 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function HistoryCard({ card, tone }: { card: CardDTOv2; tone: 'mint' | 'pink' | 'amber' | 'violet' }) {
   const [commentsOpen, setCommentsOpen] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-3 space-y-2">
-      <p className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed whitespace-pre-wrap break-words">
+    <div className="sticky-card" data-tone={tone}>
+      <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--fg-0)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 8 }}>
         {card.content}
-      </p>
-
+      </div>
       {card.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
           {card.tags.map((tag) => (
             <TagBadge key={tag.id} tag={tag} />
           ))}
         </div>
       )}
-
-      {/* Reactions (read-only) */}
       {card.reactions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
           {card.reactions.map((r) => (
             <span
               key={r.emoji}
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+              className="text-mono"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '2px 8px', borderRadius: 999, fontSize: 11,
+                background: 'var(--glass-highlight)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--fg-1)',
+              }}
             >
-              {r.emoji} {r.count}
+              <span style={{ fontSize: 12 }}>{r.emoji}</span>{r.count}
             </span>
           ))}
         </div>
       )}
-
-      {/* Drawings */}
       {card.drawings.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {card.drawings.map((drawing) => (
             <DrawingThumbnail key={drawing.id} drawing={drawing} />
           ))}
         </div>
       )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-1 gap-2 text-xs text-gray-400 dark:text-gray-500">
-        <div className="flex items-center gap-2">
-          {card.isRevealed && card.authorNickname && (
-            <span>{card.authorNickname}</span>
-          )}
-          {card.voteCount > 0 && (
-            <span className="flex items-center gap-0.5 text-rose-400">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              {card.voteCount}
-            </span>
-          )}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, borderTop: '1px solid var(--glass-border)', fontSize: 11 }}>
+        <Avatar
+          name={card.authorNickname}
+          anon={!card.isRevealed}
+          size={18}
+        />
+        <span className="text-mono fg-2">
+          {card.isRevealed && card.authorNickname ? card.authorNickname : 'anonymous'}
+        </span>
+        <div style={{ flex: 1 }} />
+        {card.voteCount > 0 && (
+          <span className="text-mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'oklch(0.92 0.10 350)' }}>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M3 6.5a3 3 0 015 0L8 7l.5-.5a3 3 0 115 4L8 14 3 10.5a3 3 0 010-4z" />
+            </svg>
+            {card.voteCount}
+          </span>
+        )}
         {card.comments.length > 0 && (
           <button
+            type="button"
             onClick={() => setCommentsOpen((p) => !p)}
-            className="flex items-center gap-0.5 hover:text-indigo-500 transition"
             aria-expanded={commentsOpen}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              padding: '2px 6px', borderRadius: 999, fontSize: 11, fontFamily: 'var(--font-mono)',
+              background: 'var(--glass-highlight)', color: 'var(--fg-2)',
+              border: '1px solid var(--glass-border)', cursor: 'pointer',
+            }}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.105-.895 2-2 2H7l-4 4V6c0-1.105.895-2 2-2h14c1.105 0 2 .895 2 2v10z" />
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M3 4h10v6H8l-3 3v-3H3z" />
             </svg>
             {card.comments.length}
           </button>
         )}
       </div>
-
       {commentsOpen && card.comments.length > 0 && (
-        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {card.comments.map((comment) => (
-            <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-md px-2.5 py-1.5 text-xs">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400">{comment.authorNickname}</span>
-                <span className="text-gray-400 dark:text-gray-500">{formatDateTime(comment.createdAt)}</span>
+            <div key={comment.id} style={{ padding: '6px 10px', borderRadius: 8, background: 'var(--glass-highlight)' }}>
+              <div className="text-mono" style={{ fontSize: 10, marginBottom: 2, color: 'var(--fg-2)' }}>
+                <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{comment.authorNickname}</span>
+                <span style={{ color: 'var(--fg-3)' }}> · {formatDateTime(comment.createdAt)}</span>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{comment.content}</p>
+              <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--fg-0)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {comment.content}
+              </div>
             </div>
           ))}
         </div>

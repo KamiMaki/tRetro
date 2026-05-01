@@ -4,28 +4,13 @@ import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload }
 import { SECTION_LABELS } from '@/lib/types';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
+import { GlassPanel } from '@/components/ui/Aurora';
 
-const SECTION_STYLES: Record<SectionType, { header: string; border: string; count: string }> = {
-  'went-well': {
-    header: 'bg-green-500 dark:bg-green-600',
-    border: 'border-green-200 dark:border-green-800',
-    count: 'bg-green-400 dark:bg-green-700',
-  },
-  'to-improve': {
-    header: 'bg-red-500 dark:bg-red-600',
-    border: 'border-red-200 dark:border-red-800',
-    count: 'bg-red-400 dark:bg-red-700',
-  },
-  'thanks': {
-    header: 'bg-blue-500 dark:bg-blue-600',
-    border: 'border-blue-200 dark:border-blue-800',
-    count: 'bg-blue-400 dark:bg-blue-700',
-  },
-  'deep-dive': {
-    header: 'bg-purple-500 dark:bg-purple-600',
-    border: 'border-purple-200 dark:border-purple-800',
-    count: 'bg-purple-400 dark:bg-purple-700',
-  },
+const SECTION_META: Record<SectionType, { symbol: string; tone: 'mint' | 'pink' | 'amber' | 'violet' }> = {
+  'went-well':  { symbol: '✓', tone: 'mint'   },
+  'to-improve': { symbol: '!', tone: 'pink'   },
+  'thanks':     { symbol: '★', tone: 'amber'  },
+  'deep-dive':  { symbol: '?', tone: 'violet' },
 };
 
 interface SectionProps {
@@ -57,51 +42,84 @@ export function Section({
   onToggleVote,
   onAddDrawing,
 }: SectionProps) {
-  const styles = SECTION_STYLES[section];
+  const meta = SECTION_META[section];
 
   return (
-    <div className={`flex flex-col rounded-xl border ${styles.border} bg-white dark:bg-gray-900 overflow-hidden shadow-sm min-h-[400px]`}>
-      {/* Header */}
-      <div className={`${styles.header} px-4 py-3 flex items-center justify-between`}>
-        <h2 className="text-white font-semibold text-sm tracking-wide">
-          {SECTION_LABELS[section]}
-        </h2>
-        <span className={`${styles.count} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>
-          {cards.length}
-        </span>
-      </div>
+    <div className="col" data-col={section} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <GlassPanel
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          minHeight: 420,
+        }}
+      >
+        {/* Header */}
+        <div className="col-header" style={{ paddingRight: 14 }}>
+          <div className="col-icon" aria-hidden="true">{meta.symbol}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="text-display" style={{ fontSize: 15, fontWeight: 600 }}>
+              {SECTION_LABELS[section]}
+            </div>
+            <div className="text-mono fg-3" style={{ fontSize: 11 }}>
+              {cards.length} card{cards.length === 1 ? '' : 's'}
+            </div>
+          </div>
+        </div>
 
-      {/* Cards */}
-      <div className="flex-1 p-3 space-y-2 overflow-y-auto">
-        {cards.length === 0 && (
-          <p className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">
-            No cards yet
-          </p>
-        )}
-        {cards.map((card) => (
-          <Card
-            key={card.id}
-            card={card}
-            isScrumMaster={isScrumMaster}
-            onDelete={onDeleteCard}
-            onReveal={onRevealCard}
-            onAddComment={onAddComment}
-            onToggleReaction={onToggleReaction}
-            onToggleVote={onToggleVote}
-            onAddDrawing={onAddDrawing}
+        {/* Cards */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            padding: '14px 12px 10px',
+          }}
+        >
+          {cards.length === 0 ? (
+            <div
+              className="fg-3"
+              style={{
+                textAlign: 'center',
+                fontSize: 12,
+                padding: '32px 12px',
+                fontFamily: 'var(--font-mono)',
+                opacity: 0.6,
+              }}
+            >
+              no cards yet
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {cards.map((card) => (
+                <Card
+                  key={card.id}
+                  card={card}
+                  tone={meta.tone}
+                  isScrumMaster={isScrumMaster}
+                  onDelete={onDeleteCard}
+                  onReveal={onRevealCard}
+                  onAddComment={onAddComment}
+                  onToggleReaction={onToggleReaction}
+                  onToggleVote={onToggleVote}
+                  onAddDrawing={onAddDrawing}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Card form */}
+        <div style={{ padding: 12, borderTop: '1px solid var(--glass-border)' }}>
+          <CardForm
+            section={section}
+            tags={tags}
+            onSubmit={onAddCard}
+            onCreateTag={onCreateTag}
           />
-        ))}
-      </div>
-
-      {/* Card form */}
-      <div className="p-3 border-t border-gray-100 dark:border-gray-800">
-        <CardForm
-          section={section}
-          tags={tags}
-          onSubmit={onAddCard}
-          onCreateTag={onCreateTag}
-        />
-      </div>
+        </div>
+      </GlassPanel>
     </div>
   );
 }

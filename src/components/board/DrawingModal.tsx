@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { GlassPanel } from '@/components/ui/Aurora';
 
 const COLORS = ['#1e1e1e', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
 const BRUSH_SIZES = [2, 5, 12];
@@ -36,15 +37,9 @@ export function DrawingModal({ cardId, onSave, onClose }: DrawingModalProps) {
     const scaleY = canvas.height / rect.height;
     if ('touches' in e) {
       const touch = e.touches[0];
-      return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top) * scaleY,
-      };
+      return { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
     }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   }
 
   const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -99,115 +94,133 @@ export function DrawingModal({ cardId, onSave, onClose }: DrawingModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col gap-3 p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Drawing</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-            aria-label="Close drawing modal"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Colors */}
-          <div className="flex items-center gap-1">
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => { setColor(c); setIsEraser(false); }}
-                className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                  !isEraser && color === c ? 'border-gray-800 dark:border-white scale-125' : 'border-transparent hover:scale-110'
-                }`}
-                style={{ backgroundColor: c }}
-                title={c}
-                aria-label={`Color ${c}`}
-                aria-pressed={!isEraser && color === c}
-              />
-            ))}
+    <div
+      onClick={onClose}
+      className="fade-in"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 60,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        background: 'oklch(0 0 0 / 0.65)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+      }}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 100%)' }}>
+        <GlassPanel strong style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 className="text-display" style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Drawing</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close drawing modal"
+              style={{
+                padding: 4, borderRadius: 6, background: 'transparent', border: 'none', color: 'var(--fg-2)', cursor: 'pointer',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                <path d="M3 3l10 10M13 3L3 13" />
+              </svg>
+            </button>
           </div>
 
-          {/* Brush sizes */}
-          <div className="flex items-center gap-1">
-            {BRUSH_SIZES.map((size) => (
-              <button
-                key={size}
-                onClick={() => { setBrushSize(size); setIsEraser(false); }}
-                className={`flex items-center justify-center w-7 h-7 rounded-full border transition ${
-                  !isEraser && brushSize === size
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-indigo-300'
-                }`}
-                title={`Brush size ${size}`}
-                aria-pressed={!isEraser && brushSize === size}
-              >
-                <span
-                  className="rounded-full bg-gray-700 dark:bg-gray-300"
-                  style={{ width: size + 2, height: size + 2 }}
+          {/* Toolbar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => { setColor(c); setIsEraser(false); }}
+                  aria-label={`Color ${c}`}
+                  aria-pressed={!isEraser && color === c}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    border: '2px solid ' + (!isEraser && color === c ? 'var(--fg-0)' : 'transparent'),
+                    background: c,
+                    cursor: 'pointer',
+                    padding: 0,
+                    transform: !isEraser && color === c ? 'scale(1.15)' : 'scale(1)',
+                    transition: 'transform .12s, border-color .12s',
+                  }}
                 />
-              </button>
-            ))}
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {BRUSH_SIZES.map((size) => {
+                const active = !isEraser && brushSize === size;
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => { setBrushSize(size); setIsEraser(false); }}
+                    aria-pressed={active}
+                    title={`Brush size ${size}`}
+                    style={{
+                      width: 28, height: 28, borderRadius: 999, padding: 0,
+                      background: active ? 'var(--glass-bg-strong)' : 'transparent',
+                      border: '1px solid ' + (active ? 'var(--aurora-violet)' : 'var(--glass-border)'),
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ width: size + 2, height: size + 2, borderRadius: '50%', background: 'var(--fg-1)' }} />
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsEraser((p) => !p)}
+              aria-pressed={isEraser}
+              className="btn"
+              style={{ padding: '4px 10px', fontSize: 11 }}
+            >
+              Eraser
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClear}
+              className="btn"
+              style={{ padding: '4px 10px', fontSize: 11 }}
+            >
+              Clear
+            </button>
           </div>
 
-          {/* Eraser */}
-          <button
-            onClick={() => setIsEraser((prev) => !prev)}
-            className={`px-2.5 py-1 rounded text-xs font-medium border transition ${
-              isEraser
-                ? 'bg-amber-100 dark:bg-amber-900/40 border-amber-400 text-amber-700 dark:text-amber-300'
-                : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-amber-300'
-            }`}
-            aria-pressed={isEraser}
-          >
-            Eraser
-          </button>
+          <canvas
+            ref={canvasRef}
+            width={480}
+            height={320}
+            style={{
+              width: '100%', height: 'auto', borderRadius: 10, border: '1px solid var(--glass-border)',
+              touchAction: 'none', cursor: 'crosshair', background: '#fff', display: 'block',
+            }}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+          />
 
-          {/* Clear */}
-          <button
-            onClick={handleClear}
-            className="px-2.5 py-1 rounded text-xs font-medium border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-red-300 hover:text-red-500 transition"
-          >
-            Clear
-          </button>
-        </div>
-
-        {/* Canvas */}
-        <canvas
-          ref={canvasRef}
-          width={480}
-          height={320}
-          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 touch-none cursor-crosshair bg-white"
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-        />
-
-        {/* Footer actions */}
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-1.5 rounded-lg text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-medium transition"
-          >
-            Save Drawing
-          </button>
-        </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+            <button type="button" className="btn btn-ghost" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-primary" onClick={handleSave}>
+              Save drawing
+            </button>
+          </div>
+        </GlassPanel>
       </div>
     </div>
   );

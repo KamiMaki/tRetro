@@ -2,6 +2,7 @@
 
 import type { Tag } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
+import { GlassPanel } from '@/components/ui/Aurora';
 
 interface TagFilterProps {
   tags: Tag[];
@@ -21,19 +22,39 @@ export function TagFilter({ tags, activeTagFilters, setActiveTagFilters }: TagFi
   };
 
   return (
-    <div className="flex items-center gap-2 flex-wrap bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2">
-      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">
-        Filter by tag:
+    <GlassPanel
+      style={{
+        padding: '8px 12px',
+        borderRadius: 12,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        flexWrap: 'wrap',
+      }}
+    >
+      <span
+        className="text-mono fg-3"
+        style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase' }}
+      >
+        Filter
       </span>
-      <div className="flex flex-wrap gap-1">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         {tags.map((tag) => {
           const active = activeTagFilters.includes(tag.id);
           return (
             <button
               key={tag.id}
+              type="button"
               onClick={() => toggleTag(tag.id)}
-              className={`transition rounded-full ${active ? 'ring-2 ring-offset-1 ring-gray-600 dark:ring-gray-300' : 'opacity-60 hover:opacity-100'}`}
               title={active ? `Remove filter: ${tag.name}` : `Filter by: ${tag.name}`}
+              style={{
+                padding: 0,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                opacity: activeTagFilters.length === 0 || active ? 1 : 0.45,
+                transition: 'opacity .15s',
+              }}
             >
               <TagBadge tag={tag} />
             </button>
@@ -42,12 +63,21 @@ export function TagFilter({ tags, activeTagFilters, setActiveTagFilters }: TagFi
       </div>
       {activeTagFilters.length > 0 && (
         <button
+          type="button"
           onClick={() => setActiveTagFilters([])}
-          className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition underline shrink-0"
+          className="text-mono fg-3"
+          style={{
+            fontSize: 11,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            padding: 0,
+          }}
         >
-          Clear All
+          clear
         </button>
       )}
-    </div>
+    </GlassPanel>
   );
 }

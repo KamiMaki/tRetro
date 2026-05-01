@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { SocketProvider } from '@/lib/context/SocketContext';
 import { RoomBoard } from '@/components/room/RoomBoard';
+import { AuroraBg, Logo } from '@/components/ui/Aurora';
 
 export default function RoomPage() {
   const router = useRouter();
@@ -28,9 +29,25 @@ export default function RoomPage() {
 
   if (!ready || !sessionToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <p className="text-gray-400 dark:text-gray-500 animate-pulse">Loading...</p>
-      </div>
+      <main
+        style={{
+          position: 'relative',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          isolation: 'isolate',
+        }}
+      >
+        <AuroraBg />
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <Logo size={28} />
+          <div className="text-mono fg-2" style={{ fontSize: 12, marginTop: 14 }}>
+            <span className="live-dot" style={{ marginRight: 8 }} />
+            Connecting to retro…
+          </div>
+        </div>
+      </main>
     );
   }
 

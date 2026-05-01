@@ -38,43 +38,87 @@ export function ActionItemForm({ participants, onSubmit }: ActionItemFormProps) 
   if (!isOpen) {
     return (
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 14px',
+          borderRadius: 999,
+          background: 'var(--glass-highlight)',
+          border: '1px dashed var(--glass-border)',
+          color: 'var(--fg-1)',
+          fontSize: 12,
+          fontFamily: 'var(--font-mono)',
+          cursor: 'pointer',
+          transition: 'all .15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'var(--aurora-violet)';
+          e.currentTarget.style.color = 'var(--fg-0)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'var(--glass-border)';
+          e.currentTarget.style.color = 'var(--fg-1)';
+        }}
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <path d="M8 3v10M3 8h10" />
         </svg>
-        Add Action Item
+        Add action item
       </button>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-900/10">
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        padding: 14,
+        borderRadius: 12,
+        background: 'oklch(0.68 0.20 285 / 0.08)',
+        border: '1px solid oklch(0.68 0.20 285 / 0.25)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
       <div>
-        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Description <span className="text-red-500">*</span>
+        <label
+          className="text-mono fg-2"
+          style={{ display: 'block', marginBottom: 4, fontSize: 11 }}
+          htmlFor="ai-description"
+        >
+          Description *
         </label>
         <input
+          id="ai-description"
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What needs to be done?"
           required
           autoFocus
-          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          className="field"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            className="text-mono fg-2"
+            style={{ display: 'block', marginBottom: 4, fontSize: 11 }}
+            htmlFor="ai-assignee"
+          >
             Assignee
           </label>
           <select
+            id="ai-assignee"
             value={assignee}
             onChange={(e) => setAssignee(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="field"
+            style={{ padding: '9px 10px' }}
           >
             <option value="">Unassigned</option>
             {participants.map((p) => (
@@ -85,34 +129,35 @@ export function ActionItemForm({ participants, onSubmit }: ActionItemFormProps) 
             ))}
           </select>
         </div>
-
         <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Due Date
+          <label
+            className="text-mono fg-2"
+            style={{ display: 'block', marginBottom: 4, fontSize: 11 }}
+            htmlFor="ai-due"
+          >
+            Due date
           </label>
           <input
+            id="ai-due"
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="field"
+            style={{ padding: '9px 10px', colorScheme: 'dark' }}
           />
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={!description.trim()}
-          className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 dark:disabled:bg-indigo-800 text-white font-medium rounded-lg transition"
-        >
-          Add
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+        <button type="button" className="btn btn-ghost" onClick={() => setIsOpen(false)}>
+          Cancel
         </button>
         <button
-          type="button"
-          onClick={() => setIsOpen(false)}
-          className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition"
+          type="submit"
+          className="btn btn-primary"
+          disabled={!description.trim()}
         >
-          Cancel
+          Add
         </button>
       </div>
     </form>

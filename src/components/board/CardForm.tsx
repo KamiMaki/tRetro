@@ -5,8 +5,11 @@ import type { Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/li
 import { TagBadge } from '@/components/board/TagBadge';
 
 const TAG_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
-  '#f97316', '#eab308', '#22c55e', '#06b6d4',
+  '#84e1c8', // mint
+  '#9b8cf2', // violet
+  '#f4b6d8', // pink
+  '#fcd987', // amber
+  '#7cd1f2', // cyan
 ];
 
 interface CardFormProps {
@@ -21,6 +24,7 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [newTagName, setNewTagName] = useState('');
   const [showTagPanel, setShowTagPanel] = useState(false);
+  const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -54,95 +58,153 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
   };
 
   const selectedTags = tags.filter((t) => selectedTagIds.includes(t.id));
+  const showExpanded = focused || content.length > 0 || showTagPanel;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <textarea
         ref={textareaRef}
         value={content}
         onChange={(e) => setContent(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         onKeyDown={handleKeyDown}
-        placeholder="Add a card... (Ctrl+Enter to submit)"
-        rows={2}
-        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none transition"
+        placeholder="Drop a thought… (⌘↵ to send)"
+        rows={showExpanded ? 3 : 2}
+        className="field"
+        style={{
+          fontSize: 13,
+          padding: 10,
+          resize: 'none',
+          transition: 'min-height 0.2s',
+        }}
       />
 
-      {/* Selected tags preview */}
+      {/* Selected tags */}
       {selectedTags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {selectedTags.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => toggleTag(t.id)}
-              className="group relative"
               title="Remove tag"
+              style={{
+                padding: 0,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
               <TagBadge tag={t} />
-              <span className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 text-white text-xs">
-                ×
-              </span>
             </button>
           ))}
         </div>
       )}
 
-      <div className="flex items-center gap-1.5">
-        {/* Tag button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <button
           type="button"
           onClick={() => setShowTagPanel((v) => !v)}
-          className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition"
+          aria-pressed={showTagPanel}
+          title="Add tags"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 11,
+            fontFamily: 'var(--font-mono)',
+            padding: '4px 10px',
+            borderRadius: 999,
+            background: showTagPanel ? 'var(--glass-bg-strong)' : 'var(--glass-highlight)',
+            color: showTagPanel ? 'var(--fg-0)' : 'var(--fg-2)',
+            border: '1px solid var(--glass-border)',
+            cursor: 'pointer',
+          }}
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 3v6l7 7 6-6-7-7z" />
+            <circle cx="6" cy="6" r="1" fill="currentColor" />
           </svg>
-          Tags
+          tags
+          {selectedTags.length > 0 && (
+            <span style={{ opacity: 0.7 }}>·{selectedTags.length}</span>
+          )}
         </button>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={!content.trim()}
-          className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 dark:disabled:bg-indigo-800 text-white font-medium transition"
+          className="btn btn-primary"
+          style={{ marginLeft: 'auto', fontSize: 12, padding: '6px 14px' }}
         >
-          Add
+          Send
+          <span className="text-mono fg-3" style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>
+            ⌘↵
+          </span>
         </button>
       </div>
 
-      {/* Tag panel */}
       {showTagPanel && (
-        <div className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2">
+        <div
+          className="glass"
+          style={{
+            padding: 10,
+            borderRadius: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {tags.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => toggleTag(tag.id)}
-                  className={`transition ${selectedTagIds.includes(tag.id) ? 'ring-2 ring-offset-1 ring-indigo-500 rounded-full' : ''}`}
-                >
-                  <TagBadge tag={tag} />
-                </button>
-              ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {tags.map((tag) => {
+                const active = selectedTagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    style={{
+                      padding: 0,
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      opacity: active ? 1 : 0.5,
+                      outline: active ? '2px solid var(--aurora-violet)' : 'none',
+                      outlineOffset: 2,
+                      borderRadius: 999,
+                    }}
+                  >
+                    <TagBadge tag={tag} />
+                  </button>
+                );
+              })}
             </div>
           )}
-          <div className="flex gap-1">
+          <div style={{ display: 'flex', gap: 6 }}>
             <input
               type="text"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateTag(); } }}
-              placeholder="New tag name..."
-              className="flex-1 text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCreateTag();
+                }
+              }}
+              placeholder="new tag…"
+              className="field"
+              style={{ fontSize: 11, padding: '6px 10px' }}
             />
             <button
               type="button"
               onClick={handleCreateTag}
               disabled={!newTagName.trim()}
-              className="text-xs px-2 py-1 rounded bg-indigo-600 disabled:bg-indigo-300 dark:disabled:bg-indigo-800 text-white transition"
+              className="btn"
+              style={{ fontSize: 11, padding: '6px 10px' }}
             >
-              Create
+              Add
             </button>
           </div>
         </div>

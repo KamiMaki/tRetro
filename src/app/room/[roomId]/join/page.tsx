@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 
 export default function JoinPage() {
   const router = useRouter();
@@ -46,7 +47,6 @@ export default function JoinPage() {
       }
 
       const data = await res.json();
-
       sessionStorage.setItem('sessionToken', data.sessionToken);
       sessionStorage.setItem('participantId', data.participantId);
       sessionStorage.setItem('roomId', roomId);
@@ -62,57 +62,97 @@ export default function JoinPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950 px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">tRetro</h1>
+    <main
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        isolation: 'isolate',
+      }}
+    >
+      <AuroraBg />
+
+      <div style={{ position: 'relative', zIndex: 1, width: 'min(440px, 100%)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
+            <Logo size={32} />
+          </div>
+          <div className="text-mono fg-3" style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 14, marginBottom: 4 }}>
+            Joining retro
+          </div>
           {isFetchingRoom ? (
-            <p className="text-gray-400 dark:text-gray-500 animate-pulse">Loading room...</p>
+            <div className="fg-2 text-display" style={{ fontSize: 22, fontWeight: 600 }}>Loading…</div>
           ) : (
-            <p className="text-gray-600 dark:text-gray-300 text-xl font-medium">{roomName}</p>
+            <h1 className="text-display aurora-text" style={{ fontSize: 28, fontWeight: 600, margin: 0, lineHeight: 1.2 }}>
+              {roomName || 'Retrospective'}
+            </h1>
           )}
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-5">
-            Join the Retro
+        <GlassPanel strong style={{ padding: 28 }}>
+          <h2
+            className="text-display"
+            style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}
+          >
+            Pick a nickname
           </h2>
+          <p className="fg-2" style={{ fontSize: 13, marginTop: 0, marginBottom: 18, lineHeight: 1.55 }}>
+            You&apos;ll appear as this name in chat &amp; comments. Cards stay anonymous unless you reveal them.
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="nickname"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-              >
-                Your Nickname
-              </label>
-              <input
-                id="nickname"
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="e.g. Alice"
-                maxLength={40}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                disabled={isLoading || isFetchingRoom}
-                autoFocus
-              />
-            </div>
+          <form onSubmit={handleSubmit}>
+            <label
+              className="text-mono fg-2"
+              htmlFor="nickname"
+              style={{ display: 'block', marginBottom: 6, fontSize: 11 }}
+            >
+              Your nickname
+            </label>
+            <input
+              id="nickname"
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="e.g. Aria"
+              maxLength={40}
+              disabled={isLoading || isFetchingRoom}
+              autoFocus
+              className="field"
+              style={{ marginBottom: 14 }}
+            />
 
             {error && (
-              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'oklch(0.85 0.14 25)',
+                  background: 'oklch(0.65 0.18 25 / 0.12)',
+                  border: '1px solid oklch(0.65 0.18 25 / 0.25)',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  marginBottom: 14,
+                }}
+              >
                 {error}
-              </p>
+              </div>
             )}
 
             <button
               type="submit"
+              className="btn btn-primary"
               disabled={isLoading || !nickname.trim() || isFetchingRoom}
-              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 dark:disabled:bg-indigo-800 text-white font-semibold rounded-lg transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
             >
-              {isLoading ? 'Joining...' : 'Join'}
+              {isLoading ? 'Joining…' : 'Enter retro →'}
             </button>
           </form>
+        </GlassPanel>
+
+        <div className="text-mono fg-3" style={{ fontSize: 11, textAlign: 'center', marginTop: 16 }}>
+          Aurora liquid-glass · anonymous by default
         </div>
       </div>
     </main>

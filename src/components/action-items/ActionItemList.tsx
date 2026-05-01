@@ -3,6 +3,7 @@
 import type { ActionItem, CreateActionItemPayload, UpdateActionItemPayload } from '@/lib/types';
 import { ActionItemCard } from '@/components/action-items/ActionItemCard';
 import { ActionItemForm } from '@/components/action-items/ActionItemForm';
+import { GlassPanel } from '@/components/ui/Aurora';
 
 interface ParticipantSummary {
   id: string;
@@ -32,22 +33,49 @@ export function ActionItemList({
   const completed = actionItems.filter((a) => a.isCompleted);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-          Action Items
+    <GlassPanel style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Header */}
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--glass-border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: 'linear-gradient(135deg, var(--aurora-mint), var(--aurora-cyan))',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'oklch(0.15 0.04 270)',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 700,
+            fontSize: 14,
+          }}
+        >
+          ✓
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="text-display" style={{ fontSize: 16, fontWeight: 600 }}>
+            Action items
+          </div>
           {actionItems.length > 0 && (
-            <span className="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-medium">
-              {pending.length} pending
-            </span>
+            <div className="text-mono fg-3" style={{ fontSize: 11 }}>
+              {pending.length} pending · {completed.length} done
+            </div>
           )}
-        </h2>
+        </div>
       </div>
 
-      <div className="p-5 space-y-4">
-        {/* Pending */}
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
         {pending.length > 0 && (
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {pending.map((item) => (
               <ActionItemCard
                 key={item.id}
@@ -60,18 +88,27 @@ export function ActionItemList({
           </div>
         )}
 
-        {/* Empty state */}
         {actionItems.length === 0 && (
-          <p className="text-sm text-gray-400 dark:text-gray-600 text-center py-4">
-            No action items yet
-          </p>
+          <div
+            className="fg-3 text-mono"
+            style={{ textAlign: 'center', fontSize: 12, padding: '12px 0' }}
+          >
+            no action items yet
+          </div>
         )}
 
-        {/* Completed */}
         {completed.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-medium text-gray-400 dark:text-gray-600 uppercase tracking-wide">
-              Completed ({completed.length})
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h3
+              className="text-mono fg-3"
+              style={{
+                fontSize: 10,
+                margin: 0,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Completed · {completed.length}
             </h3>
             {completed.map((item) => (
               <ActionItemCard
@@ -85,13 +122,12 @@ export function ActionItemList({
           </div>
         )}
 
-        {/* SM-only form */}
         {isScrumMaster && (
-          <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+          <div style={{ paddingTop: 8, borderTop: '1px solid var(--glass-border)' }}>
             <ActionItemForm participants={participants} onSubmit={onAdd} />
           </div>
         )}
       </div>
-    </div>
+    </GlassPanel>
   );
 }

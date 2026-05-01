@@ -1,5 +1,7 @@
 'use client';
 
+import { Avatar, GlassPanel } from '@/components/ui/Aurora';
+
 interface ParticipantSummary {
   id: string;
   nickname: string;
@@ -17,35 +19,61 @@ export function ParticipantList({ participants }: ParticipantListProps) {
   const sorted = [...online, ...offline];
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-        Participants ({online.length} online)
-      </h3>
-      <ul className="space-y-1.5">
-        {sorted.map((p) => (
-          <li key={p.id} className="flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full shrink-0 ${
-                p.isOnline ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
+    <GlassPanel style={{ padding: 16 }}>
+      <div
+        className="text-mono fg-3"
+        style={{
+          fontSize: 11,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <span className="live-dot" />
+        Participants · {online.length} online
+      </div>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {sorted.map((p, i) => (
+          <li key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Avatar
+              name={p.nickname}
+              size={24}
+              colorIndex={i}
             />
             <span
-              className={`text-sm truncate ${
-                p.isOnline
-                  ? 'text-gray-800 dark:text-gray-100'
-                  : 'text-gray-400 dark:text-gray-600'
-              }`}
+              style={{
+                flex: 1,
+                fontSize: 13,
+                color: p.isOnline ? 'var(--fg-0)' : 'var(--fg-3)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                opacity: p.isOnline ? 1 : 0.6,
+              }}
             >
               {p.nickname}
             </span>
             {p.isScrumMaster && (
-              <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium shrink-0">
+              <span
+                className="text-mono"
+                style={{
+                  padding: '1px 7px',
+                  borderRadius: 999,
+                  fontSize: 10,
+                  background: 'oklch(0.68 0.20 285 / 0.22)',
+                  color: 'oklch(0.92 0.14 285)',
+                  border: '1px solid oklch(0.68 0.20 285 / 0.32)',
+                }}
+              >
                 SM
               </span>
             )}
           </li>
         ))}
       </ul>
-    </div>
+    </GlassPanel>
   );
 }

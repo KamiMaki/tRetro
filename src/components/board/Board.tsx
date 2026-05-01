@@ -1,6 +1,6 @@
 'use client';
 
-import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
+import type { CardDTOv2, Tag, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTIONS } from '@/lib/types';
 import { Section } from '@/components/board/Section';
 import { TagFilter } from '@/components/board/TagFilter';
@@ -68,10 +68,10 @@ export function Board({
   };
 
   return (
-    <div className="space-y-4">
-      {/* SM controls row */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* SM controls */}
       {isScrumMaster && (
-        <div className="flex flex-wrap gap-3 items-start">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
           <TagFilter
             tags={tags}
             activeTagFilters={activeTagFilters}
@@ -87,7 +87,7 @@ export function Board({
       )}
 
       {/* 4-column board grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="board-grid">
         {SECTIONS.map((section) => (
           <Section
             key={section}
@@ -106,6 +106,24 @@ export function Board({
           />
         ))}
       </div>
+
+      <style jsx>{`
+        .board-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        @media (min-width: 720px) {
+          .board-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        @media (min-width: 1280px) {
+          .board-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+      `}</style>
     </div>
   );
 }

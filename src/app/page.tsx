@@ -1,16 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { RoomSummary } from '@/lib/types';
+import { AuroraBg, GlassPanel, Logo, IconBtn, Avatar } from '@/components/ui/Aurora';
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    year: 'numeric',
+  return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
+    year: 'numeric',
   });
+}
+
+function relDate(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const days = Math.round((now.getTime() - d.getTime()) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.round(days / 7)}w ago`;
+  return `${Math.round(days / 30)}mo ago`;
+}
+
+const HUE_RING = [285, 175, 350, 75, 210];
+function hueFor(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return HUE_RING[Math.abs(h) % HUE_RING.length];
 }
 
 export default function DashboardPage() {
@@ -19,11 +38,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Create room modal state
   const [showCreate, setShowCreate] = useState(false);
-  const [roomName, setRoomName] = useState('');
+  const [roomName, setRoomName] = useState('Sprint 25 · Aether');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('all');
 
   async function fetchRooms() {
     try {
@@ -67,177 +89,484 @@ export default function DashboardPage() {
     }
   }
 
+  const filteredRooms = useMemo(() => {
+    let result = [...rooms];
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((r) => r.name.toLowerCase().includes(q));
+    }
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (sortBy === 'date') {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+      result.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return result;
+  }, [rooms, search, statusFilter, sortBy]);
+
+  const activeRooms = filteredRooms.filter((r) => r.status === 'active');
+  const closedRooms = filteredRooms.filter((r) => r.status === 'closed');
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950 px-4 py-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              tRetro Dashboard
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-              Manage your retrospective boards
-            </p>
-          </div>
-          <button
-            onClick={() => { setShowCreate(true); setCreateError(null); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition"
+    <main style={{ position: 'relative', minHeight: '100vh', isolation: 'isolate' }}>
+      <AuroraBg />
+
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        {/* Top bar */}
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '20px 32px',
+            gap: 16,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Logo />
+          <div style={{ flex: 1, minWidth: 16 }} />
+          <GlassPanel
+            style={{
+              borderRadius: 999,
+              padding: '6px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: 280,
+              maxWidth: '100%',
+            }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--fg-2)" strokeWidth="1.5" aria-hidden="true">
+              <circle cx="7" cy="7" r="5" />
+              <path d="M11 11l3 3" strokeLinecap="round" />
             </svg>
-            New Retro
-          </button>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search retros…"
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--fg-0)',
+                fontSize: 13,
+                fontFamily: 'inherit',
+              }}
+            />
+            <span className="text-mono fg-3" style={{ fontSize: 11 }}>
+              ⌘K
+            </span>
+          </GlassPanel>
+          <IconBtn title="Notifications">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M3 12V7a5 5 0 0110 0v5l1 2H2l1-2zM6 14a2 2 0 004 0" strokeLinecap="round" />
+            </svg>
+          </IconBtn>
+          <Avatar name="Aria" size={32} />
+        </header>
+
+        {/* Hero */}
+        <div style={{ padding: '12px 32px 24px' }}>
+          <div
+            className="text-mono fg-2"
+            style={{ fontSize: 12, marginBottom: 6 }}
+          >
+            <span className="live-dot" style={{ marginRight: 8 }} />
+            {rooms.length} retro{rooms.length === 1 ? '' : 's'} ·{' '}
+            {activeRooms.length} active session{activeRooms.length === 1 ? '' : 's'}
+          </div>
+          <h1
+            className="text-display"
+            style={{ fontSize: 'clamp(32px, 5vw, 48px)', margin: 0, lineHeight: 1.05, fontWeight: 600 }}
+          >
+            Welcome back to <span className="aurora-text">tRetro</span>
+          </h1>
+          <div className="fg-2" style={{ marginTop: 6, fontSize: 14 }}>
+            Aurora liquid-glass retros — anonymous by default, real-time always.
+          </div>
         </div>
 
-        {/* Create Room Modal */}
-        {showCreate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">New Retrospective</h2>
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                  aria-label="Close"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <form onSubmit={handleCreate} className="space-y-3">
-                <div>
-                  <label htmlFor="room-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Room name
-                  </label>
-                  <input
-                    id="room-name"
-                    type="text"
-                    value={roomName}
-                    onChange={(e) => setRoomName(e.target.value)}
-                    placeholder="e.g. Sprint 42 Retro"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    autoFocus
-                  />
-                </div>
-                {createError && (
-                  <p className="text-xs text-red-500">{createError}</p>
-                )}
-                <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreate(false)}
-                    className="px-4 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={!roomName.trim() || creating}
-                    className="px-4 py-2 rounded-lg text-sm bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 dark:disabled:bg-indigo-800 text-white font-medium transition"
-                  >
-                    {creating ? 'Creating…' : 'Create'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        {/* Toolbar */}
+        <div
+          style={{
+            padding: '0 32px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setShowCreate(true);
+              setCreateError(null);
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <path d="M8 3v10M3 8h10" />
+            </svg>
+            New retro
+          </button>
 
-        {/* Room list */}
-        {loading && (
-          <div className="text-center py-16 text-gray-400 dark:text-gray-500">Loading rooms…</div>
-        )}
-        {error && (
-          <div className="text-center py-16 text-red-500">{error}</div>
-        )}
-        {!loading && !error && rooms.length === 0 && (
-          <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-            <p className="text-lg">No retros yet.</p>
-            <p className="text-sm mt-1">Click <strong>New Retro</strong> to create your first board.</p>
-          </div>
-        )}
-        {!loading && !error && rooms.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rooms.map((room) => (
-              <RoomCard key={room.id} room={room} />
+          <GlassPanel style={{ display: 'flex', alignItems: 'center', padding: 3, borderRadius: 10 }}>
+            {([
+              ['date', 'Recent'],
+              ['name', 'A → Z'],
+            ] as const).map(([k, l]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSortBy(k)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  background: sortBy === k ? 'var(--glass-bg-strong)' : 'transparent',
+                  color: sortBy === k ? 'var(--fg-0)' : 'var(--fg-2)',
+                  border: 'none',
+                  borderRadius: 7,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {l}
+              </button>
             ))}
+          </GlassPanel>
+
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(['all', 'active', 'closed'] as const).map((s) => {
+              const active = statusFilter === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatusFilter(s)}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: 11,
+                    borderRadius: 999,
+                    fontFamily: 'var(--font-mono)',
+                    background: active ? 'var(--glass-bg-strong)' : 'transparent',
+                    color: active ? 'var(--fg-0)' : 'var(--fg-2)',
+                    border: '1px solid var(--glass-border)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {s}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
+
+        {/* Boards grid */}
+        <div style={{ padding: '0 32px 32px', flex: 1 }}>
+          {loading && (
+            <div className="fg-2" style={{ textAlign: 'center', padding: '64px 0' }}>
+              Loading retros…
+            </div>
+          )}
+          {error && (
+            <div style={{ textAlign: 'center', padding: '64px 0', color: 'oklch(0.78 0.16 25)' }}>
+              {error}
+            </div>
+          )}
+          {!loading && !error && filteredRooms.length === 0 && (
+            <GlassPanel style={{ padding: 48, textAlign: 'center' }}>
+              <div className="text-display fg-1" style={{ fontSize: 20, marginBottom: 6 }}>
+                {rooms.length === 0 ? 'No retros yet' : 'No matches'}
+              </div>
+              <div className="fg-2" style={{ fontSize: 14 }}>
+                {rooms.length === 0
+                  ? 'Click “New retro” to spin up your first board.'
+                  : 'Try a different search or filter.'}
+              </div>
+            </GlassPanel>
+          )}
+
+          {!loading && !error && activeRooms.length > 0 && (
+            <>
+              <SectionLabel>Active</SectionLabel>
+              <BoardGrid rooms={activeRooms} />
+            </>
+          )}
+          {!loading && !error && closedRooms.length > 0 && (
+            <>
+              <SectionLabel>Closed</SectionLabel>
+              <BoardGrid rooms={closedRooms} />
+            </>
+          )}
+        </div>
       </div>
+
+      {showCreate && (
+        <NewRoomModal
+          name={roomName}
+          setName={setRoomName}
+          onClose={() => setShowCreate(false)}
+          onSubmit={handleCreate}
+          creating={creating}
+          error={createError}
+        />
+      )}
     </main>
   );
 }
 
-function RoomCard({ room }: { room: RoomSummary }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, marginTop: 8 }}>
+      <span
+        className="text-mono fg-3"
+        style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase' }}
+      >
+        {children}
+      </span>
+      <span style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
+    </div>
+  );
+}
+
+function BoardGrid({ rooms }: { rooms: RoomSummary[] }) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: 16,
+        marginBottom: 24,
+      }}
+    >
+      {rooms.map((room, i) => (
+        <BoardCard key={room.id} room={room} delay={i * 0.04} />
+      ))}
+    </div>
+  );
+}
+
+function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
   const isActive = room.status === 'active';
+  const hue = hueFor(room.id);
+  const href = isActive ? `/room/${room.id}/join` : `/room/${room.id}/history`;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
-      {/* Name + status */}
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-tight flex-1 min-w-0 truncate">
+    <Link
+      href={href}
+      style={{
+        position: 'relative',
+        display: 'block',
+        textDecoration: 'none',
+        color: 'inherit',
+        animation: `drop-in 0.5s ${delay}s both cubic-bezier(0.34, 1.4, 0.5, 1)`,
+      }}
+    >
+      <GlassPanel
+        strong
+        style={{
+          padding: 18,
+          minHeight: 180,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          transition: 'transform 0.25s cubic-bezier(0.2, 0.7, 0.3, 1)',
+        }}
+      >
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: -40,
+            right: -40,
+            width: 140,
+            height: 140,
+            borderRadius: '50%',
+            background: `radial-gradient(circle, oklch(0.7 0.2 ${hue} / 0.5), transparent 65%)`,
+            filter: 'blur(20px)',
+            pointerEvents: 'none',
+          }}
+        />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 10,
+            position: 'relative',
+          }}
+        >
+          <span className="text-mono fg-2" style={{ fontSize: 11 }}>
+            {formatDate(room.createdAt)} · {relDate(room.createdAt)}
+          </span>
+          <span
+            className="text-mono"
+            style={{
+              fontSize: 10,
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: isActive ? 'oklch(0.82 0.16 175 / 0.22)' : 'var(--glass-highlight)',
+              color: isActive ? 'oklch(0.92 0.12 175)' : 'var(--fg-2)',
+              border: '1px solid ' + (isActive ? 'oklch(0.82 0.16 175 / 0.3)' : 'var(--glass-border)'),
+            }}
+          >
+            {isActive ? 'live' : 'closed'}
+          </span>
+        </div>
+        <h3
+          className="text-display"
+          style={{
+            margin: 0,
+            fontSize: 20,
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+            flex: 1,
+            color: 'var(--fg-0)',
+          }}
+        >
           {room.name}
         </h3>
-        <span
-          className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
-            isActive
-              ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-          }`}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: 12,
+            paddingTop: 12,
+            borderTop: '1px solid var(--glass-border)',
+            gap: 8,
+          }}
         >
-          {isActive ? 'Active' : 'Closed'}
-        </span>
-      </div>
+          <Stat icon="users" value={room.participantCount} label="people" />
+          <Stat icon="cards" value={room.cardCount} label="cards" />
+          <Stat icon="check" value={room.actionItemCount} label="actions" />
+        </div>
+      </GlassPanel>
+    </Link>
+  );
+}
 
-      {/* Dates */}
-      <div className="text-xs text-gray-400 dark:text-gray-500 space-y-0.5">
-        <p>Created {formatDate(room.createdAt)}</p>
-        {room.closedAt && <p>Closed {formatDate(room.closedAt)}</p>}
-      </div>
+function Stat({ icon, value, label }: { icon: 'users' | 'cards' | 'check'; value: number; label: string }) {
+  const path = {
+    users: 'M11 14a4 4 0 10-6 0M14 14a4 4 0 10-6 0M8 6a2 2 0 110-4 2 2 0 010 4zM5 6a2 2 0 100 0',
+    cards: 'M3 5h10v8H3zM5 3h6',
+    check: 'M3 8l3 3 6-6',
+  }[icon];
+  return (
+    <span
+      className="text-mono fg-2"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}
+      title={`${value} ${label}`}
+    >
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={path} />
+      </svg>
+      {value}
+    </span>
+  );
+}
 
-      {/* Stats */}
-      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-        <span className="flex items-center gap-1">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2h5" />
-            <circle cx="12" cy="7" r="4" strokeWidth={2} />
-          </svg>
-          {room.participantCount}
-        </span>
-        <span className="flex items-center gap-1">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          {room.cardCount} cards
-        </span>
-        <span className="flex items-center gap-1">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {room.actionItemCount} actions
-        </span>
-      </div>
-
-      {/* CTA */}
-      <div className="mt-auto pt-1">
-        {isActive ? (
-          <Link
-            href={`/room/${room.id}/join`}
-            className="block text-center w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition"
+function NewRoomModal({
+  name,
+  setName,
+  onClose,
+  onSubmit,
+  creating,
+  error,
+}: {
+  name: string;
+  setName: (s: string) => void;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  creating: boolean;
+  error: string | null;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      className="fade-in"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        background: 'oklch(0 0 0 / 0.55)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+      }}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(460px, 100%)' }}>
+        <GlassPanel strong style={{ padding: 28 }}>
+          <div
+            className="text-mono fg-3"
+            style={{
+              fontSize: 11,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}
           >
-            Join
-          </Link>
-        ) : (
-          <Link
-            href={`/room/${room.id}/history`}
-            className="block text-center w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium transition"
-          >
-            View History
-          </Link>
-        )}
+            New retro
+          </div>
+          <h2 className="text-display" style={{ margin: '0 0 18px', fontSize: 26, fontWeight: 600 }}>
+            Create a retro board
+          </h2>
+
+          <form onSubmit={onSubmit}>
+            <label
+              className="text-mono fg-2"
+              style={{ display: 'block', marginBottom: 6, fontSize: 11 }}
+              htmlFor="roomName"
+            >
+              Title
+            </label>
+            <input
+              id="roomName"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={80}
+              autoFocus
+              className="field"
+              style={{ marginBottom: 16 }}
+            />
+
+            {error && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'oklch(0.85 0.14 25)',
+                  background: 'oklch(0.65 0.18 25 / 0.12)',
+                  border: '1px solid oklch(0.65 0.18 25 / 0.25)',
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  marginBottom: 12,
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-ghost" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={!name.trim() || creating}
+              >
+                {creating ? 'Creating…' : 'Create board'}
+              </button>
+            </div>
+          </form>
+        </GlassPanel>
       </div>
     </div>
   );

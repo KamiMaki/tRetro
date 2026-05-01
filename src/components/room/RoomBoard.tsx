@@ -6,6 +6,7 @@ import { RoomHeader } from '@/components/room/RoomHeader';
 import { Board } from '@/components/board/Board';
 import { ActionItemList } from '@/components/action-items/ActionItemList';
 import { Toast } from '@/components/ui/Toast';
+import { AuroraBg } from '@/components/ui/Aurora';
 
 interface RoomBoardProps {
   roomId: string;
@@ -45,48 +46,63 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const [sortAsc, setSortAsc] = useState(true);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
-      <RoomHeader
-        room={room}
-        participants={participants}
-        connectionStatus={connectionStatus}
-        isScrumMaster={isScrumMaster}
-        roomId={roomId}
-        cards={cards}
-        actionItems={actionItems}
-        onCloseRoom={closeRoom}
-      />
+    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', isolation: 'isolate' }}>
+      <AuroraBg />
 
-      <main className="flex-1 p-4 md:p-6 space-y-6 max-w-screen-2xl mx-auto w-full">
-        <Board
-          cards={cards}
-          tags={tags}
-          isScrumMaster={isScrumMaster}
-          activeTagFilters={activeTagFilters}
-          setActiveTagFilters={setActiveTagFilters}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          sortAsc={sortAsc}
-          setSortAsc={setSortAsc}
-          onAddCard={addCard}
-          onDeleteCard={deleteCard}
-          onRevealCard={revealCard}
-          onCreateTag={createTag}
-          onAddComment={addComment}
-          onToggleReaction={toggleReaction}
-          onToggleVote={toggleVote}
-          onAddDrawing={addDrawing}
-        />
-
-        <ActionItemList
-          actionItems={actionItems}
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <RoomHeader
+          room={room}
           participants={participants}
+          connectionStatus={connectionStatus}
           isScrumMaster={isScrumMaster}
-          onAdd={addActionItem}
-          onUpdate={updateActionItem}
-          onDelete={deleteActionItem}
+          roomId={roomId}
+          cards={cards}
+          actionItems={actionItems}
+          onCloseRoom={closeRoom}
         />
-      </main>
+
+        <main
+          style={{
+            flex: 1,
+            padding: '20px clamp(16px, 3vw, 32px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 20,
+            maxWidth: 1600,
+            width: '100%',
+            margin: '0 auto',
+          }}
+        >
+          <Board
+            cards={cards}
+            tags={tags}
+            isScrumMaster={isScrumMaster}
+            activeTagFilters={activeTagFilters}
+            setActiveTagFilters={setActiveTagFilters}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            sortAsc={sortAsc}
+            setSortAsc={setSortAsc}
+            onAddCard={addCard}
+            onDeleteCard={deleteCard}
+            onRevealCard={revealCard}
+            onCreateTag={createTag}
+            onAddComment={addComment}
+            onToggleReaction={toggleReaction}
+            onToggleVote={toggleVote}
+            onAddDrawing={addDrawing}
+          />
+
+          <ActionItemList
+            actionItems={actionItems}
+            participants={participants}
+            isScrumMaster={isScrumMaster}
+            onAdd={addActionItem}
+            onUpdate={updateActionItem}
+            onDelete={deleteActionItem}
+          />
+        </main>
+      </div>
 
       {toastMessage && (
         <Toast

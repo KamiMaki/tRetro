@@ -11,44 +11,50 @@ interface ToastProps {
   duration?: number;
 }
 
-const TYPE_STYLES: Record<ToastType, { container: string; icon: string }> = {
+const TYPE_STYLES: Record<ToastType, { bg: string; border: string; color: string }> = {
   success: {
-    container: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
-    icon: 'text-green-500',
+    bg: 'oklch(0.82 0.16 175 / 0.18)',
+    border: 'oklch(0.82 0.16 175 / 0.4)',
+    color: 'oklch(0.92 0.12 175)',
   },
   error: {
-    container: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
-    icon: 'text-red-500',
+    bg: 'oklch(0.65 0.18 25 / 0.18)',
+    border: 'oklch(0.65 0.18 25 / 0.4)',
+    color: 'oklch(0.92 0.10 25)',
   },
   info: {
-    container: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
-    icon: 'text-blue-500',
+    bg: 'oklch(0.78 0.14 210 / 0.18)',
+    border: 'oklch(0.78 0.14 210 / 0.4)',
+    color: 'oklch(0.92 0.10 210)',
   },
 };
 
 const ICONS: Record<ToastType, React.ReactNode> = {
   success: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 8l2 2 4-4" />
     </svg>
   ),
   error: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" />
+      <path strokeLinecap="round" d="M8 5v3M8 11h.01" />
     </svg>
   ),
   info: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" />
+      <path strokeLinecap="round" d="M8 7v4M8 5h.01" />
     </svg>
   ),
 };
 
 export function Toast({ message, type, onDismiss, duration = 5000 }: ToastProps) {
   const [visible, setVisible] = useState(false);
+  const styles = TYPE_STYLES[type];
 
   useEffect(() => {
-    // Trigger enter animation
     const showTimer = setTimeout(() => setVisible(true), 10);
     const dismissTimer = setTimeout(() => {
       setVisible(false);
@@ -61,28 +67,60 @@ export function Toast({ message, type, onDismiss, duration = 5000 }: ToastProps)
     };
   }, [duration, onDismiss]);
 
-  const styles = TYPE_STYLES[type];
-
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg max-w-sm transition-all duration-300 ${styles.container} ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-      }`}
       role="alert"
       aria-live="polite"
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        right: 24,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        padding: '12px 14px',
+        borderRadius: 12,
+        maxWidth: 380,
+        background: `${styles.bg}, var(--glass-bg-strong)`,
+        backgroundBlendMode: 'overlay',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: `1px solid ${styles.border}`,
+        boxShadow: '0 8px 32px oklch(0 0 0 / 0.4)',
+        color: styles.color,
+        fontSize: 13,
+        lineHeight: 1.45,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(8px)',
+        transition: 'opacity .25s, transform .25s',
+        fontFamily: 'var(--font-body)',
+      }}
     >
-      <span className={`shrink-0 mt-0.5 ${styles.icon}`}>{ICONS[type]}</span>
-      <p className="text-sm leading-snug flex-1">{message}</p>
+      <span style={{ flexShrink: 0, marginTop: 1 }}>{ICONS[type]}</span>
+      <span style={{ flex: 1, color: 'var(--fg-0)' }}>{message}</span>
       <button
+        type="button"
         onClick={() => {
           setVisible(false);
           setTimeout(onDismiss, 300);
         }}
-        className="shrink-0 opacity-60 hover:opacity-100 transition"
         aria-label="Dismiss notification"
+        style={{
+          flexShrink: 0,
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--fg-2)',
+          cursor: 'pointer',
+          padding: 0,
+          opacity: 0.7,
+          transition: 'opacity .15s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+          <path d="M3 3l10 10M13 3L3 13" />
         </svg>
       </button>
     </div>
