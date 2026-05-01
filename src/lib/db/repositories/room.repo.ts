@@ -45,21 +45,58 @@ export const roomRepo = {
         r.id, r.name, r.status, r.created_at, r.closed_at,
         (SELECT COUNT(*) FROM participants p WHERE p.room_id = r.id) as participant_count,
         (SELECT COUNT(*) FROM cards c WHERE c.room_id = r.id) as card_count,
-        (SELECT COUNT(*) FROM action_items a WHERE a.room_id = r.id) as action_item_count
+        (SELECT COUNT(*) FROM action_items a WHERE a.room_id = r.id) as action_item_count,
+        (SELECT COUNT(*) FROM cards c WHERE c.room_id = r.id AND c.section = 'went-well')  as count_went_well,
+        (SELECT COUNT(*) FROM cards c WHERE c.room_id = r.id AND c.section = 'to-improve') as count_to_improve,
+        (SELECT COUNT(*) FROM cards c WHERE c.room_id = r.id AND c.section = 'thanks')     as count_thanks,
+        (SELECT COUNT(*) FROM cards c WHERE c.room_id = r.id AND c.section = 'deep-dive')  as count_deep_dive,
+        (SELECT MAX(created_at) FROM cards        WHERE room_id = r.id) as last_card_at,
+        (SELECT MAX(created_at) FROM comments     WHERE room_id = r.id) as last_comment_at,
+        (SELECT MAX(created_at) FROM action_items WHERE room_id = r.id) as last_action_at
       FROM rooms r
       ORDER BY r.created_at DESC
-    `).all() as Array<RoomRow & { participant_count: number; card_count: number; action_item_count: number }>;
+    `).all() as Array<RoomRow & {
+      participant_count: number;
+      card_count: number;
+      action_item_count: number;
+      count_went_well: number;
+      count_to_improve: number;
+      count_thanks: number;
+      count_deep_dive: number;
+      last_card_at: string | null;
+      last_comment_at: string | null;
+      last_action_at: string | null;
+    }>;
 
-    return rows.map(r => ({
-      id: r.id,
-      name: r.name,
-      status: r.status as Room['status'],
-      createdAt: r.created_at,
-      closedAt: r.closed_at,
-      participantCount: r.participant_count,
-      cardCount: r.card_count,
-      actionItemCount: r.action_item_count,
-    }));
+    return rows.map(r => {
+      const candidates: Array<string | null> = [
+        r.last_card_at,
+        r.last_comment_at,
+        r.last_action_at,
+        r.closed_at,
+        r.created_at,
+      ];
+      const lastActivityAt = candidates
+        .filter((v): v is string => !!v)
+        .reduce((a, b) => (a > b ? a : b), r.created_at);
+      return {
+        id: r.id,
+        name: r.name,
+        status: r.status as Room['status'],
+        createdAt: r.created_at,
+        closedAt: r.closed_at,
+        participantCount: r.participant_count,
+        cardCount: r.card_count,
+        actionItemCount: r.action_item_count,
+        lastActivityAt,
+        sectionCounts: {
+          'went-well': r.count_went_well,
+          'to-improve': r.count_to_improve,
+          'thanks': r.count_thanks,
+          'deep-dive': r.count_deep_dive,
+        },
+      };
+    });
   },
 
   close(id: string): Room | null {

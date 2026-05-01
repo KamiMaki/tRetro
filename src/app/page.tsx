@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import type { RoomSummary } from '@/lib/types';
+import type { RoomSummary, SectionType } from '@/lib/types';
+import { SECTIONS, SECTION_EMOJIS, SECTION_LABELS } from '@/lib/types';
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useShortcuts } from '@/lib/hooks/useShortcuts';
+import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -35,6 +38,11 @@ function hueFor(id: string) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialStatus = (() => {
+    const s = searchParams.get('status');
+    return s === 'active' || s === 'closed' ? s : 'all';
+  })();
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +54,39 @@ export default function DashboardPage() {
 
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>(initialStatus);
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  const SHORTCUTS: KeyboardHelpItem[] = [
+    { keys: '/', description: 'Focus search', group: 'Navigation' },
+    { keys: 'n', description: 'New retro', group: 'Actions' },
+    { keys: '?', description: 'Show this help', group: 'Help' },
+  ];
+
+  useShortcuts([
+    {
+      keys: '/',
+      description: 'Focus search',
+      handler: () => {
+        const el = document.getElementById('dashboard-search') as HTMLInputElement | null;
+        el?.focus();
+        el?.select();
+      },
+    },
+    {
+      keys: 'n',
+      description: 'New retro',
+      handler: () => {
+        setShowCreate(true);
+        setCreateError(null);
+      },
+    },
+    {
+      keys: '?',
+      description: 'Open help',
+      handler: () => setHelpOpen(true),
+    },
+  ]);
 
   async function fetchRooms() {
     try {
@@ -143,9 +183,11 @@ export default function DashboardPage() {
               <path d="M11 11l3 3" strokeLinecap="round" />
             </svg>
             <input
+              id="dashboard-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search retros…"
+              aria-label="Search retros"
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -307,6 +349,12 @@ export default function DashboardPage() {
           error={createError}
         />
       )}
+
+      <KeyboardHelp
+        open={helpOpen}
+        items={SHORTCUTS}
+        onClose={() => setHelpOpen(false)}
+      />
     </main>
   );
 }
@@ -330,13 +378,13 @@ function BoardGrid({ rooms }: { rooms: RoomSummary[] }) {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
         gap: 16,
         marginBottom: 24,
       }}
     >
       {rooms.map((room, i) => (
-        <BoardCard key={room.id} room={room} delay={i * 0.04} />
+        <BoardCard key={room.id} room={room} delay={Math.min(i, 12) * 0.04} />
       ))}
     </div>
   );
@@ -346,6 +394,7 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
   const isActive = room.status === 'active';
   const hue = hueFor(room.id);
   const href = isActive ? `/room/${room.id}/join` : `/room/${room.id}/history`;
+  const lastActive = relDate(room.lastActivityAt);
 
   return (
     <Link
@@ -362,7 +411,7 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
         strong
         style={{
           padding: 18,
-          minHeight: 180,
+          minHeight: 200,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -393,7 +442,7 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
           }}
         >
           <span className="text-mono fg-2" style={{ fontSize: 11 }}>
-            {formatDate(room.createdAt)} · {relDate(room.createdAt)}
+            {formatDate(room.createdAt)} · active {lastActive}
           </span>
           <span
             className={`text-mono status-pill ${isActive ? 'status-live' : 'status-closed'}`}
@@ -409,29 +458,80 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
             fontSize: 20,
             fontWeight: 600,
             letterSpacing: '-0.02em',
-            flex: 1,
             color: 'var(--fg-0)',
           }}
         >
           {room.name}
         </h3>
+
+        {/* Section preview row */}
+        <div
+          aria-label="Card counts per section"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 6,
+            marginTop: 14,
+          }}
+        >
+          {SECTIONS.map((s) => (
+            <SectionBadge
+              key={s}
+              section={s}
+              count={room.sectionCounts[s] ?? 0}
+            />
+          ))}
+        </div>
+
+        {/* Footer stats */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginTop: 12,
+            marginTop: 'auto',
             paddingTop: 12,
             borderTop: '1px solid var(--glass-border)',
             gap: 8,
           }}
         >
-          <Stat icon="users" value={room.participantCount} label="people" />
-          <Stat icon="cards" value={room.cardCount} label="cards" />
-          <Stat icon="check" value={room.actionItemCount} label="actions" />
+          <div style={{ display: 'inline-flex', gap: 12 }}>
+            <Stat icon="users" value={room.participantCount} label="people" />
+            <Stat icon="cards" value={room.cardCount} label="cards" />
+            <Stat icon="check" value={room.actionItemCount} label="actions" />
+          </div>
         </div>
       </GlassPanel>
     </Link>
+  );
+}
+
+function SectionBadge({ section, count }: { section: SectionType; count: number }) {
+  const emoji = SECTION_EMOJIS[section];
+  const label = SECTION_LABELS[section];
+  const isEmpty = count === 0;
+  return (
+    <div
+      title={`${label}: ${count} card${count === 1 ? '' : 's'}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        padding: '4px 6px',
+        borderRadius: 8,
+        background: isEmpty ? 'transparent' : 'var(--glass-highlight)',
+        border: '1px solid var(--glass-border)',
+        opacity: isEmpty ? 0.42 : 1,
+        fontSize: 11,
+        fontFamily: 'var(--font-mono)',
+        color: 'var(--fg-1)',
+        minWidth: 0,
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: 13 }}>{emoji}</span>
+      <span style={{ fontWeight: 600, color: isEmpty ? 'var(--fg-3)' : 'var(--fg-0)' }}>{count}</span>
+    </div>
   );
 }
 

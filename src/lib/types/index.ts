@@ -133,6 +133,10 @@ export interface RoomSummary {
   participantCount: number;
   cardCount: number;
   actionItemCount: number;
+  /** ISO timestamp of last activity (newest of cards / comments / action_items / createdAt). */
+  lastActivityAt: string;
+  /** Card count per section. */
+  sectionCounts: Record<SectionType, number>;
 }
 
 // Socket event payloads
