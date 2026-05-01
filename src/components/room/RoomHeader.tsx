@@ -24,6 +24,7 @@ interface RoomHeaderProps {
   actionItems: ActionItem[];
   onCloseRoom: () => void;
   onReopenRoom: () => void;
+  onOpenFacilitator: () => void;
 }
 
 const STATUS_COLORS: Record<RoomHeaderProps['connectionStatus'], string> = {
@@ -48,8 +49,10 @@ export function RoomHeader({
   roomId,
   onCloseRoom,
   onReopenRoom,
+  onOpenFacilitator,
 }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
+  const [aiCopied, setAiCopied] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const { density, toggle: toggleDensity, hydrated: densityHydrated } = useDensity();
 
@@ -77,6 +80,19 @@ export function RoomHeader({
     if (!res.ok) return;
     const text = await res.text();
     download(text, `retro-${roomId}.html`, 'text/html');
+  };
+
+  const handleCopyAiPrompt = async () => {
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/export?format=ai`);
+      if (!res.ok) return;
+      const text = await res.text();
+      await navigator.clipboard.writeText(text);
+      setAiCopied(true);
+      setTimeout(() => setAiCopied(false), 2200);
+    } catch {
+      // clipboard may fail in iframe / insecure context — silently no-op
+    }
   };
 
   const download = (content: string, filename: string, mime: string) => {
@@ -268,6 +284,20 @@ export function RoomHeader({
 
       <ThemeToggle />
 
+      {/* Facilitator guide — useful for any participant running the meeting */}
+      <button
+        type="button"
+        className="btn"
+        onClick={onOpenFacilitator}
+        title="Open facilitator guide (tips & prompts per phase)"
+      >
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3 2h7l3 3v9H3z" />
+          <path d="M5 6h6M5 9h6M5 12h4" />
+        </svg>
+        Guide
+      </button>
+
       {/* Share */}
       <button type="button" className="btn" onClick={handleCopyLink}>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -281,6 +311,23 @@ export function RoomHeader({
       {/* SM-only actions */}
       {isScrumMaster && (
         <>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleCopyAiPrompt}
+            title="Copy an AI-ready prompt + retro content to your clipboard. Paste into ChatGPT / Claude / Gemini for theme summary."
+            style={{
+              background: aiCopied ? 'oklch(0.78 0.15 175 / 0.20)' : undefined,
+              borderColor: aiCopied ? 'oklch(0.78 0.15 175 / 0.45)' : undefined,
+              color: aiCopied ? 'oklch(0.92 0.12 175)' : undefined,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2 2M10.6 10.6l2 2M3.4 12.6l2-2M10.6 5.4l2-2" />
+              <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+            </svg>
+            {aiCopied ? 'Copied · paste into AI' : 'Copy AI prompt'}
+          </button>
           <button type="button" className="btn" onClick={handleExportMD} title="Export as Markdown">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M8 11V2M5 5l3-3 3 3M3 11v3h10v-3" />

@@ -5,6 +5,7 @@ import { tagRepo } from '@/lib/db/repositories/tag.repo';
 import { actionItemRepo } from '@/lib/db/repositories/action-item.repo';
 import { participantRepo } from '@/lib/db/repositories/participant.repo';
 import { exportToMarkdown, exportToHtml } from '@/lib/utils/export';
+import { buildAiSummaryMarkdown } from '@/lib/utils/aiExportTemplate';
 
 export async function GET(
   request: Request,
@@ -41,6 +42,16 @@ export async function GET(
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Disposition': `attachment; filename="${room.name}-retro.html"`,
+      },
+    });
+  }
+
+  if (format === 'ai') {
+    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, participants.length);
+    return new Response(aiMd, {
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${room.name}-retro-ai-summary.md"`,
       },
     });
   }

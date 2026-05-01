@@ -11,6 +11,7 @@ import { MetricsPanel } from '@/components/metrics/MetricsPanel';
 import { Toast } from '@/components/ui/Toast';
 import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
+import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
 
 interface RoomBoardProps {
   roomId: string;
@@ -57,6 +58,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const [sortAsc, setSortAsc] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('actions');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [facilitatorOpen, setFacilitatorOpen] = useState(false);
   const [prefilledActionContent, setPrefilledActionContent] = useState('');
 
   const handleConvertCardToAction = (content: string) => {
@@ -68,9 +70,10 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     { keys: 'n', description: 'Focus the first card composer', group: 'Cards' },
     { keys: 'a', description: 'Show Action items in sidebar', group: 'Sidebar' },
     { keys: 'm', description: 'Show Sprint metrics in sidebar', group: 'Sidebar' },
+    { keys: 'g f', description: 'Open facilitator guide', group: 'Help' },
     { keys: 'g h', description: 'Go to past retros (closed)', group: 'Navigation' },
     { keys: 'g d', description: 'Go to dashboard', group: 'Navigation' },
-    { keys: '?', description: 'Show this help', group: 'Help' },
+    { keys: '?', description: 'Show keyboard shortcuts', group: 'Help' },
   ];
 
   useShortcuts([
@@ -106,6 +109,11 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
       handler: () => router.push('/'),
     },
     {
+      keys: 'g f',
+      description: 'Open facilitator guide',
+      handler: () => setFacilitatorOpen(true),
+    },
+    {
       keys: '?',
       description: 'Show keyboard shortcuts',
       handler: () => setHelpOpen(true),
@@ -136,6 +144,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           actionItems={actionItems}
           onCloseRoom={closeRoom}
           onReopenRoom={reopenRoom}
+          onOpenFacilitator={() => setFacilitatorOpen(true)}
         />
 
         <main className="room-shell">
@@ -250,6 +259,11 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         open={helpOpen}
         items={SHORTCUTS}
         onClose={() => setHelpOpen(false)}
+      />
+
+      <FacilitatorPanel
+        open={facilitatorOpen}
+        onClose={() => setFacilitatorOpen(false)}
       />
 
       <style jsx>{`
