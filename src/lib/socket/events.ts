@@ -10,6 +10,8 @@ export const SOCKET_EVENTS = {
   ROOM_PARTICIPANT_LEFT: 'room:participant:left',
   ROOM_CLOSE: 'room:close',
   ROOM_CLOSED: 'room:closed',
+  ROOM_REOPEN: 'room:reopen',
+  ROOM_REOPENED: 'room:reopened',
 
   // Cards
   CARD_CREATE: 'card:create',

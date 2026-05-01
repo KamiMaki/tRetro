@@ -41,6 +41,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     updateActionItem,
     deleteActionItem,
     closeRoom,
+    reopenRoom,
     addComment,
     toggleReaction,
     toggleVote,
@@ -128,6 +129,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           cards={cards}
           actionItems={actionItems}
           onCloseRoom={closeRoom}
+          onReopenRoom={reopenRoom}
         />
 
         <main className="room-shell">

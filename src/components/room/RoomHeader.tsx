@@ -23,6 +23,7 @@ interface RoomHeaderProps {
   cards: CardDTO[];
   actionItems: ActionItem[];
   onCloseRoom: () => void;
+  onReopenRoom: () => void;
 }
 
 const STATUS_COLORS: Record<RoomHeaderProps['connectionStatus'], string> = {
@@ -46,6 +47,7 @@ export function RoomHeader({
   isScrumMaster,
   roomId,
   onCloseRoom,
+  onReopenRoom,
 }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -313,6 +315,26 @@ export function RoomHeader({
             </button>
           )}
         </>
+      )}
+
+      {isScrumMaster && room?.status === 'closed' && (
+        <button
+          type="button"
+          className="btn"
+          onClick={onReopenRoom}
+          title="Reopen this retro for further edits"
+          style={{
+            background: 'oklch(0.78 0.15 175 / 0.18)',
+            borderColor: 'oklch(0.78 0.15 175 / 0.35)',
+            color: 'oklch(0.92 0.12 175)',
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 8a5 5 0 1 1 1.5 3.5L3 10" />
+            <path d="M3 13v-3h3" />
+          </svg>
+          Reopen
+        </button>
       )}
     </header>
   );

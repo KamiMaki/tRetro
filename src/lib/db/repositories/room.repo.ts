@@ -106,4 +106,12 @@ export const roomRepo = {
     ).run(id);
     return this.findById(id);
   },
+
+  reopen(id: string): Room | null {
+    const db = getDb();
+    db.prepare(
+      "UPDATE rooms SET status = 'active', closed_at = NULL, updated_at = datetime('now') WHERE id = ?"
+    ).run(id);
+    return this.findById(id);
+  },
 };

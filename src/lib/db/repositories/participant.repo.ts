@@ -31,21 +31,14 @@ export const participantRepo = {
     const id = generateId();
     const sessionToken = crypto.randomUUID();
 
-    // Use transaction to safely determine SM status
-    const result = db.transaction(() => {
-      const existing = db.prepare(
-        'SELECT COUNT(*) as count FROM participants WHERE room_id = ? AND is_scrum_master = 1'
-      ).get(roomId) as { count: number };
-      const isScrumMaster = existing.count === 0 ? 1 : 0;
+    // Everyone joining a retro gets full Scrum Master powers — anonymous,
+    // shared facilitation. Avoids the "first joiner only" trap where a SM
+    // who reconnects loses their controls.
+    db.prepare(
+      'INSERT INTO participants (id, room_id, nickname, is_scrum_master, session_token) VALUES (?, ?, ?, ?, ?)'
+    ).run(id, roomId, nickname, 1, sessionToken);
 
-      db.prepare(
-        'INSERT INTO participants (id, room_id, nickname, is_scrum_master, session_token) VALUES (?, ?, ?, ?, ?)'
-      ).run(id, roomId, nickname, isScrumMaster, sessionToken);
-
-      return this.findById(id)!;
-    })();
-
-    return result;
+    return this.findById(id)!;
   },
 
   findById(id: string): Participant | null {

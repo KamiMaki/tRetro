@@ -54,6 +54,7 @@ interface UseRoomReturn {
   updateActionItem: (payload: UpdateActionItemPayload) => void;
   deleteActionItem: (actionItemId: string) => void;
   closeRoom: () => void;
+  reopenRoom: () => void;
   addComment: (cardId: string, content: string) => void;
   toggleReaction: (cardId: string, emoji: string) => void;
   toggleVote: (cardId: string) => void;
@@ -203,6 +204,11 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       setToastMessage({ message: 'The room has been closed by the Scrum Master.', type: 'info' });
     });
 
+    socket.on(SOCKET_EVENTS.ROOM_REOPENED, () => {
+      setRoom((prev) => (prev ? { ...prev, status: 'active', closedAt: null } : prev));
+      setToastMessage({ message: 'The room has been reopened.', type: 'success' });
+    });
+
     // V2: Comments
     socket.on(SOCKET_EVENTS.COMMENT_CREATED, (comment: Comment) => {
       setCards((prev) =>
@@ -324,6 +330,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.ROOM_CLOSE, { roomId });
   }, [roomId]);
 
+  const reopenRoom = useCallback(() => {
+    socketRef.current?.emit(SOCKET_EVENTS.ROOM_REOPEN, { roomId });
+  }, [roomId]);
+
   const addComment = useCallback((cardId: string, content: string) => {
     socketRef.current?.emit(SOCKET_EVENTS.COMMENT_CREATE, { cardId, content });
   }, []);
@@ -365,6 +375,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     updateActionItem,
     deleteActionItem,
     closeRoom,
+    reopenRoom,
     addComment,
     toggleReaction,
     toggleVote,

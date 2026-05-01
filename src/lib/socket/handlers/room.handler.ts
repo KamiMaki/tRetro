@@ -64,6 +64,16 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     io.to(data.roomId).emit(SOCKET_EVENTS.ROOM_CLOSED, { room });
   });
 
+  // Reopen room (SM only) — undo a close
+  socket.on(SOCKET_EVENTS.ROOM_REOPEN, () => {
+    if (!data.isScrumMaster) {
+      socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only Scrum Master can reopen the room', code: 'FORBIDDEN' });
+      return;
+    }
+    const room = roomRepo.reopen(data.roomId);
+    io.to(data.roomId).emit(SOCKET_EVENTS.ROOM_REOPENED, { room });
+  });
+
   // Disconnect
   socket.on(SOCKET_EVENTS.DISCONNECT, () => {
     participantRepo.setOnline(data.participantId, false);
