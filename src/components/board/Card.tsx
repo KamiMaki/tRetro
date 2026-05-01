@@ -9,11 +9,14 @@ import { CommentList } from '@/components/board/CommentList';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { DrawingModal } from '@/components/board/DrawingModal';
 import { Avatar } from '@/components/ui/Aurora';
+import { computeConsensus } from '@/lib/util/consensus';
 
 interface CardProps {
   card: CardDTOv2;
   tone?: 'mint' | 'pink' | 'amber' | 'violet';
   isScrumMaster: boolean;
+  /** Total participants in the room (consensus denominator). */
+  participantCount: number;
   onDelete: (cardId: string) => void;
   onReveal: (cardId: string) => void;
   onAddComment: (cardId: string, content: string) => void;
@@ -26,6 +29,7 @@ export function Card({
   card,
   tone = 'violet',
   isScrumMaster,
+  participantCount,
   onDelete,
   onReveal,
   onAddComment,
@@ -38,6 +42,8 @@ export function Card({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
   const [size, setSize] = useState<'normal' | 'large'>('normal');
+  const consensus = computeConsensus(card.voteCount, participantCount);
+  const showConsensus = card.voteCount > 0 && participantCount > 0;
 
   const authorLabel = card.isRevealed && card.authorNickname
     ? card.authorNickname
@@ -47,7 +53,13 @@ export function Card({
 
   return (
     <>
-      <div className="sticky-card" data-tone={tone} data-size={size} style={{ position: 'relative' }}>
+      <div
+        className="sticky-card"
+        data-tone={tone}
+        data-size={size}
+        data-consensus={showConsensus ? consensus.level : undefined}
+        style={{ position: 'relative' }}
+      >
         {/* Card content */}
         <div
           style={{
@@ -131,6 +143,23 @@ export function Card({
             hasVoted={card.hasVoted}
             onToggleVote={onToggleVote}
           />
+          {showConsensus && (
+            <span
+              className="text-mono"
+              data-consensus={consensus.level}
+              title={`Team consensus: ${consensus.label}`}
+              aria-label={`Consensus ${consensus.label}`}
+              style={{
+                fontSize: 10,
+                padding: '1px 6px',
+                borderRadius: 999,
+                lineHeight: 1.4,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {consensus.pct}%
+            </span>
+          )}
 
           <button
             type="button"

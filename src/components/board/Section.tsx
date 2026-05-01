@@ -20,6 +20,7 @@ interface SectionProps {
   cards: CardDTOv2[];
   tags: Tag[];
   isScrumMaster: boolean;
+  participantCount: number;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string) => void;
@@ -35,6 +36,7 @@ export function Section({
   cards,
   tags,
   isScrumMaster,
+  participantCount,
   onAddCard,
   onDeleteCard,
   onRevealCard,
@@ -134,6 +136,7 @@ export function Section({
                   card={card}
                   tone={tone}
                   isScrumMaster={isScrumMaster}
+                  participantCount={participantCount}
                   onDelete={onDeleteCard}
                   onReveal={onRevealCard}
                   onAddComment={onAddComment}
@@ -163,6 +166,7 @@ export function Section({
           cards={cards}
           tags={tags}
           isScrumMaster={isScrumMaster}
+          participantCount={participantCount}
           onClose={() => setFullscreen(false)}
           onAddCard={onAddCard}
           onDeleteCard={onDeleteCard}

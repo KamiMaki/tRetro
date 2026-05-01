@@ -19,6 +19,7 @@ interface SectionFullscreenProps {
   cards: CardDTOv2[];
   tags: Tag[];
   isScrumMaster: boolean;
+  participantCount: number;
   onClose: () => void;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
@@ -36,6 +37,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     cards,
     tags,
     isScrumMaster,
+    participantCount,
     onClose,
     onAddCard,
     onDeleteCard,
@@ -127,6 +129,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               card={card}
               tone={tone}
               isScrumMaster={isScrumMaster}
+              participantCount={participantCount}
               onDelete={onDeleteCard}
               onReveal={onRevealCard}
               onAddComment={onAddComment}

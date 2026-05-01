@@ -139,6 +139,7 @@ export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: Me
           const agg = aggregateByKey.get(def.key);
           const avg = agg?.average ?? null;
           const subs = agg?.submissions ?? 0;
+          const ownScore = ownMetricScores[def.key];
           return (
             <AggregateRow
               key={def.key}
@@ -148,6 +149,7 @@ export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: Me
               tone={def.tone}
               average={avg}
               submissions={subs}
+              ownScore={typeof ownScore === 'number' ? ownScore : null}
             />
           );
         })}
@@ -242,16 +244,19 @@ interface AggregateRowProps {
   tone: 'mint' | 'cyan' | 'violet' | 'pink' | 'amber';
   average: number | null;
   submissions: number;
+  /** Score the current participant submitted (visible only to them). */
+  ownScore: number | null;
 }
 
-function AggregateRow({ emoji, label, shortLabel, tone, average, submissions }: AggregateRowProps) {
+function AggregateRow({ emoji, label, shortLabel, tone, average, submissions, ownScore }: AggregateRowProps) {
   const pct = average == null ? 0 : Math.max(0, Math.min(100, average));
+  const ownPct = ownScore == null ? null : Math.max(0, Math.min(100, ownScore));
   const tint = toneToColor(tone);
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '110px 1fr 70px',
+        gridTemplateColumns: '110px 1fr 78px',
         alignItems: 'center',
         gap: 12,
       }}
@@ -270,7 +275,7 @@ function AggregateRow({ emoji, label, shortLabel, tone, average, submissions }: 
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={average ?? 0}
-        aria-label={`${shortLabel} team average ${average ?? 'no submissions'}`}
+        aria-label={`${shortLabel} team average ${average ?? 'no submissions'}${ownScore != null ? `, your score ${ownScore}` : ''}`}
         style={{ position: 'relative' }}
       >
         <div
@@ -282,14 +287,30 @@ function AggregateRow({ emoji, label, shortLabel, tone, average, submissions }: 
             transition: 'width 0.6s cubic-bezier(0.2, 0.7, 0.3, 1)',
           }}
         />
+        {ownPct != null && (
+          <div
+            aria-hidden="true"
+            title={`Your score: ${ownScore}`}
+            style={{
+              position: 'absolute',
+              top: -2,
+              left: `calc(${ownPct}% - 1px)`,
+              width: 2,
+              height: 'calc(100% + 4px)',
+              background: 'var(--fg-0)',
+              boxShadow: '0 0 0 1px oklch(0 0 0 / 0.4)',
+              borderRadius: 1,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
       </div>
-      <div style={{ textAlign: 'right' }}>
-        <div className="text-mono" style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 600 }}>
+      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+        <div className="text-mono" style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 600, lineHeight: 1.1 }}>
           {average == null ? '—' : average.toFixed(1)}
         </div>
-        <div className="text-mono fg-3" style={{ fontSize: 10 }}>
-          {submissions} sub
-          {submissions === 1 ? '' : 's'}
+        <div className="text-mono" style={{ fontSize: 10, color: ownScore != null ? 'var(--aurora-violet)' : 'var(--fg-3)', lineHeight: 1.1 }}>
+          {ownScore != null ? `you · ${ownScore}` : `${submissions} sub${submissions === 1 ? '' : 's'}`}
         </div>
       </div>
     </div>

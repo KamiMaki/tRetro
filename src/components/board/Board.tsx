@@ -10,6 +10,7 @@ interface BoardProps {
   cards: CardDTOv2[];
   tags: Tag[];
   isScrumMaster: boolean;
+  participantCount: number;
   activeTagFilters: string[];
   setActiveTagFilters: (filters: string[]) => void;
   sortBy: 'time' | 'tagCount';
@@ -30,6 +31,7 @@ export function Board({
   cards,
   tags,
   isScrumMaster,
+  participantCount,
   activeTagFilters,
   setActiveTagFilters,
   sortBy,
@@ -95,6 +97,7 @@ export function Board({
             cards={filterAndSort(cards.filter((c) => c.section === section))}
             tags={tags}
             isScrumMaster={isScrumMaster}
+            participantCount={participantCount}
             onAddCard={onAddCard}
             onDeleteCard={onDeleteCard}
             onRevealCard={onRevealCard}

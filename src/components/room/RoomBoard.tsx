@@ -138,6 +138,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               cards={cards}
               tags={tags}
               isScrumMaster={isScrumMaster}
+              participantCount={participants.length}
               activeTagFilters={activeTagFilters}
               setActiveTagFilters={setActiveTagFilters}
               sortBy={sortBy}
