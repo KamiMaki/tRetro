@@ -46,6 +46,24 @@
   --radius-lg: 20px;
   --radius-xl: 28px;
 
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+
+  /* Avatar size scale */
+  --avatar-sm: 20px;
+  --avatar-md: 26px;
+  --avatar-lg: 32px;
+
+  /* Focus ring (a11y) */
+  --focus-ring: 2px solid var(--aurora-violet);
+  --focus-ring-offset: 2px;
+  --focus-ring-shadow: 0 0 0 4px oklch(0.68 0.20 285 / 0.22);
+
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -498,12 +516,18 @@ select.field {
   background-position: right 10px center;
   padding-right: 30px;
 }
-input[type="date"].field::-webkit-calendar-picker-indicator {
-  filter: invert(1) opacity(0.6);
-  cursor: pointer;
+/* Date input — let native picker follow the active color-scheme
+   (set on <html> by useTheme), so light theme gets a light picker. */
+input[type="date"].field {
+  color-scheme: light dark;
 }
-[data-theme="light"] input[type="date"].field::-webkit-calendar-picker-indicator {
-  filter: opacity(0.6);
+input[type="date"].field::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+}
+input[type="date"].field::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 /* ───── Toggle switch ───── */
@@ -570,3 +594,109 @@ input[type="date"].field::-webkit-calendar-picker-indicator {
 }
 .modal-backdrop[data-z="lightbox"]   { z-index: 82; background: oklch(0 0 0 / 0.65); }
 [data-theme="light"] .modal-backdrop[data-z="lightbox"] { background: oklch(0.4 0.04 270 / 0.45); }
+
+/* ─────────────────────────────────────────────────────
+   Density: compact mode (board cards)
+   ───────────────────────────────────────────────────── */
+[data-density="compact"] .sticky-card {
+  padding: 8px 10px 7px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+[data-density="compact"] .sticky-card .card-footer {
+  opacity: 0.4;
+  max-height: 28px;
+  overflow: hidden;
+  transition: opacity 0.18s, max-height 0.18s;
+}
+[data-density="compact"] .sticky-card:hover .card-footer,
+[data-density="compact"] .sticky-card:focus-within .card-footer {
+  opacity: 1;
+  max-height: 200px;
+}
+
+/* ─────────────────────────────────────────────────────
+   Section fullscreen overlay
+   ───────────────────────────────────────────────────── */
+.section-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-0);
+  animation: fade-in 0.2s ease-out both;
+}
+.section-fullscreen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 60% at 30% 20%, color-mix(in oklch, var(--col-accent) 26%, transparent), transparent 70%),
+    radial-gradient(60% 60% at 80% 90%, color-mix(in oklch, var(--col-accent) 18%, transparent), transparent 75%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.section-fullscreen-header {
+  position: relative;
+  padding: 16px clamp(20px, 4vw, 40px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+.section-fullscreen-grid {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  padding: clamp(16px, 3vw, 32px);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+@media (min-width: 1600px) {
+  .section-fullscreen-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+.section-fullscreen-form {
+  position: relative;
+  padding: 14px clamp(20px, 3vw, 32px);
+  background: var(--glass-bg-strong);
+  border-top: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* ─────────────────────────────────────────────────────
+   Focus-visible rings (keyboard a11y)
+   Applies only to keyboard focus, not click focus.
+   ───────────────────────────────────────────────────── */
+:where(button, a, [role="button"], [role="tab"], [role="switch"]):focus-visible,
+:where(.btn, .chip):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: var(--focus-ring-shadow);
+  position: relative;
+  z-index: 1;
+}
+:where(input, textarea, select):focus-visible,
+.field:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+  border-color: var(--aurora-violet);
+}
+.toggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* Suppress the redundant default :focus shadow when keyboard
+   focus brings the proper ring; mouse-focus stays subtle. */
+.field:focus:not(:focus-visible) {
+  box-shadow: 0 0 0 3px oklch(0.68 0.20 285 / 0.10);
+}
