@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Room, CardDTO, ActionItem } from '@/lib/types';
 import { Avatar, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useDensity } from '@/lib/hooks/useDensity';
 
 interface ParticipantSummary {
   id: string;
@@ -48,9 +49,11 @@ export function RoomHeader({
 }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const { density, toggle: toggleDensity, hydrated: densityHydrated } = useDensity();
 
   const onlineCount = participants.filter((p) => p.isOnline).length;
   const isLive = connectionStatus === 'connected';
+  const isCompact = density === 'compact';
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/room/${roomId}/join`;
@@ -113,18 +116,54 @@ export function RoomHeader({
 
       <div style={{ minWidth: 0, flex: 1 }}>
         <div
-          className="text-display"
           style={{
-            fontSize: 16,
-            fontWeight: 600,
-            letterSpacing: '-0.01em',
-            color: 'var(--fg-0)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            minWidth: 0,
           }}
         >
-          {room?.name ?? 'Loading…'}
+          <div
+            className="text-display"
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              letterSpacing: '-0.01em',
+              color: 'var(--fg-0)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+            }}
+          >
+            {room?.name ?? 'Loading…'}
+          </div>
+          <Link
+            href="/?status=closed"
+            className="text-mono fg-3 past-retros-link"
+            title="Browse past (closed) retros"
+            style={{
+              fontSize: 11,
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: 'var(--glass-highlight)',
+              border: '1px solid var(--glass-border)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 8a5 5 0 1 0 1.5-3.5L3 6" />
+              <path d="M3 3v3h3" />
+              <path d="M8 5v3l2 2" />
+            </svg>
+            Past retros
+          </Link>
         </div>
         <div className="text-mono fg-3" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
           {isLive && <span className="live-dot" />}
@@ -171,6 +210,59 @@ export function RoomHeader({
           </span>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={toggleDensity}
+        aria-label={`Switch to ${isCompact ? 'comfortable' : 'compact'} layout`}
+        title={`Switch to ${isCompact ? 'comfortable' : 'compact'} layout`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '5px 10px 5px 6px',
+          borderRadius: 999,
+          background: 'var(--glass-bg)',
+          border: '1px solid var(--glass-border)',
+          color: 'var(--fg-1)',
+          cursor: 'pointer',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          lineHeight: 1,
+          opacity: densityHydrated ? 1 : 0,
+          transition: 'background .15s, color .15s, opacity .15s',
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: isCompact
+              ? 'linear-gradient(135deg, var(--aurora-mint), var(--aurora-cyan))'
+              : 'linear-gradient(135deg, var(--aurora-pink), var(--aurora-amber))',
+            color: 'oklch(0.15 0.04 270)',
+          }}
+        >
+          {isCompact ? (
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 4h12M2 8h12M2 12h12" />
+            </svg>
+          ) : (
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 3h12M2 8h12M2 13h12" />
+              <circle cx="2" cy="3" r="0.6" fill="currentColor" />
+              <circle cx="2" cy="8" r="0.6" fill="currentColor" />
+              <circle cx="2" cy="13" r="0.6" fill="currentColor" />
+            </svg>
+          )}
+        </span>
+        {isCompact ? 'compact' : 'cozy'}
+      </button>
 
       <ThemeToggle />
 

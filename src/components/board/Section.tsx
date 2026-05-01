@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTION_LABELS, SECTION_EMOJIS } from '@/lib/types';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
+import { SectionFullscreen } from '@/components/board/SectionFullscreen';
 import { GlassPanel } from '@/components/ui/Aurora';
 
 const SECTION_TONES: Record<SectionType, 'mint' | 'pink' | 'amber' | 'violet'> = {
@@ -44,6 +46,7 @@ export function Section({
 }: SectionProps) {
   const tone = SECTION_TONES[section];
   const emoji = SECTION_EMOJIS[section];
+  const [fullscreen, setFullscreen] = useState(false);
 
   return (
     <div className="col" data-col={section} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -57,7 +60,7 @@ export function Section({
         }}
       >
         {/* Header */}
-        <div className="col-header" style={{ paddingRight: 14 }}>
+        <div className="col-header" style={{ paddingRight: 8 }}>
           <div className="col-icon" aria-hidden="true">{emoji}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="text-display" style={{ fontSize: 15, fontWeight: 600 }}>
@@ -67,6 +70,38 @@ export function Section({
               {cards.length} card{cards.length === 1 ? '' : 's'}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setFullscreen(true)}
+            aria-label={`Expand ${SECTION_LABELS[section]} to fullscreen`}
+            title="Fullscreen (browse all cards)"
+            style={{
+              width: 28,
+              height: 28,
+              padding: 0,
+              borderRadius: 8,
+              background: 'var(--glass-highlight)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--fg-1)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--glass-bg-strong)';
+              e.currentTarget.style.color = 'var(--fg-0)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--glass-highlight)';
+              e.currentTarget.style.color = 'var(--fg-1)';
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" />
+            </svg>
+          </button>
         </div>
 
         {/* Cards */}
@@ -121,6 +156,24 @@ export function Section({
           />
         </div>
       </GlassPanel>
+
+      {fullscreen && (
+        <SectionFullscreen
+          section={section}
+          cards={cards}
+          tags={tags}
+          isScrumMaster={isScrumMaster}
+          onClose={() => setFullscreen(false)}
+          onAddCard={onAddCard}
+          onDeleteCard={onDeleteCard}
+          onRevealCard={onRevealCard}
+          onCreateTag={onCreateTag}
+          onAddComment={onAddComment}
+          onToggleReaction={onToggleReaction}
+          onToggleVote={onToggleVote}
+          onAddDrawing={onAddDrawing}
+        />
+      )}
     </div>
   );
 }

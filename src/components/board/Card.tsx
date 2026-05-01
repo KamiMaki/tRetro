@@ -90,6 +90,7 @@ export function Card({
 
         {/* Footer */}
         <div
+          className="card-footer"
           style={{
             display: 'flex',
             alignItems: 'center',

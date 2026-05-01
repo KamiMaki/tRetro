@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
@@ -75,6 +76,19 @@ export default function JoinPage() {
       }}
     >
       <AuroraBg />
+
+      <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 2 }}>
+        <Link
+          href="/"
+          className="btn btn-ghost"
+          style={{ fontSize: 12, padding: '6px 12px', textDecoration: 'none' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 4l-4 4 4 4" />
+          </svg>
+          Back to dashboard
+        </Link>
+      </div>
 
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}>
         <ThemeToggle />
