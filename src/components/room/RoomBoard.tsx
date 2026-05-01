@@ -5,6 +5,7 @@ import { useRoom } from '@/lib/hooks/useRoom';
 import { RoomHeader } from '@/components/room/RoomHeader';
 import { Board } from '@/components/board/Board';
 import { ActionItemList } from '@/components/action-items/ActionItemList';
+import { MetricsPanel } from '@/components/metrics/MetricsPanel';
 import { Toast } from '@/components/ui/Toast';
 import { AuroraBg } from '@/components/ui/Aurora';
 
@@ -39,6 +40,9 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     toggleReaction,
     toggleVote,
     addDrawing,
+    metricsAggregate,
+    ownMetricScores,
+    submitMetrics,
   } = roomState;
 
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
@@ -91,6 +95,12 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
             onToggleReaction={toggleReaction}
             onToggleVote={toggleVote}
             onAddDrawing={addDrawing}
+          />
+
+          <MetricsPanel
+            metricsAggregate={metricsAggregate}
+            ownMetricScores={ownMetricScores}
+            onSubmit={submitMetrics}
           />
 
           <ActionItemList

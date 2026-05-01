@@ -19,7 +19,10 @@ import type {
   CreateTagPayload,
   CreateActionItemPayload,
   UpdateActionItemPayload,
+  MetricAggregate,
+  OwnMetricScores,
 } from '@/lib/types';
+import { METRIC_KEYS } from '@/lib/types';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -55,6 +58,9 @@ interface UseRoomReturn {
   toggleReaction: (cardId: string, emoji: string) => void;
   toggleVote: (cardId: string) => void;
   addDrawing: (cardId: string, data: string) => void;
+  metricsAggregate: MetricAggregate[];
+  ownMetricScores: OwnMetricScores;
+  submitMetrics: (scores: OwnMetricScores) => void;
 }
 
 interface UseRoomOptions {
@@ -85,6 +91,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [toastMessage, setToastMessage] = useState<UseRoomReturn['toastMessage']>(null);
   const [isScrumMaster, setIsScrumMaster] = useState(false);
+  const [metricsAggregate, setMetricsAggregate] = useState<MetricAggregate[]>(() =>
+    METRIC_KEYS.map((metricKey) => ({ metricKey, average: null, submissions: 0 })),
+  );
+  const [ownMetricScores, setOwnMetricScores] = useState<OwnMetricScores>({});
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -128,6 +138,12 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       setCards(payload.cards.map(toCardDTOv2));
       setTags(payload.tags);
       setActionItems(payload.actionItems);
+      if (Array.isArray(payload.metricsAggregate)) {
+        setMetricsAggregate(payload.metricsAggregate);
+      }
+      if (payload.ownMetricScores && typeof payload.ownMetricScores === 'object') {
+        setOwnMetricScores(payload.ownMetricScores);
+      }
     });
 
     socket.on(SOCKET_EVENTS.CARD_CREATED, (card: CardDTOv2) => {
@@ -231,6 +247,25 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       );
     });
 
+    // V2: Sprint metrics — anonymous team aggregate broadcast
+    socket.on(
+      SOCKET_EVENTS.METRICS_AGGREGATE_UPDATED,
+      (payload: { metrics: MetricAggregate[] }) => {
+        if (Array.isArray(payload?.metrics)) setMetricsAggregate(payload.metrics);
+      },
+    );
+
+    // V2: Sprint metrics — submitter's own scores echoed back privately
+    socket.on(
+      SOCKET_EVENTS.METRICS_OWN_UPDATED,
+      (payload: { scores: OwnMetricScores }) => {
+        if (payload?.scores && typeof payload.scores === 'object') {
+          setOwnMetricScores(payload.scores);
+          setToastMessage({ message: 'Your scores were saved anonymously.', type: 'success' });
+        }
+      },
+    );
+
     socket.on(SOCKET_EVENTS.ERROR, (payload: { message: string }) => {
       setToastMessage({ message: payload?.message ?? 'An error occurred.', type: 'error' });
     });
@@ -305,6 +340,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.DRAWING_CREATE, { cardId, data });
   }, []);
 
+  const submitMetrics = useCallback((scores: OwnMetricScores) => {
+    socketRef.current?.emit(SOCKET_EVENTS.METRICS_SUBMIT, { scores });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -330,5 +369,8 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     toggleReaction,
     toggleVote,
     addDrawing,
+    metricsAggregate,
+    ownMetricScores,
+    submitMetrics,
   };
 }

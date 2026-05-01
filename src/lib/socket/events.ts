@@ -49,6 +49,11 @@ export const SOCKET_EVENTS = {
   DRAWING_CREATE: 'drawing:create',
   DRAWING_CREATED: 'drawing:created',
 
+  // Sprint metrics (anonymous, team-aggregate only)
+  METRICS_SUBMIT: 'metrics:submit',
+  METRICS_AGGREGATE_UPDATED: 'metrics:aggregate-updated',
+  METRICS_OWN_UPDATED: 'metrics:own-updated',
+
   // Error
   ERROR: 'error',
 } as const;

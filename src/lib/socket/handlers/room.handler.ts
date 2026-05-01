@@ -5,6 +5,7 @@ import { participantRepo } from '../../db/repositories/participant.repo';
 import { cardRepo } from '../../db/repositories/card.repo';
 import { tagRepo } from '../../db/repositories/tag.repo';
 import { actionItemRepo } from '../../db/repositories/action-item.repo';
+import { metricRepo } from '../../db/repositories/metric.repo';
 import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 
@@ -30,6 +31,8 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const cards = cardsDB.map(c => toCardDTOv2(c, participantId));
     const tags = tagRepo.findByRoomId(roomId);
     const actionItems = actionItemRepo.findByRoomId(roomId);
+    const metricsAggregate = metricRepo.getAggregateByRoomId(roomId);
+    const ownMetricScores = metricRepo.getOwnScores(roomId, participantId);
 
     socket.emit(SOCKET_EVENTS.ROOM_JOINED, {
       room,
@@ -38,6 +41,8 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       cards,
       tags,
       actionItems,
+      metricsAggregate,
+      ownMetricScores,
     });
 
     // Notify others

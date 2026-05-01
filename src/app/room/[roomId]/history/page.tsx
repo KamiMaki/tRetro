@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import type { CardDTOv2, Tag, ActionItem, Room } from '@/lib/types';
-import { SECTIONS, SECTION_LABELS } from '@/lib/types';
+import type { CardDTOv2, Tag, ActionItem, Room, MetricAggregate, MetricsHistoryEntry } from '@/lib/types';
+import { SECTIONS, SECTION_LABELS, METRIC_DEFS } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { AuroraBg, GlassPanel, Logo, Avatar } from '@/components/ui/Aurora';
@@ -16,6 +16,7 @@ interface HistoryData {
   tags: Tag[];
   actionItems: ActionItem[];
   participantCount: number;
+  metricsAggregate: MetricAggregate[];
 }
 
 function formatDate(dateStr: string) {
@@ -36,15 +37,16 @@ function formatDateTime(dateStr: string) {
 }
 
 const SECTION_META: Record<string, { tone: 'mint' | 'pink' | 'amber' | 'violet'; symbol: string }> = {
-  'went-well':  { tone: 'mint',   symbol: '✓' },
-  'to-improve': { tone: 'pink',   symbol: '!' },
-  'thanks':     { tone: 'amber',  symbol: '★' },
-  'deep-dive':  { tone: 'violet', symbol: '?' },
+  'went-well':  { tone: 'mint',   symbol: '😆' },
+  'to-improve': { tone: 'amber',  symbol: '🥲' },
+  'thanks':     { tone: 'pink',   symbol: '😍' },
+  'deep-dive':  { tone: 'violet', symbol: '🧐' },
 };
 
 export default function HistoryPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const [data, setData] = useState<HistoryData | null>(null);
+  const [teamHistory, setTeamHistory] = useState<MetricsHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,6 +64,17 @@ export default function HistoryPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [roomId]);
+
+  useEffect(() => {
+    fetch('/api/metrics/history?limit=8')
+      .then((res) => (res.ok ? res.json() : { history: [] }))
+      .then((body) => {
+        if (Array.isArray(body?.history)) setTeamHistory(body.history);
+      })
+      .catch(() => {
+        /* non-blocking */
+      });
+  }, []);
 
   function handleExportMd() {
     window.open(`/api/rooms/${roomId}/export?format=md`, '_blank');
@@ -190,6 +203,15 @@ export default function HistoryPage() {
             })}
           </div>
 
+          {/* Sprint metrics — anonymous team aggregate */}
+          {data.metricsAggregate && data.metricsAggregate.length > 0 && (
+            <MetricsHistorySection
+              currentRoomId={roomId}
+              currentRoomMetrics={data.metricsAggregate}
+              teamHistory={teamHistory}
+            />
+          )}
+
           {/* Action items */}
           {actionItems.length > 0 && (
             <GlassPanel style={{ padding: 0, overflow: 'hidden' }}>
@@ -257,6 +279,185 @@ export default function HistoryPage() {
         }
       `}</style>
     </main>
+  );
+}
+
+interface MetricsHistorySectionProps {
+  currentRoomId: string;
+  currentRoomMetrics: MetricAggregate[];
+  teamHistory: MetricsHistoryEntry[];
+}
+
+function MetricsHistorySection({
+  currentRoomId,
+  currentRoomMetrics,
+  teamHistory,
+}: MetricsHistorySectionProps) {
+  // Build a per-metric trend across the recent rooms (oldest → newest left to right).
+  const trendsByMetric = new Map<string, Array<{ roomName: string; createdAt: string; value: number | null }>>();
+  const orderedHistory = [...teamHistory].reverse(); // oldest first
+  for (const def of METRIC_DEFS) {
+    const series = orderedHistory.map((entry) => {
+      const m = entry.metrics.find((x) => x.metricKey === def.key);
+      return { roomName: entry.roomName, createdAt: entry.createdAt, value: m?.average ?? null };
+    });
+    trendsByMetric.set(def.key, series);
+  }
+
+  const totalSubs = currentRoomMetrics.reduce(
+    (max, m) => Math.max(max, m.submissions || 0),
+    0,
+  );
+  const currentByKey = new Map<string, MetricAggregate>();
+  for (const m of currentRoomMetrics) currentByKey.set(m.metricKey, m);
+
+  return (
+    <GlassPanel style={{ padding: 0, overflow: 'hidden' }}>
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--glass-border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <div
+          aria-hidden="true"
+          style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'linear-gradient(135deg, var(--aurora-violet), var(--aurora-cyan))',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+          }}
+        >
+          📊
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="text-display" style={{ fontSize: 16, fontWeight: 600 }}>
+            Sprint metrics — anonymous team aggregate
+          </div>
+          <div className="text-mono fg-3" style={{ fontSize: 11, marginTop: 2 }}>
+            {totalSubs === 0
+              ? 'No metric submissions for this retro.'
+              : `${totalSubs} submission${totalSubs === 1 ? '' : 's'} from this retro · last ${orderedHistory.length} retros shown for trend`}
+          </div>
+        </div>
+      </div>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {METRIC_DEFS.map((def) => {
+          const current = currentByKey.get(def.key);
+          const series = trendsByMetric.get(def.key) ?? [];
+          return (
+            <MetricRow
+              key={def.key}
+              emoji={def.emoji}
+              label={def.label}
+              shortLabel={def.shortLabel}
+              tone={def.tone}
+              currentValue={current?.average ?? null}
+              currentSubmissions={current?.submissions ?? 0}
+              series={series}
+              currentRoomId={currentRoomId}
+            />
+          );
+        })}
+      </div>
+    </GlassPanel>
+  );
+}
+
+function MetricRow({
+  emoji,
+  label,
+  shortLabel,
+  tone,
+  currentValue,
+  currentSubmissions,
+  series,
+  currentRoomId,
+}: {
+  emoji: string;
+  label: string;
+  shortLabel: string;
+  tone: 'mint' | 'cyan' | 'violet' | 'pink' | 'amber';
+  currentValue: number | null;
+  currentSubmissions: number;
+  series: Array<{ roomName: string; createdAt: string; value: number | null }>;
+  currentRoomId: string;
+}) {
+  const tint = {
+    mint:   'oklch(0.78 0.15 175)',
+    cyan:   'oklch(0.72 0.13 210)',
+    violet: 'oklch(0.62 0.20 285)',
+    pink:   'oklch(0.72 0.14 350)',
+    amber:  'oklch(0.78 0.14 75)',
+  }[tone];
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(140px, 200px) 1fr',
+        gap: 14,
+        alignItems: 'center',
+      }}
+    >
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 16 }} aria-hidden="true">{emoji}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, color: 'var(--fg-0)' }}>{label}</div>
+            <div className="text-mono fg-3" style={{ fontSize: 10 }}>
+              {shortLabel} ·{' '}
+              {currentValue == null
+                ? 'no data'
+                : `${currentValue.toFixed(1)} now · ${currentSubmissions} sub${currentSubmissions === 1 ? '' : 's'}`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sparkline — bar per past room */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 4,
+          height: 40,
+          padding: '4px 0',
+        }}
+      >
+        {series.length === 0 ? (
+          <div className="text-mono fg-3" style={{ fontSize: 11 }}>
+            no historical data yet
+          </div>
+        ) : (
+          series.map((s, i) => {
+            const isCurrent = false; // we render the current room separately
+            const v = s.value;
+            const heightPct = v == null ? 6 : Math.max(6, Math.min(100, v));
+            return (
+              <div
+                key={s.createdAt + i}
+                title={`${s.roomName}: ${v == null ? 'no data' : v.toFixed(1)}`}
+                style={{
+                  flex: 1,
+                  minWidth: 8,
+                  height: `${heightPct}%`,
+                  borderRadius: 4,
+                  background: v == null
+                    ? 'var(--glass-border)'
+                    : `linear-gradient(180deg, ${tint}, var(--aurora-violet))`,
+                  opacity: v == null ? 0.4 : isCurrent ? 1 : 0.85,
+                  border: s.roomName === currentRoomId ? `1px solid ${tint}` : 'none',
+                  transition: 'height 0.4s ease',
+                }}
+              />
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -356,7 +557,7 @@ function HistoryCard({ card, tone }: { card: CardDTOv2; tone: 'mint' | 'pink' | 
           {card.comments.map((comment) => (
             <div key={comment.id} style={{ padding: '6px 10px', borderRadius: 8, background: 'var(--glass-highlight)' }}>
               <div className="text-mono" style={{ fontSize: 10, marginBottom: 2, color: 'var(--fg-2)' }}>
-                <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{comment.authorNickname}</span>
+                <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>Anonymous</span>
                 <span style={{ color: 'var(--fg-3)' }}> · {formatDateTime(comment.createdAt)}</span>
               </div>
               <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--fg-0)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>

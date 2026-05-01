@@ -14,7 +14,7 @@ async function createAndJoinRoom(
   await page.getByPlaceholder('e.g. Aria').fill(nickname);
   await page.getByRole('button', { name: /Enter retro/i }).click();
   // Wait for the board to mount
-  await expect(page.getByText('Went Well')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('heading', { name: 'Went Well' }).or(page.getByText('Went Well'))).toBeVisible({ timeout: 15000 });
   return body.roomId as string;
 }
 
@@ -63,9 +63,9 @@ test.describe('tRetro E2E', () => {
       await page.getByRole('button', { name: /Enter retro/i }).click();
       await expect(page).toHaveURL(/\/room\/[\w-]+$/, { timeout: 10000 });
       await expect(page.getByText('Went Well')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByText('To Improve')).toBeVisible();
+      await expect(page.getByText("Didn't Go Well")).toBeVisible();
       await expect(page.getByText('Thanks')).toBeVisible();
-      await expect(page.getByText('Deep Dive')).toBeVisible();
+      await expect(page.getByText('Deep Discussion')).toBeVisible();
     });
   });
 
@@ -169,7 +169,73 @@ test.describe('tRetro E2E', () => {
       expect(data).toHaveProperty('room');
       expect(data).toHaveProperty('cards');
       expect(data).toHaveProperty('actionItems');
+      expect(data).toHaveProperty('metricsAggregate');
+      expect(Array.isArray(data.metricsAggregate)).toBe(true);
       expect(data.room.name).toBe('History API Retro');
+    });
+
+    test('metrics aggregate API never leaks identity fields', async ({ request }) => {
+      const roomRes = await request.post('/api/rooms', { data: { name: 'Privacy Retro' } });
+      const { roomId } = await roomRes.json();
+      const historyRes = await request.get(`/api/rooms/${roomId}/history`);
+      const body = await historyRes.json();
+      const json = JSON.stringify(body.metricsAggregate);
+      // Each entry must have exactly: metricKey, average, submissions
+      for (const m of body.metricsAggregate) {
+        expect(Object.keys(m).sort()).toEqual(['average', 'metricKey', 'submissions']);
+      }
+      expect(json.toLowerCase()).not.toContain('participant');
+      expect(json.toLowerCase()).not.toContain('nickname');
+      expect(json.toLowerCase()).not.toContain('author');
+    });
+
+    test('team metrics history endpoint is anonymous-only', async ({ request }) => {
+      await request.post('/api/rooms', { data: { name: 'TeamHistoryA' } });
+      const res = await request.get('/api/metrics/history?limit=5');
+      expect(res.status()).toBe(200);
+      const body = await res.json();
+      expect(Array.isArray(body.history)).toBe(true);
+      const json = JSON.stringify(body);
+      expect(json.toLowerCase()).not.toContain('participant');
+      expect(json.toLowerCase()).not.toContain('nickname');
+      expect(json.toLowerCase()).not.toContain('author');
+      for (const entry of body.history) {
+        expect(entry).toHaveProperty('roomId');
+        expect(entry).toHaveProperty('roomName');
+        expect(entry).toHaveProperty('metrics');
+      }
+    });
+  });
+
+  test.describe('Sprint Metrics', () => {
+    test('renders panel with empty aggregate then shows submitter own scores', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Metrics UI Retro', 'MetricsAlice');
+      // Header is always visible
+      await expect(page.getByText('Sprint metrics')).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText('Anonymous · team average only', { exact: false })).toBeVisible();
+      // No submissions yet
+      await expect(page.getByText('no submissions yet')).toBeVisible();
+
+      // Open the private slider form
+      await page.getByRole('button', { name: /Submit my scores/i }).click();
+      const sliders = page.locator('input[type="range"]');
+      await expect(sliders).toHaveCount(7);
+
+      // Move the first slider, save scores
+      const first = sliders.first();
+      await first.evaluate((el: HTMLInputElement) => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+        setter.call(el, '88');
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.getByRole('button', { name: /Save anonymous scores|Update anonymous scores/ }).click();
+
+      // After submit, the toggle button label should switch to "Update my scores"
+      await expect(page.getByRole('button', { name: /Update my scores|Hide my scores/ })).toBeVisible({ timeout: 5000 });
+      // The header line shows "you submitted"
+      await expect(page.getByText(/you submitted/i)).toBeVisible({ timeout: 5000 });
+      // Aggregate row reflects 1 submission
+      await expect(page.getByText(/1 sub\b/).first()).toBeVisible();
     });
   });
 

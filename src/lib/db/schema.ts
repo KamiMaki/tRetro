@@ -102,4 +102,21 @@ CREATE INDEX IF NOT EXISTS idx_comments_card ON comments(card_id);
 CREATE INDEX IF NOT EXISTS idx_reactions_card ON reactions(card_id);
 CREATE INDEX IF NOT EXISTS idx_votes_card ON votes(card_id);
 CREATE INDEX IF NOT EXISTS idx_drawings_card ON drawings(card_id);
+
+-- Sprint metrics: anonymous per-participant scores aggregated to team-level
+-- The participant_id is stored ONLY for dedup (one submission per metric per
+-- participant per room). It is never returned in any API payload.
+CREATE TABLE IF NOT EXISTS metric_submissions (
+  id             TEXT PRIMARY KEY,
+  room_id        TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  participant_id TEXT NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+  metric_key     TEXT NOT NULL,
+  score          INTEGER NOT NULL CHECK(score BETWEEN 1 AND 100),
+  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(room_id, participant_id, metric_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_metric_submissions_room ON metric_submissions(room_id);
+CREATE INDEX IF NOT EXISTS idx_metric_submissions_room_metric ON metric_submissions(room_id, metric_key);
 `;

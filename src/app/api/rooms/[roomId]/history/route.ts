@@ -8,6 +8,7 @@ import { commentRepo } from '@/lib/db/repositories/comment.repo';
 import { reactionRepo } from '@/lib/db/repositories/reaction.repo';
 import { voteRepo } from '@/lib/db/repositories/vote.repo';
 import { drawingRepo } from '@/lib/db/repositories/drawing.repo';
+import { metricRepo } from '@/lib/db/repositories/metric.repo';
 
 export async function GET(
   _request: Request,
@@ -62,11 +63,14 @@ export async function GET(
     };
   });
 
+  const metricsAggregate = metricRepo.getAggregateByRoomId(roomId);
+
   return NextResponse.json({
     room,
     cards: enrichedCards,
     tags,
     actionItems,
     participantCount: participants.length,
+    metricsAggregate,
   });
 }

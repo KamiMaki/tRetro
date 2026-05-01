@@ -9,6 +9,7 @@ import { registerCommentHandlers } from './handlers/comment.handler';
 import { registerReactionHandlers } from './handlers/reaction.handler';
 import { registerVoteHandlers } from './handlers/vote.handler';
 import { registerDrawingHandlers } from './handlers/drawing.handler';
+import { registerMetricHandlers } from './handlers/metric.handler';
 import { SOCKET_EVENTS } from './events';
 
 let io: SocketIOServer | null = null;
@@ -32,6 +33,7 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
     registerReactionHandlers(io!, socket);
     registerVoteHandlers(io!, socket);
     registerDrawingHandlers(io!, socket);
+    registerMetricHandlers(io!, socket);
   });
 
   return io;
