@@ -57,6 +57,12 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const [sortAsc, setSortAsc] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('actions');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [prefilledActionContent, setPrefilledActionContent] = useState('');
+
+  const handleConvertCardToAction = (content: string) => {
+    setSidebarTab('actions');
+    setPrefilledActionContent(content);
+  };
 
   const SHORTCUTS: KeyboardHelpItem[] = [
     { keys: 'n', description: 'Focus the first card composer', group: 'Cards' },
@@ -153,6 +159,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onToggleReaction={toggleReaction}
               onToggleVote={toggleVote}
               onAddDrawing={addDrawing}
+              onConvertToAction={handleConvertCardToAction}
             />
           </div>
 
@@ -210,6 +217,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
                   onAdd={addActionItem}
                   onUpdate={updateActionItem}
                   onDelete={deleteActionItem}
+                  prefilledContent={prefilledActionContent}
+                  onConsumePrefill={() => setPrefilledActionContent('')}
                 />
               </div>
               <div

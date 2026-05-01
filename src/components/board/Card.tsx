@@ -23,6 +23,8 @@ interface CardProps {
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
+  /** Send this card's content to the action-items sidebar as a prefilled draft. */
+  onConvertToAction?: (content: string) => void;
 }
 
 export function Card({
@@ -36,6 +38,7 @@ export function Card({
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
+  onConvertToAction,
 }: CardProps) {
   const canDelete = card.isOwnCard || isScrumMaster;
   const canReveal = card.isOwnCard && !card.isRevealed;
@@ -243,6 +246,38 @@ export function Card({
             )}
           </button>
 
+          {isScrumMaster && onConvertToAction && (
+            <button
+              type="button"
+              onClick={() => onConvertToAction(card.content)}
+              aria-label="Convert this card into an action item"
+              title="Convert to action item"
+              style={{
+                padding: 4,
+                borderRadius: 6,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--fg-3)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                transition: 'color .15s, background .15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'oklch(0.78 0.15 175)';
+                e.currentTarget.style.background = 'oklch(0.78 0.15 175 / 0.12)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--fg-3)';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="2" y="3" width="12" height="10" rx="2" />
+                <path d="M5 7l2.5 2.5L11 6" />
+              </svg>
+            </button>
+          )}
           {canReveal && (
             <button
               type="button"

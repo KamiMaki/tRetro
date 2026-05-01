@@ -29,6 +29,7 @@ interface SectionProps {
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
+  onConvertToAction: (content: string) => void;
 }
 
 export function Section({
@@ -45,6 +46,7 @@ export function Section({
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
+  onConvertToAction,
 }: SectionProps) {
   const tone = SECTION_TONES[section];
   const emoji = SECTION_EMOJIS[section];
@@ -143,6 +145,7 @@ export function Section({
                   onToggleReaction={onToggleReaction}
                   onToggleVote={onToggleVote}
                   onAddDrawing={onAddDrawing}
+                  onConvertToAction={onConvertToAction}
                 />
               ))}
             </div>
@@ -176,6 +179,7 @@ export function Section({
           onToggleReaction={onToggleReaction}
           onToggleVote={onToggleVote}
           onAddDrawing={onAddDrawing}
+          onConvertToAction={onConvertToAction}
         />
       )}
     </div>

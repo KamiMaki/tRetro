@@ -25,6 +25,7 @@ interface BoardProps {
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
+  onConvertToAction: (content: string) => void;
 }
 
 export function Board({
@@ -46,6 +47,7 @@ export function Board({
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
+  onConvertToAction,
 }: BoardProps) {
   const filterAndSort = (sectionCards: CardDTOv2[]) => {
     let result = sectionCards;
@@ -106,6 +108,7 @@ export function Board({
             onToggleReaction={onToggleReaction}
             onToggleVote={onToggleVote}
             onAddDrawing={onAddDrawing}
+            onConvertToAction={onConvertToAction}
           />
         ))}
       </div>

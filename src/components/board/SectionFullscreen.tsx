@@ -29,6 +29,7 @@ interface SectionFullscreenProps {
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
+  onConvertToAction: (content: string) => void;
 }
 
 export function SectionFullscreen(props: SectionFullscreenProps) {
@@ -47,6 +48,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onToggleReaction,
     onToggleVote,
     onAddDrawing,
+    onConvertToAction,
   } = props;
 
   const tone = SECTION_TONES[section];
@@ -136,6 +138,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               onToggleReaction={onToggleReaction}
               onToggleVote={onToggleVote}
               onAddDrawing={onAddDrawing}
+              onConvertToAction={onConvertToAction}
             />
           ))
         )}

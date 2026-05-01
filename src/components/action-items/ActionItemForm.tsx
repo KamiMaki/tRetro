@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CreateActionItemPayload } from '@/lib/types';
 
 interface ParticipantSummary {
@@ -13,13 +13,32 @@ interface ParticipantSummary {
 interface ActionItemFormProps {
   participants: ParticipantSummary[];
   onSubmit: (payload: Omit<CreateActionItemPayload, 'roomId'>) => void;
+  /** When set (non-empty), auto-open the form with this description prefilled. */
+  prefilledContent?: string;
+  /** Notify parent that the prefill has been consumed (so it can clear). */
+  onConsumePrefill?: () => void;
 }
 
-export function ActionItemForm({ participants, onSubmit }: ActionItemFormProps) {
+export function ActionItemForm({
+  participants,
+  onSubmit,
+  prefilledContent,
+  onConsumePrefill,
+}: ActionItemFormProps) {
   const [description, setDescription] = useState('');
   const [assignee, setAssignee] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+
+  // Pull prefilled card content into the form and auto-open
+  useEffect(() => {
+    if (prefilledContent && prefilledContent.trim()) {
+      setDescription(prefilledContent);
+      setIsOpen(true);
+      onConsumePrefill?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefilledContent]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +162,7 @@ export function ActionItemForm({ participants, onSubmit }: ActionItemFormProps) 
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             className="field"
-            style={{ padding: '9px 10px', colorScheme: 'dark' }}
+            style={{ padding: '9px 10px' }}
           />
         </div>
       </div>

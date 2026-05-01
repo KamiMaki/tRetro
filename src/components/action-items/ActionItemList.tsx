@@ -19,6 +19,8 @@ interface ActionItemListProps {
   onAdd: (payload: Omit<CreateActionItemPayload, 'roomId'>) => void;
   onUpdate: (payload: UpdateActionItemPayload) => void;
   onDelete: (actionItemId: string) => void;
+  prefilledContent?: string;
+  onConsumePrefill?: () => void;
 }
 
 export function ActionItemList({
@@ -28,6 +30,8 @@ export function ActionItemList({
   onAdd,
   onUpdate,
   onDelete,
+  prefilledContent,
+  onConsumePrefill,
 }: ActionItemListProps) {
   const pending = actionItems.filter((a) => !a.isCompleted);
   const completed = actionItems.filter((a) => a.isCompleted);
@@ -124,7 +128,12 @@ export function ActionItemList({
 
         {isScrumMaster && (
           <div style={{ paddingTop: 8, borderTop: '1px solid var(--glass-border)' }}>
-            <ActionItemForm participants={participants} onSubmit={onAdd} />
+            <ActionItemForm
+              participants={participants}
+              onSubmit={onAdd}
+              prefilledContent={prefilledContent}
+              onConsumePrefill={onConsumePrefill}
+            />
           </div>
         )}
       </div>

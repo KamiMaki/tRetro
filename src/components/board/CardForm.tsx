@@ -22,8 +22,8 @@ interface CardFormProps {
 export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps) {
   const [content, setContent] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [newTagName, setNewTagName] = useState('');
-  const [showTagPanel, setShowTagPanel] = useState(false);
+  const [newTagDraft, setNewTagDraft] = useState('');
+  const [creatingTag, setCreatingTag] = useState(false);
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -33,7 +33,8 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
     onSubmit({ section, content: content.trim(), tagIds: selectedTagIds });
     setContent('');
     setSelectedTagIds([]);
-    setShowTagPanel(false);
+    setCreatingTag(false);
+    setNewTagDraft('');
     textareaRef.current?.focus();
   };
 
@@ -44,11 +45,12 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
   };
 
   const handleCreateTag = () => {
-    const trimmed = newTagName.trim();
+    const trimmed = newTagDraft.trim();
     if (!trimmed) return;
     const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
     onCreateTag({ name: trimmed, color });
-    setNewTagName('');
+    setNewTagDraft('');
+    setCreatingTag(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -57,8 +59,7 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
     }
   };
 
-  const selectedTags = tags.filter((t) => selectedTagIds.includes(t.id));
-  const showExpanded = focused || content.length > 0 || showTagPanel;
+  const showInlinePicker = focused || content.length > 0 || selectedTagIds.length > 0 || creatingTag;
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -70,7 +71,7 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
         onBlur={() => setFocused(false)}
         onKeyDown={handleKeyDown}
         placeholder="Drop a thought… (⌘↵ to send)"
-        rows={showExpanded ? 3 : 2}
+        rows={showInlinePicker ? 3 : 2}
         className="field"
         style={{
           fontSize: 13,
@@ -80,58 +81,139 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
         }}
       />
 
-      {/* Selected tags */}
-      {selectedTags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {selectedTags.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => toggleTag(t.id)}
-              title="Remove tag"
+      {showInlinePicker && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 4,
+            padding: '2px 0',
+          }}
+        >
+          {tags.map((tag) => {
+            const active = selectedTagIds.includes(tag.id);
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => toggleTag(tag.id)}
+                title={active ? `Remove ${tag.name}` : `Add ${tag.name}`}
+                aria-pressed={active}
+                style={{
+                  padding: 0,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  opacity: active ? 1 : 0.55,
+                  outline: active ? '1.5px solid var(--aurora-violet)' : 'none',
+                  outlineOffset: 1,
+                  borderRadius: 999,
+                  transition: 'opacity .15s',
+                }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.opacity = '0.55'; }}
+              >
+                <TagBadge tag={tag} />
+              </button>
+            );
+          })}
+
+          {creatingTag ? (
+            <span
               style={{
-                padding: 0,
-                background: 'transparent',
-                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'var(--glass-bg-strong)',
+                border: '1px solid var(--aurora-violet)',
+                borderRadius: 999,
+                padding: '1px 4px 1px 8px',
+                fontSize: 11,
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              <span aria-hidden="true">#</span>
+              <input
+                autoFocus
+                type="text"
+                value={newTagDraft}
+                onChange={(e) => setNewTagDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateTag();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setCreatingTag(false);
+                    setNewTagDraft('');
+                  }
+                }}
+                onBlur={() => {
+                  if (!newTagDraft.trim()) setCreatingTag(false);
+                }}
+                placeholder="new tag"
+                aria-label="New tag name"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'var(--fg-0)',
+                  fontFamily: 'inherit',
+                  fontSize: 11,
+                  width: 80,
+                  padding: '2px 0',
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleCreateTag}
+                disabled={!newTagDraft.trim()}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 10,
+                  fontFamily: 'inherit',
+                  background: 'var(--aurora-violet)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  opacity: newTagDraft.trim() ? 1 : 0.5,
+                }}
+              >
+                add
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setCreatingTag(true)}
+              title="Create new tag"
+              aria-label="Create new tag"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: 11,
+                fontFamily: 'var(--font-mono)',
+                padding: '2px 8px',
+                borderRadius: 999,
+                background: 'var(--glass-highlight)',
+                color: 'var(--fg-2)',
+                border: '1px dashed var(--glass-border)',
                 cursor: 'pointer',
               }}
             >
-              <TagBadge tag={t} />
+              + tag
             </button>
-          ))}
+          )}
         </div>
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <button
-          type="button"
-          onClick={() => setShowTagPanel((v) => !v)}
-          aria-pressed={showTagPanel}
-          title="Add tags"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 11,
-            fontFamily: 'var(--font-mono)',
-            padding: '4px 10px',
-            borderRadius: 999,
-            background: showTagPanel ? 'var(--glass-bg-strong)' : 'var(--glass-highlight)',
-            color: showTagPanel ? 'var(--fg-0)' : 'var(--fg-2)',
-            border: '1px solid var(--glass-border)',
-            cursor: 'pointer',
-          }}
-        >
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 3v6l7 7 6-6-7-7z" />
-            <circle cx="6" cy="6" r="1" fill="currentColor" />
-          </svg>
-          tags
-          {selectedTags.length > 0 && (
-            <span style={{ opacity: 0.7 }}>·{selectedTags.length}</span>
-          )}
-        </button>
-
+        <span className="text-mono fg-3" style={{ fontSize: 10, opacity: 0.7 }}>
+          {selectedTagIds.length > 0 ? `${selectedTagIds.length} tag${selectedTagIds.length === 1 ? '' : 's'}` : ''}
+        </span>
         <button
           type="submit"
           disabled={!content.trim()}
@@ -144,71 +226,6 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
           </span>
         </button>
       </div>
-
-      {showTagPanel && (
-        <div
-          className="glass"
-          style={{
-            padding: 10,
-            borderRadius: 12,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
-          {tags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {tags.map((tag) => {
-                const active = selectedTagIds.includes(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    style={{
-                      padding: 0,
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      opacity: active ? 1 : 0.5,
-                      outline: active ? '2px solid var(--aurora-violet)' : 'none',
-                      outlineOffset: 2,
-                      borderRadius: 999,
-                    }}
-                  >
-                    <TagBadge tag={tag} />
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 6 }}>
-            <input
-              type="text"
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleCreateTag();
-                }
-              }}
-              placeholder="new tag…"
-              className="field"
-              style={{ fontSize: 11, padding: '6px 10px' }}
-            />
-            <button
-              type="button"
-              onClick={handleCreateTag}
-              disabled={!newTagName.trim()}
-              className="btn"
-              style={{ fontSize: 11, padding: '6px 10px' }}
-            >
-              Add
-            </button>
-          </div>
-        </div>
-      )}
     </form>
   );
 }
