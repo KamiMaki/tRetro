@@ -37,6 +37,7 @@ export function Card({
   const canReveal = card.isOwnCard && !card.isRevealed;
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
+  const [size, setSize] = useState<'normal' | 'large'>('normal');
 
   const authorLabel = card.isRevealed && card.authorNickname
     ? card.authorNickname
@@ -46,7 +47,7 @@ export function Card({
 
   return (
     <>
-      <div className="sticky-card" data-tone={tone} style={{ position: 'relative' }}>
+      <div className="sticky-card" data-tone={tone} data-size={size} style={{ position: 'relative' }}>
         {/* Card content */}
         <div
           style={{
@@ -180,6 +181,37 @@ export function Card({
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M11 2l3 3-9 9H2v-3z" />
             </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSize((s) => (s === 'normal' ? 'large' : 'normal'))}
+            aria-label={size === 'large' ? 'Shrink card' : 'Enlarge card'}
+            title={size === 'large' ? 'Shrink' : 'Enlarge'}
+            aria-pressed={size === 'large'}
+            style={{
+              padding: 4,
+              borderRadius: 6,
+              background: size === 'large' ? 'var(--glass-bg-strong)' : 'transparent',
+              border: 'none',
+              color: size === 'large' ? 'var(--fg-0)' : 'var(--fg-3)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              transition: 'color .15s, background .15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--fg-0)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = size === 'large' ? 'var(--fg-0)' : 'var(--fg-3)')}
+          >
+            {size === 'large' ? (
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4" />
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" />
+              </svg>
+            )}
           </button>
 
           {canReveal && (

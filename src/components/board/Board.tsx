@@ -112,6 +112,12 @@ export function Board({
           display: grid;
           grid-template-columns: 1fr;
           gap: 16px;
+          /* Bound the board to viewport so each section scrolls independently
+             instead of the entire page growing forever. Subtract sticky header
+             (~52px) + page padding + sidebar tabs space (~120px). */
+          height: calc(100vh - 180px);
+          min-height: 480px;
+          grid-auto-rows: minmax(0, 1fr);
         }
         @media (min-width: 720px) {
           .board-grid {
@@ -122,6 +128,9 @@ export function Board({
           .board-grid {
             grid-template-columns: repeat(4, 1fr);
           }
+        }
+        :global([data-density="compact"]) .board-grid {
+          height: calc(100vh - 150px);
         }
       `}</style>
     </div>

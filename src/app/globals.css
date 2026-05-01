@@ -616,6 +616,25 @@ input[type="date"].field::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ─────────────────────────────────────────────────────
+   Per-card size override (user-toggled, beats density).
+   Declared AFTER density rules and uses higher specificity
+   ([data-density] + .sticky-card[data-size]) to win in both
+   cozy and compact modes.
+   ───────────────────────────────────────────────────── */
+.sticky-card[data-size="large"],
+[data-density="compact"] .sticky-card[data-size="large"] {
+  padding: 18px 18px 14px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.sticky-card[data-size="large"] .card-footer,
+[data-density="compact"] .sticky-card[data-size="large"] .card-footer {
+  font-size: 12px;
+  opacity: 1;
+  max-height: none;
+}
+
+/* ─────────────────────────────────────────────────────
    Section fullscreen overlay
    ───────────────────────────────────────────────────── */
 .section-fullscreen {

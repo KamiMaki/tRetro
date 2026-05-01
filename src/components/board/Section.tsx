@@ -49,14 +49,14 @@ export function Section({
   const [fullscreen, setFullscreen] = useState(false);
 
   return (
-    <div className="col" data-col={section} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div className="col" data-col={section} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
       <GlassPanel
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          minHeight: 420,
+          minHeight: 0,
         }}
       >
         {/* Header */}
