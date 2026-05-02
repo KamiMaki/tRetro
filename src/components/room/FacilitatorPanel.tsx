@@ -29,7 +29,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="主持人指南"
+      aria-label="Facilitator guide"
       onClick={onClose}
       style={{
         position: 'fixed',
@@ -68,7 +68,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
           <span aria-hidden="true" style={{ fontSize: 20 }}>{stage.emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="text-mono fg-3" style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              主持人指南
+              Facilitator guide
             </div>
             <div className="text-display" style={{ fontSize: 16, fontWeight: 600 }}>
               {stage.title} · {stage.duration}
@@ -77,8 +77,8 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="關閉主持人指南"
-            title="關閉（Esc）"
+            aria-label="Close facilitator guide"
+            title="Close (Esc)"
             className="btn btn-ghost"
             style={{ padding: '4px 10px', fontSize: 12 }}
           >
@@ -87,7 +87,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
         </header>
 
         <nav
-          aria-label="階段切換"
+          aria-label="Phase selector"
           style={{
             display: 'flex',
             gap: 4,
@@ -130,11 +130,11 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 18 }}>
           <p style={{ margin: '0 0 12px', fontSize: 14, lineHeight: 1.55, color: 'var(--fg-1)' }}>
-            <strong style={{ color: 'var(--fg-0)' }}>目標：</strong>{stage.goal}
+            <strong style={{ color: 'var(--fg-0)' }}>Goal:</strong> {stage.goal}
           </p>
 
           <h3 className="text-mono fg-2" style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '18px 0 6px' }}>
-            技巧
+            Tips
           </h3>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {stage.tips.map((tip, i) => (
@@ -166,7 +166,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
           </ul>
 
           <h3 className="text-mono fg-2" style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '18px 0 6px' }}>
-            可以唸出來的提問
+            Prompts you can read aloud
           </h3>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {stage.prompts.map((prompt, i) => (
@@ -192,7 +192,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
             className="text-mono fg-3"
             style={{ marginTop: 22, fontSize: 11, lineHeight: 1.55 }}
           >
-            關房後想要主題摘要？按上方的 <strong style={{ color: 'var(--fg-1)' }}>複製 AI prompt</strong> 按鈕，會把整理好的 prompt 直接放進剪貼簿，貼到任何外部 AI 工具都能用。
+            Want themes after closing? Click the <strong style={{ color: 'var(--fg-1)' }}>Summary Prompt</strong> button in the header — it copies a paste-ready prompt that works in any external AI tool.
           </p>
         </div>
 

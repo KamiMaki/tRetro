@@ -242,21 +242,23 @@ export function RoomHeader({
         type="button"
         className="btn"
         onClick={onOpenFacilitator}
-        title="主持人指南（每個階段的技巧與提問）"
+        title="Facilitator guide (per-phase tips & prompts)"
       >
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M3 2h7l3 3v9H3z" />
           <path d="M5 6h6M5 9h6M5 12h4" />
         </svg>
-        主持人指南
+        Facilitator
       </button>
 
-      {/* Share */}
+      {/* Share — three-node share icon */}
       <button type="button" className="btn" onClick={handleCopyLink}>
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M5 8h6M8 5l3 3-3 3" />
-          <circle cx="13" cy="8" r="2" />
-          <circle cx="3" cy="8" r="2" />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="18" cy="5" r="2.6" />
+          <circle cx="6" cy="12" r="2.6" />
+          <circle cx="18" cy="19" r="2.6" />
+          <path d="M8.3 10.7l7.4-4.4" />
+          <path d="M8.3 13.3l7.4 4.4" />
         </svg>
         {copied ? 'Copied!' : 'Share'}
       </button>
@@ -268,37 +270,39 @@ export function RoomHeader({
             type="button"
             className="btn"
             onClick={handleCopyAiPrompt}
-            title="複製整理好的 AI prompt + retro 內容到剪貼簿，貼到 ChatGPT / Claude / Gemini 即可取得主題摘要"
+            title="Copy a ready-to-paste summary prompt + retro content to your clipboard. Paste into ChatGPT / Claude / Gemini for theme synthesis."
             style={{
               background: aiCopied ? 'oklch(0.78 0.15 175 / 0.20)' : undefined,
               borderColor: aiCopied ? 'oklch(0.78 0.15 175 / 0.45)' : undefined,
               color: aiCopied ? 'oklch(0.92 0.12 175)' : undefined,
             }}
           >
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2 2M10.6 10.6l2 2M3.4 12.6l2-2M10.6 5.4l2-2" />
-              <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+            {/* Sparkle / wand icon — fits the "summary prompt" intent */}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3 13.5 8.5 19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+              <path d="M19 4l.8 1.6L21.4 6.4 19.8 7.2 19 9l-.8-1.8L16.6 6.4 18.2 5.6z" />
+              <path d="M5.5 17l.6 1.2 1.2.6-1.2.6-.6 1.2-.6-1.2-1.2-.6 1.2-.6z" />
             </svg>
-            {aiCopied ? '已複製 · 貼到 AI' : '複製 AI prompt'}
+            {aiCopied ? 'Copied · paste into AI' : 'Summary Prompt'}
           </button>
-          <button type="button" className="btn" onClick={handleExportMD} title="Export as Markdown">
+          <button type="button" className="btn" onClick={handleExportMD} title="Export Markdown">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M8 11V2M5 5l3-3 3 3M3 11v3h10v-3" />
             </svg>
             MD
           </button>
-          <button type="button" className="btn" onClick={handleExportHTML} title="匯出 HTML">
+          <button type="button" className="btn" onClick={handleExportHTML} title="Export HTML">
             HTML
           </button>
-          <button type="button" className="btn" onClick={handleExportCSV} title="匯出 CSV（卡片 + action items 同表）">
+          <button type="button" className="btn" onClick={handleExportCSV} title="Export CSV (cards + action items)">
             CSV
           </button>
           <button
             type="button"
             className="btn"
             onClick={onOpenSettings}
-            title="房間設定（webhook digest）"
-            aria-label="房間設定"
+            title="Room settings (webhook digest)"
+            aria-label="Room settings"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="8" cy="8" r="2" />

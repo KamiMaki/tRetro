@@ -24,9 +24,9 @@ export interface FacilitatorStage {
 export const FACILITATOR_STAGES: FacilitatorStage[] = [
   {
     key: 'gather',
-    title: '收集',
+    title: 'Gather',
     emoji: '🪴',
-    duration: '5–8 分鐘',
+    duration: '5–8 min',
     goal: '在沒有人開始分析之前，先把所有訊號丟到棋盤上。',
     tips: [
       '提醒房間「卡片預設匿名」，給大家沉默的時間思考。',
@@ -43,9 +43,9 @@ export const FACILITATOR_STAGES: FacilitatorStage[] = [
   },
   {
     key: 'vote',
-    title: '投票',
+    title: 'Vote',
     emoji: '🎯',
-    duration: '3–5 分鐘',
+    duration: '3–5 min',
     goal: '收斂出今天最值得討論的卡片。',
     tips: [
       '請大家平行投票，不要一邊投一邊討論。',
@@ -60,9 +60,9 @@ export const FACILITATOR_STAGES: FacilitatorStage[] = [
   },
   {
     key: 'discuss',
-    title: '討論',
+    title: 'Discuss',
     emoji: '💬',
-    duration: '15–25 分鐘',
+    duration: '15–25 min',
     goal: '針對高票卡片，找出根本原因與共同理解。',
     tips: [
       '從共識最高的卡片開始討論。可使用區塊「全螢幕」按鈕讓大家聚焦在同一張卡片上。',
@@ -78,9 +78,9 @@ export const FACILITATOR_STAGES: FacilitatorStage[] = [
   },
   {
     key: 'action',
-    title: '行動',
+    title: 'Action',
     emoji: '✅',
-    duration: '5–8 分鐘',
+    duration: '5–8 min',
     goal: '在能量還在的時候，把承諾、負責人、期限都鎖定下來。',
     tips: [
       '每一個 action item 都要有負責人 — 「整個團隊」不算負責人。',
@@ -96,9 +96,9 @@ export const FACILITATOR_STAGES: FacilitatorStage[] = [
   },
   {
     key: 'wrap',
-    title: '收尾與匯出',
+    title: 'Wrap & export',
     emoji: '📦',
-    duration: '2 分鐘',
+    duration: '2 min',
     goal: '產出成果並結束會議。',
     tips: [
       '需要主題摘要的話，按 header 上的「複製 AI prompt」貼到 ChatGPT / Claude / Gemini 即可。',

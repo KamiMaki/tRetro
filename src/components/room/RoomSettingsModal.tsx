@@ -39,7 +39,7 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
       headers: { 'x-session-token': token },
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error('讀取設定失敗');
+        if (!res.ok) throw new Error('Failed to load settings');
         return res.json();
       })
       .then((body) => {
@@ -78,7 +78,7 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
       });
       const body = await res.json();
       if (!res.ok) {
-        throw new Error(body.error ?? '儲存失敗');
+        throw new Error(body.error ?? 'Save failed');
       }
       setState((s) => ({
         ...s,
@@ -91,7 +91,7 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
       setState((s) => ({
         ...s,
         saving: false,
-        error: err instanceof Error ? err.message : '儲存失敗',
+        error: err instanceof Error ? err.message : 'Save failed',
       }));
     }
   }
@@ -104,7 +104,7 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="房間設定"
+      aria-label="Room settings"
     >
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 100%)', position: 'relative', zIndex: 81 }}>
         <GlassPanel strong style={{ padding: 26 }}>
@@ -112,18 +112,19 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
             className="text-mono fg-3"
             style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}
           >
-            房間設定
+            Room settings
           </div>
           <h2 className="text-display" style={{ margin: '0 0 14px', fontSize: 22, fontWeight: 600 }}>
-            Action item Webhook
+            Action item webhook
           </h2>
           <p className="fg-2" style={{ fontSize: 13, lineHeight: 1.55, margin: '0 0 16px' }}>
-            設定一個 Slack / Discord / 通用 webhook URL。關閉這場 retro 時，系統會自動把
-            action items 整理成 markdown 摘要 POST 給這個端點。失敗不會影響關房。
+            Set a Slack / Discord / generic webhook URL. When the retro is closed,
+            we POST a Markdown digest of action items to this endpoint. Failures
+            do not block the close.
           </p>
 
           {state.loading ? (
-            <div className="fg-2" style={{ fontSize: 13, padding: '12px 0' }}>讀取中…</div>
+            <div className="fg-2" style={{ fontSize: 13, padding: '12px 0' }}>Loading…</div>
           ) : (
             <form
               onSubmit={(e) => {
@@ -147,7 +148,7 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
               />
               {state.masked && state.masked !== state.webhookUrl && (
                 <div className="text-mono fg-3" style={{ fontSize: 11, marginBottom: 10 }}>
-                  目前已儲存：{state.masked}
+                  Currently saved: {state.masked}
                 </div>
               )}
               {state.error && (
@@ -177,7 +178,7 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
                     marginBottom: 10,
                   }}
                 >
-                  已儲存。下次關房會發送 digest 到這個 URL。
+                  Saved. The next close will POST a digest to this URL.
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
@@ -188,18 +189,18 @@ export function RoomSettingsModal({ open, roomId, onClose }: RoomSettingsModalPr
                     onClick={() => save('')}
                     disabled={state.saving}
                   >
-                    清除
+                    Clear
                   </button>
                 )}
                 <button type="button" className="btn btn-ghost" onClick={onClose}>
-                  關閉
+                  Close
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={state.saving}
                 >
-                  {state.saving ? '儲存中…' : '儲存'}
+                  {state.saving ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </form>

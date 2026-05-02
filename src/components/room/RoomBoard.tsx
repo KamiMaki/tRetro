@@ -73,14 +73,14 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   };
 
   const SHORTCUTS: KeyboardHelpItem[] = [
-    { keys: 'b', description: '切換到 Board 分頁', group: 'Tabs' },
-    { keys: 'a', description: '切換到 Action items 分頁', group: 'Tabs' },
-    { keys: 'm', description: '切換到 Sprint metrics 分頁', group: 'Tabs' },
-    { keys: 'n', description: '聚焦第一個區塊的卡片新增框', group: 'Cards' },
-    { keys: 'g f', description: '開啟主持人指南', group: 'Help' },
-    { keys: 'g h', description: '前往 Past retros（已關閉）', group: 'Navigation' },
-    { keys: 'g d', description: '回到 dashboard', group: 'Navigation' },
-    { keys: '?', description: '顯示快捷鍵清單', group: 'Help' },
+    { keys: 'b', description: 'Switch to Board tab', group: 'Tabs' },
+    { keys: 'a', description: 'Switch to Action items tab', group: 'Tabs' },
+    { keys: 'm', description: 'Switch to Sprint metrics tab', group: 'Tabs' },
+    { keys: 'n', description: 'Focus the first card composer', group: 'Cards' },
+    { keys: 'g f', description: 'Open facilitator guide', group: 'Help' },
+    { keys: 'g h', description: 'Past retros (closed)', group: 'Navigation' },
+    { keys: 'g d', description: 'Back to dashboard', group: 'Navigation' },
+    { keys: '?', description: 'Show keyboard shortcuts', group: 'Help' },
   ];
 
   useShortcuts([
@@ -148,7 +148,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const TABS: Array<{ key: MainTab; label: string; badge?: number; badgeSoft?: boolean; icon: React.ReactNode }> = [
     {
       key: 'board',
-      label: '回顧棋盤',
+      label: 'Board',
       icon: (
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="2" y="2" width="5" height="12" rx="1" />
@@ -205,7 +205,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
             onSetPhase={setPhase}
           />
 
-          <nav className="main-tabs" role="tablist" aria-label="Retro 主分頁">
+          <nav className="main-tabs" role="tablist" aria-label="Retro tabs">
             {TABS.map((t) => {
               const isActive = activeTab === t.key;
               return (

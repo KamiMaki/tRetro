@@ -16,15 +16,15 @@ interface PhaseBarProps {
 }
 
 const QUICK_DURATIONS: Array<{ label: string; sec: number | null }> = [
-  { label: '無計時', sec: null },
-  { label: '3 分', sec: 3 * 60 },
-  { label: '5 分', sec: 5 * 60 },
-  { label: '10 分', sec: 10 * 60 },
-  { label: '15 分', sec: 15 * 60 },
+  { label: 'No timer', sec: null },
+  { label: '3 min', sec: 3 * 60 },
+  { label: '5 min', sec: 5 * 60 },
+  { label: '10 min', sec: 10 * 60 },
+  { label: '15 min', sec: 15 * 60 },
 ];
 
 function formatRemaining(seconds: number): string {
-  if (seconds <= 0) return '時間到';
+  if (seconds <= 0) return "Time's up";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
@@ -47,7 +47,7 @@ export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProp
   }
 
   return (
-    <div className="phase-bar" role="region" aria-label="目前的 retro 階段">
+    <div className="phase-bar" role="region" aria-label="Current retro phase">
       <div className="phase-stages" role="tablist">
         {PHASE_ORDER.filter((p) => p !== 'closed').map((p) => {
           const isActive = p === phaseState.phase;
@@ -66,7 +66,7 @@ export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProp
                 'phase-pill ' +
                 (isActive ? 'phase-pill-active' : isPast ? 'phase-pill-past' : '')
               }
-              title={isScrumMaster ? `切換到 ${PHASE_LABELS[p]}` : `目前階段：${PHASE_LABELS[phaseState.phase]}`}
+              title={isScrumMaster ? `Switch to ${PHASE_LABELS[p]}` : `Current phase: ${PHASE_LABELS[phaseState.phase]}`}
             >
               <span aria-hidden="true">{PHASE_EMOJI[p]}</span>
               <span>{PHASE_LABELS[p]}</span>
@@ -95,14 +95,14 @@ export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProp
         )}
 
         {isScrumMaster && (
-          <div className="phase-timer-quick" aria-label="快速計時">
+          <div className="phase-timer-quick" aria-label="Quick timer presets">
             {QUICK_DURATIONS.map((d) => (
               <button
                 key={d.label}
                 type="button"
                 onClick={() => onSetPhase(phaseState.phase, d.sec)}
                 className="phase-timer-btn"
-                title={`為 ${PHASE_LABELS[phaseState.phase]} 設定 ${d.label} 計時`}
+                title={`Set ${d.label} timer for ${PHASE_LABELS[phaseState.phase]}`}
               >
                 {d.label}
               </button>
