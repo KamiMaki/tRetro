@@ -102,7 +102,12 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     durationSec: null,
   }));
   const [metricsAggregate, setMetricsAggregate] = useState<MetricAggregate[]>(() =>
-    METRIC_KEYS.map((metricKey) => ({ metricKey, average: null, submissions: 0 })),
+    METRIC_KEYS.map((metricKey) => ({
+      metricKey,
+      average: null,
+      submissions: 0,
+      distribution: new Array(10).fill(0),
+    })),
   );
   const [ownMetricScores, setOwnMetricScores] = useState<OwnMetricScores>({});
 

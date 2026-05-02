@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS metric_submissions (
   room_id        TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
   participant_id TEXT NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
   metric_key     TEXT NOT NULL,
-  score          INTEGER NOT NULL CHECK(score BETWEEN 1 AND 100),
+  score          INTEGER NOT NULL CHECK(score BETWEEN 1 AND 10),
   created_at     TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at     TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(room_id, participant_id, metric_key)

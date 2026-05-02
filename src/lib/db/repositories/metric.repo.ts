@@ -1,11 +1,25 @@
 import { getDb } from '../connection';
 import { generateId } from '../../utils/id';
-import { METRIC_KEYS, type MetricAggregate, type MetricKey, type MetricsHistoryEntry, type OwnMetricScores } from '../../types';
+import {
+  METRIC_KEYS,
+  METRIC_SCORE_MIN,
+  METRIC_SCORE_MAX,
+  type MetricAggregate,
+  type MetricKey,
+  type MetricsHistoryEntry,
+  type OwnMetricScores,
+} from '../../types';
 
 interface AggregateRow {
   metric_key: string;
   avg_score: number | null;
   submission_count: number;
+}
+
+interface DistributionRow {
+  metric_key: string;
+  score: number;
+  count: number;
 }
 
 interface OwnRow {
@@ -26,12 +40,21 @@ interface HistoryAggregateRow {
 const KEY_SET: ReadonlySet<MetricKey> = new Set(METRIC_KEYS);
 
 function clampScore(value: number): number {
-  if (!Number.isFinite(value)) return 1;
-  return Math.max(1, Math.min(100, Math.round(value)));
+  if (!Number.isFinite(value)) return METRIC_SCORE_MIN;
+  return Math.max(METRIC_SCORE_MIN, Math.min(METRIC_SCORE_MAX, Math.round(value)));
+}
+
+function zeroDistribution(): number[] {
+  return new Array(METRIC_SCORE_MAX).fill(0);
 }
 
 function emptyAggregate(): MetricAggregate[] {
-  return METRIC_KEYS.map((metricKey) => ({ metricKey, average: null, submissions: 0 }));
+  return METRIC_KEYS.map((metricKey) => ({
+    metricKey,
+    average: null,
+    submissions: 0,
+    distribution: zeroDistribution(),
+  }));
 }
 
 export const metricRepo = {
@@ -72,11 +95,12 @@ export const metricRepo = {
   /**
    * Anonymous team aggregate for a single room. Always returns one row per
    * defined metric (with `average: null` when no submissions yet) so the UI
-   * can render a stable list.
+   * can render a stable list. Each entry also carries a histogram so the UI
+   * can highlight low/high outliers without revealing identities.
    */
   getAggregateByRoomId(roomId: string): MetricAggregate[] {
     const db = getDb();
-    const rows = db
+    const aggRows = db
       .prepare(
         `SELECT metric_key, AVG(score) as avg_score, COUNT(*) as submission_count
          FROM metric_submissions
@@ -85,17 +109,42 @@ export const metricRepo = {
       )
       .all(roomId) as AggregateRow[];
 
+    const distRows = db
+      .prepare(
+        `SELECT metric_key, score, COUNT(*) as count
+         FROM metric_submissions
+         WHERE room_id = ?
+         GROUP BY metric_key, score`,
+      )
+      .all(roomId) as DistributionRow[];
+
+    const distByKey = new Map<MetricKey, number[]>();
+    for (const row of distRows) {
+      if (!KEY_SET.has(row.metric_key as MetricKey)) continue;
+      const dist = distByKey.get(row.metric_key as MetricKey) ?? zeroDistribution();
+      const idx = Math.max(METRIC_SCORE_MIN, Math.min(METRIC_SCORE_MAX, Math.round(row.score))) - METRIC_SCORE_MIN;
+      dist[idx] = (dist[idx] ?? 0) + row.count;
+      distByKey.set(row.metric_key as MetricKey, dist);
+    }
+
     const byKey = new Map<MetricKey, MetricAggregate>();
-    for (const row of rows) {
+    for (const row of aggRows) {
       if (!KEY_SET.has(row.metric_key as MetricKey)) continue;
       byKey.set(row.metric_key as MetricKey, {
         metricKey: row.metric_key as MetricKey,
         average: row.avg_score == null ? null : Math.round(row.avg_score * 10) / 10,
         submissions: row.submission_count,
+        distribution: distByKey.get(row.metric_key as MetricKey) ?? zeroDistribution(),
       });
     }
     return METRIC_KEYS.map(
-      (k) => byKey.get(k) ?? { metricKey: k, average: null, submissions: 0 },
+      (k) =>
+        byKey.get(k) ?? {
+          metricKey: k,
+          average: null,
+          submissions: 0,
+          distribution: zeroDistribution(),
+        },
     );
   },
 
@@ -168,6 +217,7 @@ export const metricRepo = {
             metricKey: row.metric_key as MetricKey,
             average: row.avg_score == null ? null : Math.round(row.avg_score * 10) / 10,
             submissions: row.submission_count,
+            distribution: zeroDistribution(),
           };
         }
       }

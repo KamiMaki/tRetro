@@ -32,11 +32,11 @@ export interface RoomPhaseState {
 }
 
 export const PHASE_LABELS: Record<RoomPhase, string> = {
-  gather: '收集',
-  vote: '投票',
-  discuss: '討論',
-  action: '行動',
-  closed: '結束',
+  gather: 'Gather',
+  vote: 'Vote',
+  discuss: 'Discuss',
+  action: 'Action',
+  closed: 'Closed',
 };
 
 export const PHASE_EMOJI: Record<RoomPhase, string> = {
@@ -282,11 +282,18 @@ export const METRIC_DEFS: MetricDef[] = [
 
 export const METRIC_KEYS: MetricKey[] = METRIC_DEFS.map((d) => d.key);
 
+/** Score scale (1..10 inclusive). Centralised so server and UI agree. */
+export const METRIC_SCORE_MIN = 1;
+export const METRIC_SCORE_MAX = 10;
+export const METRIC_DEFAULT_SCORE = 7;
+
 /** Team aggregate for a single metric — what every client sees. */
 export interface MetricAggregate {
   metricKey: MetricKey;
   average: number | null;      // null when no submissions yet
   submissions: number;         // count, not identities
+  /** Histogram: distribution[i] = how many people scored (i+1). Length 10. */
+  distribution: number[];
 }
 
 /** Submitter's own scores — only sent privately to the submitter. */

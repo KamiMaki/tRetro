@@ -21,4 +21,14 @@ export function runMigrations(): void {
   if (!cols.some((c) => c.name === 'template_id')) {
     db.exec(`ALTER TABLE rooms ADD COLUMN template_id TEXT NOT NULL DEFAULT 'classic'`);
   }
+
+  // 2026-05-02: metric scale moved from 1-100 to 1-10. Convert existing
+  // submissions in place (round-half-up of score / 10, clamped to 1).
+  // Anything already in [1..10] is left untouched.
+  db.exec(`
+    UPDATE metric_submissions
+       SET score = MAX(1, CAST((score + 5) / 10 AS INTEGER)),
+           updated_at = datetime('now')
+     WHERE score > 10
+  `);
 }
