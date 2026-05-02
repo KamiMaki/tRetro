@@ -24,7 +24,6 @@ interface RoomHeaderProps {
   onCloseRoom: () => void;
   onReopenRoom: () => void;
   onOpenFacilitator: () => void;
-  onOpenSettings: () => void;
 }
 
 const STATUS_COLORS: Record<RoomHeaderProps['connectionStatus'], string> = {
@@ -50,7 +49,6 @@ export function RoomHeader({
   onCloseRoom,
   onReopenRoom,
   onOpenFacilitator,
-  onOpenSettings,
 }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [aiCopied, setAiCopied] = useState(false);
@@ -81,12 +79,6 @@ export function RoomHeader({
     download(text, `retro-${roomId}.html`, 'text/html');
   };
 
-  const handleExportCSV = async () => {
-    const res = await fetch(`/api/rooms/${roomId}/export?format=csv`);
-    if (!res.ok) return;
-    const text = await res.text();
-    download(text, `retro-${roomId}.csv`, 'text/csv;charset=utf-8');
-  };
 
   const handleCopyAiPrompt = async () => {
     try {
@@ -133,7 +125,6 @@ export function RoomHeader({
         WebkitBackdropFilter: 'blur(20px) saturate(160%)',
       }}
     >
-      <ThemeToggle />
       <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
         <Logo size={20} />
       </Link>
@@ -272,21 +263,6 @@ export function RoomHeader({
           <button type="button" className="btn" onClick={handleExportHTML} title="Export HTML">
             HTML
           </button>
-          <button type="button" className="btn" onClick={handleExportCSV} title="Export CSV (cards + action items)">
-            CSV
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={onOpenSettings}
-            title="Room settings (webhook digest)"
-            aria-label="Room settings"
-          >
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="8" cy="8" r="2" />
-              <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" />
-            </svg>
-          </button>
         </>
       )}
 
@@ -333,6 +309,8 @@ export function RoomHeader({
           Reopen
         </button>
       )}
+
+      <ThemeToggle />
     </header>
   );
 }

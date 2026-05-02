@@ -260,7 +260,7 @@ export function CardForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Drop a thought… (⌘↵ to send)"
+        placeholder="Drop a thought…"
         rows={2}
         className="field"
         style={{
@@ -284,9 +284,6 @@ export function CardForm({
           style={{ marginLeft: 'auto', fontSize: 12, padding: '6px 14px' }}
         >
           Send
-          <span className="text-mono fg-3" style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>
-            ⌘↵
-          </span>
         </button>
       </div>
     </form>

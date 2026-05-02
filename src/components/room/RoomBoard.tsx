@@ -12,7 +12,6 @@ import { Toast } from '@/components/ui/Toast';
 import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
-import { RoomSettingsModal } from '@/components/room/RoomSettingsModal';
 import { PhaseBar } from '@/components/room/PhaseBar';
 import { findTemplate } from '@/lib/templates';
 
@@ -40,6 +39,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     addCard,
     deleteCard,
     revealCard,
+    unrevealCard,
+    moveCard,
     createTag,
     addActionItem,
     updateActionItem,
@@ -65,7 +66,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const [activeTab, setActiveTab] = useState<MainTab>('board');
   const [helpOpen, setHelpOpen] = useState(false);
   const [facilitatorOpen, setFacilitatorOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [prefilledActionContent, setPrefilledActionContent] = useState('');
 
   const handleConvertCardToAction = (content: string) => {
@@ -196,7 +196,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           onCloseRoom={closeRoom}
           onReopenRoom={reopenRoom}
           onOpenFacilitator={() => setFacilitatorOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
         />
 
         <main className="room-shell">
@@ -255,6 +254,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onAddCard={addCard}
               onDeleteCard={deleteCard}
               onRevealCard={revealCard}
+              onUnrevealCard={unrevealCard}
+              onMoveCard={moveCard}
               onCreateTag={createTag}
               onAddComment={addComment}
               onToggleReaction={toggleReaction}
@@ -315,12 +316,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
       <FacilitatorPanel
         open={facilitatorOpen}
         onClose={() => setFacilitatorOpen(false)}
-      />
-
-      <RoomSettingsModal
-        open={settingsOpen}
-        roomId={roomId}
-        onClose={() => setSettingsOpen(false)}
       />
 
       <style jsx>{`

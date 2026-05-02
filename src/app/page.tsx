@@ -48,8 +48,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const todayIso = (() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  })();
   const [showCreate, setShowCreate] = useState(false);
-  const [roomName, setRoomName] = useState('Sprint 25 · Aether');
+  const [roomName, setRoomName] = useState(`Retro · ${todayIso}`);
   const [templateId, setTemplateId] = useState<string>('classic');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -200,9 +207,6 @@ export default function DashboardPage() {
                 fontFamily: 'inherit',
               }}
             />
-            <span className="text-mono fg-3" style={{ fontSize: 11 }}>
-              ⌘K
-            </span>
           </GlassPanel>
           <ThemeToggle />
         </header>

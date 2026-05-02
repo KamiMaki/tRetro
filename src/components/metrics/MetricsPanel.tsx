@@ -303,33 +303,6 @@ function AggregateRow({
         </div>
       </div>
 
-      <div
-        className="agg-minmax"
-        aria-label={
-          submissions === 0
-            ? 'No submissions yet'
-            : hasSpread
-              ? `Range from ${min} to ${max}`
-              : `All ${submissions} submitted ${min}`
-        }
-      >
-        {submissions === 0 ? (
-          <span className="agg-minmax-empty">—</span>
-        ) : (
-          <>
-            <span className="agg-minmax-pill agg-minmax-low" title={`Lowest score: ${min}`}>
-              <span aria-hidden="true">▼</span>
-              {min}
-            </span>
-            <span className="agg-minmax-sep" aria-hidden="true">…</span>
-            <span className="agg-minmax-pill agg-minmax-high" title={`Highest score: ${max}`}>
-              <span aria-hidden="true">▲</span>
-              {max}
-            </span>
-          </>
-        )}
-      </div>
-
       <div className="agg-track-wrap">
         <div
           className="agg-track"
@@ -369,10 +342,37 @@ function AggregateRow({
         </span>
       </div>
 
+      <div
+        className="agg-minmax"
+        aria-label={
+          submissions === 0
+            ? 'No submissions yet'
+            : hasSpread
+              ? `Range from ${min} to ${max}`
+              : `All ${submissions} submitted ${min}`
+        }
+      >
+        {submissions === 0 ? (
+          <span className="agg-minmax-empty">—</span>
+        ) : (
+          <>
+            <span className="agg-minmax-pill agg-minmax-low" title={`Lowest score: ${min}`}>
+              <span aria-hidden="true">▼</span>
+              {min}
+            </span>
+            <span className="agg-minmax-sep" aria-hidden="true">…</span>
+            <span className="agg-minmax-pill agg-minmax-high" title={`Highest score: ${max}`}>
+              <span aria-hidden="true">▲</span>
+              {max}
+            </span>
+          </>
+        )}
+      </div>
+
       <style jsx>{`
         .agg-row {
           display: grid;
-          grid-template-columns: 130px 86px minmax(0, 1fr) 96px;
+          grid-template-columns: 130px minmax(0, 1fr) 80px 96px;
           align-items: center;
           gap: 14px;
         }
@@ -404,7 +404,7 @@ function AggregateRow({
           font-family: var(--font-mono);
           font-size: 11px;
           color: var(--fg-2);
-          justify-content: flex-start;
+          justify-content: flex-end;
         }
         .agg-minmax-empty {
           color: var(--fg-3);
