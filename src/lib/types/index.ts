@@ -20,6 +20,35 @@ export const SECTIONS: SectionType[] = ['went-well', 'to-improve', 'thanks', 'de
 // Room status
 export type RoomStatus = 'active' | 'closed';
 
+// Retro phase (advisory — UI hint only, doesn't restrict actions)
+export type RoomPhase = 'gather' | 'vote' | 'discuss' | 'action' | 'closed';
+
+export interface RoomPhaseState {
+  phase: RoomPhase;
+  /** Wall-clock ISO timestamp when this phase started. */
+  startedAt: string;
+  /** Optional countdown duration in seconds; null = no timer. */
+  durationSec: number | null;
+}
+
+export const PHASE_LABELS: Record<RoomPhase, string> = {
+  gather: '收集',
+  vote: '投票',
+  discuss: '討論',
+  action: '行動',
+  closed: '結束',
+};
+
+export const PHASE_EMOJI: Record<RoomPhase, string> = {
+  gather: '🪴',
+  vote: '🎯',
+  discuss: '💬',
+  action: '✅',
+  closed: '📦',
+};
+
+export const PHASE_ORDER: RoomPhase[] = ['gather', 'vote', 'discuss', 'action', 'closed'];
+
 // Database models (server-side only)
 export interface Room {
   id: string;
@@ -156,6 +185,7 @@ export interface RoomJoinedPayload {
   actionItems: ActionItem[];
   metricsAggregate: MetricAggregate[];
   ownMetricScores: OwnMetricScores;
+  phaseState?: RoomPhaseState;
 }
 
 export interface CreateCardPayload {

@@ -21,6 +21,8 @@ import type {
   UpdateActionItemPayload,
   MetricAggregate,
   OwnMetricScores,
+  RoomPhase,
+  RoomPhaseState,
 } from '@/lib/types';
 import { METRIC_KEYS } from '@/lib/types';
 
@@ -62,6 +64,8 @@ interface UseRoomReturn {
   metricsAggregate: MetricAggregate[];
   ownMetricScores: OwnMetricScores;
   submitMetrics: (scores: OwnMetricScores) => void;
+  phaseState: RoomPhaseState;
+  setPhase: (phase: RoomPhase, durationSec?: number | null) => void;
 }
 
 interface UseRoomOptions {
@@ -92,6 +96,11 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [toastMessage, setToastMessage] = useState<UseRoomReturn['toastMessage']>(null);
   const [isScrumMaster, setIsScrumMaster] = useState(false);
+  const [phaseState, setPhaseState] = useState<RoomPhaseState>(() => ({
+    phase: 'gather',
+    startedAt: new Date(0).toISOString(),
+    durationSec: null,
+  }));
   const [metricsAggregate, setMetricsAggregate] = useState<MetricAggregate[]>(() =>
     METRIC_KEYS.map((metricKey) => ({ metricKey, average: null, submissions: 0 })),
   );
@@ -139,6 +148,9 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       setCards(payload.cards.map(toCardDTOv2));
       setTags(payload.tags);
       setActionItems(payload.actionItems);
+      if (payload.phaseState) {
+        setPhaseState(payload.phaseState);
+      }
       if (Array.isArray(payload.metricsAggregate)) {
         setMetricsAggregate(payload.metricsAggregate);
       }
@@ -207,6 +219,12 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socket.on(SOCKET_EVENTS.ROOM_REOPENED, () => {
       setRoom((prev) => (prev ? { ...prev, status: 'active', closedAt: null } : prev));
       setToastMessage({ message: 'The room has been reopened.', type: 'success' });
+    });
+
+    socket.on(SOCKET_EVENTS.PHASE_UPDATED, (payload: { phaseState: RoomPhaseState }) => {
+      if (payload?.phaseState) {
+        setPhaseState(payload.phaseState);
+      }
     });
 
     // V2: Comments
@@ -334,6 +352,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.ROOM_REOPEN, { roomId });
   }, [roomId]);
 
+  const setPhase = useCallback((phase: RoomPhase, durationSec: number | null = null) => {
+    socketRef.current?.emit(SOCKET_EVENTS.PHASE_SET, { phase, durationSec });
+  }, []);
+
   const addComment = useCallback((cardId: string, content: string) => {
     socketRef.current?.emit(SOCKET_EVENTS.COMMENT_CREATE, { cardId, content });
   }, []);
@@ -383,5 +405,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     metricsAggregate,
     ownMetricScores,
     submitMetrics,
+    phaseState,
+    setPhase,
   };
 }

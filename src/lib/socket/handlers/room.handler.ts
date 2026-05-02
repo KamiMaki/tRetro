@@ -9,6 +9,8 @@ import { metricRepo } from '../../db/repositories/metric.repo';
 import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 import { sendActionItemDigest } from '../../integrations/digest';
+import { getPhaseState, setPhaseState } from '../phase-store';
+import type { RoomPhase } from '../../types';
 
 export function registerRoomHandlers(io: Server, socket: Socket): void {
   const data = socket.data as SocketData;
@@ -34,6 +36,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const actionItems = actionItemRepo.findByRoomId(roomId);
     const metricsAggregate = metricRepo.getAggregateByRoomId(roomId);
     const ownMetricScores = metricRepo.getOwnScores(roomId, participantId);
+    const phaseState = getPhaseState(roomId);
 
     socket.emit(SOCKET_EVENTS.ROOM_JOINED, {
       room,
@@ -44,6 +47,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       actionItems,
       metricsAggregate,
       ownMetricScores,
+      phaseState,
     });
 
     // Notify others
@@ -89,6 +93,28 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const room = roomRepo.reopen(data.roomId);
     io.to(data.roomId).emit(SOCKET_EVENTS.ROOM_REOPENED, { room });
   });
+
+  // Phase change (advisory). Anyone with SM rights can advance the
+  // phase — phase is a UI hint and does not gate any action.
+  socket.on(
+    SOCKET_EVENTS.PHASE_SET,
+    (payload: { phase?: RoomPhase; durationSec?: number | null } | undefined) => {
+      if (!data.isScrumMaster) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only Scrum Master can change phase', code: 'FORBIDDEN' });
+        return;
+      }
+      const phase = payload?.phase;
+      if (!phase) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Phase is required', code: 'BAD_INPUT' });
+        return;
+      }
+      const next = setPhaseState(data.roomId, {
+        phase,
+        durationSec: payload?.durationSec ?? null,
+      });
+      io.to(data.roomId).emit(SOCKET_EVENTS.PHASE_UPDATED, { phaseState: next });
+    },
+  );
 
   // Disconnect
   socket.on(SOCKET_EVENTS.DISCONNECT, () => {

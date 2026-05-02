@@ -13,6 +13,7 @@ import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
 import { RoomSettingsModal } from '@/components/room/RoomSettingsModal';
+import { PhaseBar } from '@/components/room/PhaseBar';
 
 interface RoomBoardProps {
   roomId: string;
@@ -51,6 +52,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     metricsAggregate,
     ownMetricScores,
     submitMetrics,
+    phaseState,
+    setPhase,
   } = roomState;
 
   const router = useRouter();
@@ -193,6 +196,12 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         />
 
         <main className="room-shell">
+          <PhaseBar
+            phaseState={phaseState}
+            isScrumMaster={isScrumMaster}
+            onSetPhase={setPhase}
+          />
+
           <nav className="main-tabs" role="tablist" aria-label="Retro 主分頁">
             {TABS.map((t) => {
               const isActive = activeTab === t.key;

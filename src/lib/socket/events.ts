@@ -12,6 +12,8 @@ export const SOCKET_EVENTS = {
   ROOM_CLOSED: 'room:closed',
   ROOM_REOPEN: 'room:reopen',
   ROOM_REOPENED: 'room:reopened',
+  PHASE_SET: 'phase:set',
+  PHASE_UPDATED: 'phase:updated',
 
   // Cards
   CARD_CREATE: 'card:create',
