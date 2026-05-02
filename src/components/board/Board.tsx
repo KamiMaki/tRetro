@@ -2,6 +2,7 @@
 
 import type { CardDTOv2, Tag, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTIONS } from '@/lib/types';
+import type { RetroTemplate } from '@/lib/templates';
 import { Section } from '@/components/board/Section';
 import { TagFilter } from '@/components/board/TagFilter';
 import { SortControls } from '@/components/board/SortControls';
@@ -11,6 +12,7 @@ interface BoardProps {
   tags: Tag[];
   isScrumMaster: boolean;
   participantCount: number;
+  template?: RetroTemplate;
   activeTagFilters: string[];
   setActiveTagFilters: (filters: string[]) => void;
   sortBy: 'time' | 'tagCount';
@@ -33,6 +35,7 @@ export function Board({
   tags,
   isScrumMaster,
   participantCount,
+  template,
   activeTagFilters,
   setActiveTagFilters,
   sortBy,
@@ -100,6 +103,7 @@ export function Board({
             tags={tags}
             isScrumMaster={isScrumMaster}
             participantCount={participantCount}
+            template={template}
             onAddCard={onAddCard}
             onDeleteCard={onDeleteCard}
             onRevealCard={onRevealCard}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTION_LABELS, SECTION_EMOJIS } from '@/lib/types';
+import type { RetroTemplate } from '@/lib/templates';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
 import { SectionFullscreen } from '@/components/board/SectionFullscreen';
@@ -21,6 +22,7 @@ interface SectionProps {
   tags: Tag[];
   isScrumMaster: boolean;
   participantCount: number;
+  template?: RetroTemplate;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string) => void;
@@ -38,6 +40,7 @@ export function Section({
   tags,
   isScrumMaster,
   participantCount,
+  template,
   onAddCard,
   onDeleteCard,
   onRevealCard,
@@ -49,7 +52,8 @@ export function Section({
   onConvertToAction,
 }: SectionProps) {
   const tone = SECTION_TONES[section];
-  const emoji = SECTION_EMOJIS[section];
+  const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
+  const label = template?.labels[section] ?? SECTION_LABELS[section];
   const [fullscreen, setFullscreen] = useState(false);
 
   return (
@@ -68,7 +72,7 @@ export function Section({
           <div className="col-icon" aria-hidden="true">{emoji}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="text-display" style={{ fontSize: 15, fontWeight: 600 }}>
-              {SECTION_LABELS[section]}
+              {label}
             </div>
             <div className="text-mono fg-3" style={{ fontSize: 11 }}>
               {cards.length} card{cards.length === 1 ? '' : 's'}
@@ -77,7 +81,7 @@ export function Section({
           <button
             type="button"
             onClick={() => setFullscreen(true)}
-            aria-label={`Expand ${SECTION_LABELS[section]} to fullscreen`}
+            aria-label={`Expand ${label} to fullscreen`}
             title="Fullscreen (browse all cards)"
             style={{
               width: 28,
@@ -170,6 +174,7 @@ export function Section({
           tags={tags}
           isScrumMaster={isScrumMaster}
           participantCount={participantCount}
+          template={template}
           onClose={() => setFullscreen(false)}
           onAddCard={onAddCard}
           onDeleteCard={onDeleteCard}

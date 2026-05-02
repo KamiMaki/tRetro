@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { RoomSummary, SectionType } from '@/lib/types';
 import { SECTIONS, SECTION_EMOJIS, SECTION_LABELS } from '@/lib/types';
+import { RETRO_TEMPLATES, findTemplate } from '@/lib/templates';
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useShortcuts } from '@/lib/hooks/useShortcuts';
@@ -49,6 +50,7 @@ export default function DashboardPage() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [roomName, setRoomName] = useState('Sprint 25 · Aether');
+  const [templateId, setTemplateId] = useState<string>('classic');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -115,7 +117,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, templateId }),
       });
       if (!res.ok) {
         const body = await res.json();
@@ -343,6 +345,8 @@ export default function DashboardPage() {
         <NewRoomModal
           name={roomName}
           setName={setRoomName}
+          templateId={templateId}
+          setTemplateId={setTemplateId}
           onClose={() => setShowCreate(false)}
           onSubmit={handleCreate}
           creating={creating}
@@ -397,6 +401,7 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
   // Closed room: read-only history view.
   const href = isActive ? `/room/${room.id}` : `/room/${room.id}/history`;
   const lastActive = relDate(room.lastActivityAt);
+  const template = findTemplate(room.templateId);
 
   return (
     <Link
@@ -481,6 +486,8 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
               key={s}
               section={s}
               count={room.sectionCounts[s] ?? 0}
+              emoji={template.emojis[s]}
+              label={template.labels[s]}
             />
           ))}
         </div>
@@ -508,9 +515,19 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
   );
 }
 
-function SectionBadge({ section, count }: { section: SectionType; count: number }) {
-  const emoji = SECTION_EMOJIS[section];
-  const label = SECTION_LABELS[section];
+function SectionBadge({
+  section,
+  count,
+  emoji: emojiOverride,
+  label: labelOverride,
+}: {
+  section: SectionType;
+  count: number;
+  emoji?: string;
+  label?: string;
+}) {
+  const emoji = emojiOverride ?? SECTION_EMOJIS[section];
+  const label = labelOverride ?? SECTION_LABELS[section];
   const isEmpty = count === 0;
   return (
     <div
@@ -560,6 +577,8 @@ function Stat({ icon, value, label }: { icon: 'users' | 'cards' | 'check'; value
 function NewRoomModal({
   name,
   setName,
+  templateId,
+  setTemplateId,
   onClose,
   onSubmit,
   creating,
@@ -567,6 +586,8 @@ function NewRoomModal({
 }: {
   name: string;
   setName: (s: string) => void;
+  templateId: string;
+  setTemplateId: (id: string) => void;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   creating: boolean;
@@ -574,7 +595,7 @@ function NewRoomModal({
 }) {
   return (
     <div onClick={onClose} className="modal-backdrop">
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(460px, 100%)', position: 'relative', zIndex: 81 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 100%)', position: 'relative', zIndex: 81 }}>
         <GlassPanel strong style={{ padding: 28 }}>
           <div
             className="text-mono fg-3"
@@ -609,6 +630,68 @@ function NewRoomModal({
               className="field"
               style={{ marginBottom: 16 }}
             />
+
+            <div
+              className="text-mono fg-2"
+              style={{ marginBottom: 6, fontSize: 11 }}
+            >
+              選擇模板
+            </div>
+            <div
+              role="radiogroup"
+              aria-label="Retro 模板"
+              style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}
+            >
+              {RETRO_TEMPLATES.map((tpl) => {
+                const selected = templateId === tpl.id;
+                return (
+                  <label
+                    key={tpl.id}
+                    style={{
+                      display: 'flex',
+                      gap: 10,
+                      padding: '10px 12px',
+                      border: '1px solid ' + (selected ? 'var(--aurora-violet)' : 'var(--glass-border)'),
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      background: selected ? 'oklch(0.68 0.20 285 / 0.10)' : 'transparent',
+                      transition: 'background 0.15s, border-color 0.15s',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="template"
+                      value={tpl.id}
+                      checked={selected}
+                      onChange={() => setTemplateId(tpl.id)}
+                      style={{ marginTop: 3 }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        className="text-display"
+                        style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}
+                      >
+                        {tpl.name}
+                      </div>
+                      <div className="fg-2" style={{ fontSize: 11.5, lineHeight: 1.5, marginBottom: 4 }}>
+                        {tpl.description}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {SECTIONS.map((s) => (
+                          <span
+                            key={s}
+                            className="text-mono"
+                            style={{ fontSize: 11, color: 'var(--fg-2)' }}
+                          >
+                            {tpl.emojis[s]} {tpl.labels[s]}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
 
             {error && (
               <div

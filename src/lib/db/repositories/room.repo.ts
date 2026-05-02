@@ -10,6 +10,7 @@ interface RoomRow {
   updated_at: string;
   closed_at: string | null;
   webhook_url: string | null;
+  template_id: string | null;
 }
 
 function toRoom(row: RoomRow): Room {
@@ -21,16 +22,17 @@ function toRoom(row: RoomRow): Room {
     updatedAt: row.updated_at,
     closedAt: row.closed_at,
     webhookUrl: row.webhook_url ?? null,
+    templateId: row.template_id ?? 'classic',
   };
 }
 
 export const roomRepo = {
-  create(name: string): Room {
+  create(name: string, templateId: string = 'classic'): Room {
     const db = getDb();
     const id = generateRoomId();
     db.prepare(
-      'INSERT INTO rooms (id, name) VALUES (?, ?)'
-    ).run(id, name);
+      'INSERT INTO rooms (id, name, template_id) VALUES (?, ?, ?)'
+    ).run(id, name, templateId);
     return this.findById(id)!;
   },
 
@@ -44,7 +46,7 @@ export const roomRepo = {
     const db = getDb();
     const rows = db.prepare(`
       SELECT
-        r.id, r.name, r.status, r.created_at, r.closed_at,
+        r.id, r.name, r.status, r.created_at, r.closed_at, r.template_id,
         (SELECT COUNT(*) FROM participants p WHERE p.room_id = r.id) as participant_count,
         (SELECT COUNT(*) FROM cards c WHERE c.room_id = r.id) as card_count,
         (SELECT COUNT(*) FROM action_items a WHERE a.room_id = r.id) as action_item_count,
@@ -57,7 +59,13 @@ export const roomRepo = {
         (SELECT MAX(created_at) FROM action_items WHERE room_id = r.id) as last_action_at
       FROM rooms r
       ORDER BY r.created_at DESC
-    `).all() as Array<RoomRow & {
+    `).all() as Array<{
+      id: string;
+      name: string;
+      status: string;
+      created_at: string;
+      closed_at: string | null;
+      template_id: string | null;
       participant_count: number;
       card_count: number;
       action_item_count: number;
@@ -97,6 +105,7 @@ export const roomRepo = {
           'thanks': r.count_thanks,
           'deep-dive': r.count_deep_dive,
         },
+        templateId: r.template_id ?? 'classic',
       };
     });
   },

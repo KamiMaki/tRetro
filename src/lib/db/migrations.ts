@@ -16,4 +16,9 @@ export function runMigrations(): void {
   if (!cols.some((c) => c.name === 'webhook_url')) {
     db.exec(`ALTER TABLE rooms ADD COLUMN webhook_url TEXT`);
   }
+
+  // 2026-05-02: retro template selection (classic / mad-sad-glad / etc.)
+  if (!cols.some((c) => c.name === 'template_id')) {
+    db.exec(`ALTER TABLE rooms ADD COLUMN template_id TEXT NOT NULL DEFAULT 'classic'`);
+  }
 }

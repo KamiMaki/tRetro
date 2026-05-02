@@ -12,11 +12,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { name } = await request.json();
+    const body = await request.json();
+    const name = body?.name;
+    const templateId = typeof body?.templateId === 'string' ? body.templateId : 'classic';
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Room name is required' }, { status: 400 });
     }
-    const room = roomRepo.create(name.trim());
+    const room = roomRepo.create(name.trim(), templateId);
     return NextResponse.json({
       roomId: room.id,
       // Send users straight into the board — the board page auto-creates

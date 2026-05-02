@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS rooms (
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
   closed_at     TEXT,
-  webhook_url   TEXT
+  webhook_url   TEXT,
+  template_id   TEXT NOT NULL DEFAULT 'classic'
 );
 
 CREATE TABLE IF NOT EXISTS participants (

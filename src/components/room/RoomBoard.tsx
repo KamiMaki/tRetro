@@ -14,6 +14,7 @@ import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHel
 import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
 import { RoomSettingsModal } from '@/components/room/RoomSettingsModal';
 import { PhaseBar } from '@/components/room/PhaseBar';
+import { findTemplate } from '@/lib/templates';
 
 interface RoomBoardProps {
   roomId: string;
@@ -142,6 +143,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     return metricsAggregate.reduce((max, m) => Math.max(max, m.submissions || 0), 0);
   }, [metricsAggregate]);
 
+  const template = useMemo(() => findTemplate(room?.templateId), [room?.templateId]);
+
   const TABS: Array<{ key: MainTab; label: string; badge?: number; badgeSoft?: boolean; icon: React.ReactNode }> = [
     {
       key: 'board',
@@ -241,6 +244,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               tags={tags}
               isScrumMaster={isScrumMaster}
               participantCount={participants.length}
+              template={template}
               activeTagFilters={activeTagFilters}
               setActiveTagFilters={setActiveTagFilters}
               sortBy={sortBy}

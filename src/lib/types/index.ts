@@ -59,6 +59,8 @@ export interface Room {
   closedAt: string | null;
   /** Optional webhook URL — POSTed an action-item digest on room close. */
   webhookUrl: string | null;
+  /** Retro template id (classic / mad-sad-glad / start-stop-continue / 4ls). */
+  templateId: string;
 }
 
 export interface Participant {
@@ -168,6 +170,8 @@ export interface RoomSummary {
   lastActivityAt: string;
   /** Card count per section. */
   sectionCounts: Record<SectionType, number>;
+  /** Retro template id (classic / mad-sad-glad / etc.). */
+  templateId: string;
 }
 
 // Socket event payloads

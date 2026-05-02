@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTION_LABELS, SECTION_EMOJIS } from '@/lib/types';
+import type { RetroTemplate } from '@/lib/templates';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
 
@@ -20,6 +21,7 @@ interface SectionFullscreenProps {
   tags: Tag[];
   isScrumMaster: boolean;
   participantCount: number;
+  template?: RetroTemplate;
   onClose: () => void;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
@@ -39,6 +41,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     tags,
     isScrumMaster,
     participantCount,
+    template,
     onClose,
     onAddCard,
     onDeleteCard,
@@ -52,7 +55,8 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
   } = props;
 
   const tone = SECTION_TONES[section];
-  const emoji = SECTION_EMOJIS[section];
+  const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
+  const label = template?.labels[section] ?? SECTION_LABELS[section];
 
   // ESC to close
   useEffect(() => {
@@ -83,13 +87,13 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
       data-col={section}
       role="dialog"
       aria-modal="true"
-      aria-label={`${SECTION_LABELS[section]} fullscreen`}
+      aria-label={`${label} fullscreen`}
     >
       <div className="section-fullscreen-header">
         <div className="col-icon" aria-hidden="true">{emoji}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="text-display" style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em' }}>
-            {SECTION_LABELS[section]}
+            {label}
           </div>
           <div className="text-mono fg-3" style={{ fontSize: 12 }}>
             {cards.length} card{cards.length === 1 ? '' : 's'} · press Esc to exit
