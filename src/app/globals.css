@@ -241,12 +241,14 @@ body {
   color: oklch(1 0 0 / 0.6);
 }
 [data-theme="light"] .btn-primary {
-  background: linear-gradient(135deg, oklch(0.50 0.22 285), oklch(0.55 0.18 200));
-  text-shadow: 0 1px 1px oklch(0 0 0 / 0.3);
+  background: linear-gradient(135deg, oklch(0.66 0.22 285), oklch(0.72 0.18 200));
+  color: #fff;
+  text-shadow: 0 1px 2px oklch(0.30 0.10 285 / 0.45);
+  box-shadow: 0 4px 14px oklch(0.66 0.22 285 / 0.30);
 }
 [data-theme="light"] .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, oklch(0.45 0.22 285), oklch(0.50 0.18 200));
-  box-shadow: 0 6px 24px oklch(0.50 0.22 285 / 0.35);
+  background: linear-gradient(135deg, oklch(0.58 0.22 285), oklch(0.64 0.18 200));
+  box-shadow: 0 8px 24px oklch(0.66 0.22 285 / 0.45);
 }
 [data-theme="light"] .btn {
   color: var(--fg-1);
@@ -596,26 +598,6 @@ input[type="date"].field::-webkit-calendar-picker-indicator:hover {
 [data-theme="light"] .modal-backdrop[data-z="lightbox"] { background: oklch(0.4 0.04 270 / 0.45); }
 
 /* ─────────────────────────────────────────────────────
-   Density: compact mode (board cards)
-   ───────────────────────────────────────────────────── */
-[data-density="compact"] .sticky-card {
-  padding: 8px 10px 7px;
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-[data-density="compact"] .sticky-card .card-footer {
-  opacity: 0.4;
-  max-height: 28px;
-  overflow: hidden;
-  transition: opacity 0.18s, max-height 0.18s;
-}
-[data-density="compact"] .sticky-card:hover .card-footer,
-[data-density="compact"] .sticky-card:focus-within .card-footer {
-  opacity: 1;
-  max-height: 200px;
-}
-
-/* ─────────────────────────────────────────────────────
    Voting consensus heatmap
    - strong (>=70%): mint glow, mint badge
    - mixed (40–70%): amber glow
@@ -653,25 +635,6 @@ input[type="date"].field::-webkit-calendar-picker-indicator:hover {
 }
 [data-theme="light"] [data-consensus="strong"] { color: oklch(0.32 0.12 175); }
 [data-theme="light"] [data-consensus="mixed"]  { color: oklch(0.40 0.13 75); }
-
-/* ─────────────────────────────────────────────────────
-   Per-card size override (user-toggled, beats density).
-   Declared AFTER density rules and uses higher specificity
-   ([data-density] + .sticky-card[data-size]) to win in both
-   cozy and compact modes.
-   ───────────────────────────────────────────────────── */
-.sticky-card[data-size="large"],
-[data-density="compact"] .sticky-card[data-size="large"] {
-  padding: 18px 18px 14px;
-  font-size: 15px;
-  line-height: 1.6;
-}
-.sticky-card[data-size="large"] .card-footer,
-[data-density="compact"] .sticky-card[data-size="large"] .card-footer {
-  font-size: 12px;
-  opacity: 1;
-  max-height: none;
-}
 
 /* ─────────────────────────────────────────────────────
    Section fullscreen overlay

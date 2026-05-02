@@ -1,15 +1,14 @@
 /**
- * Static facilitation prompts shown in the Scrum Master's helper panel.
- * Designed for the four-stage flow most retros follow:
+ * 主持人提示靜態內容（中文）。
+ * 涵蓋多數 retro 採用的四階段流程：
  *
- *   1. gather   — collect cards
- *   2. vote     — converge on what matters
- *   3. discuss  — go deep on top items
- *   4. action   — turn signals into commitments
+ *   1. gather   — 收集卡片
+ *   2. vote     — 收斂出最重要的議題
+ *   3. discuss  — 深入討論
+ *   4. action   — 把訊號變成承諾
  *
- * Even when the room has no formal phase, the SM can scan these as a
- * checklist before each segment. Anonymous-friendly: nothing here asks
- * the SM to single anyone out.
+ * 即使房間沒有正式的 phase，主持人也可在每個階段前快速掃過這份清單作為檢查表。
+ * 對匿名性友善：所有提示都不要求主持人指名點人。
  */
 
 export interface FacilitatorStage {
@@ -25,91 +24,91 @@ export interface FacilitatorStage {
 export const FACILITATOR_STAGES: FacilitatorStage[] = [
   {
     key: 'gather',
-    title: 'Gather',
+    title: '收集',
     emoji: '🪴',
-    duration: '5–8 min',
-    goal: 'Get every signal on the board before anyone analyzes anything.',
+    duration: '5–8 分鐘',
+    goal: '在沒有人開始分析之前，先把所有訊號丟到棋盤上。',
     tips: [
-      'Reassure the room that cards are anonymous by default. Let the silence breathe.',
-      'Encourage one idea per card so voting and clustering work later.',
-      'Avoid commenting on cards yet — just collect.',
-      'Use the "Compact" density (top-right toggle) once cards pile up so people can scan.',
+      '提醒房間「卡片預設匿名」，給大家沉默的時間思考。',
+      '鼓勵一個想法寫成一張卡，後續的投票與分群才會有效。',
+      '這個階段不要評論卡片，只負責收集。',
+      '卡片變多時可以切到「Compact」密度（右上角切換）讓大家更好掃讀。',
     ],
     prompts: [
-      "What energized you this sprint?",
-      "Where did we lose time we wish we hadn't?",
-      "Whose work made yours easier?",
-      "What's the question we keep avoiding?",
+      '這個 sprint 哪些事情讓你最有動力？',
+      '我們在哪裡浪費了不該浪費的時間？',
+      '誰的工作讓你的工作變得更輕鬆？',
+      '有沒有什麼問題我們一直在迴避？',
     ],
   },
   {
     key: 'vote',
-    title: 'Vote',
+    title: '投票',
     emoji: '🎯',
-    duration: '3–5 min',
-    goal: 'Converge on the cards worth discussing as a team.',
+    duration: '3–5 分鐘',
+    goal: '收斂出今天最值得討論的卡片。',
     tips: [
-      'Ask everyone to vote in parallel — no commentary yet.',
-      'A card with a >70% mint glow is high-consensus; <40% is polarising and may need extra context.',
-      'It\'s OK if some sections get no votes — that\'s also a signal.',
-      'Cap votes (e.g. 3 per person) if you have a large team; people gravitate to the safest choices otherwise.',
+      '請大家平行投票，不要一邊投一邊討論。',
+      '邊框是 mint 綠（共識 ≥70%）的卡片代表強共識；amber 琥珀（40–70%）代表分歧或混合訊號，可能需要更多脈絡。',
+      '某些區塊完全沒人投票也是訊號之一，不需要硬挑。',
+      '團隊較大時可限制每人投票數（例如 3 票），否則大家會偏向最安全的選項。',
     ],
     prompts: [
-      "Vote for the cards you'd most want to talk about today.",
-      "If we only had 15 minutes left, which cards would matter most?",
+      '請投給你今天最想討論的卡片。',
+      '如果只剩 15 分鐘，哪幾張卡片最重要？',
     ],
   },
   {
     key: 'discuss',
-    title: 'Discuss',
+    title: '討論',
     emoji: '💬',
-    duration: '15–25 min',
-    goal: 'Surface root causes and shared understanding on the top-voted items.',
+    duration: '15–25 分鐘',
+    goal: '針對高票卡片，找出根本原因與共同理解。',
     tips: [
-      'Open the highest-consensus card first. Use the section "fullscreen" button to focus the room on one card at a time.',
-      'Ask the author (if revealed) to add context, then open the floor.',
-      'When discussion stalls, click "Convert to action item" on the card and move on.',
-      'Watch the timer — better to leave one card untouched than to drift.',
+      '從共識最高的卡片開始討論。可使用區塊「全螢幕」按鈕讓大家聚焦在同一張卡片上。',
+      '若卡片作者已顯名，可邀請他補充脈絡，再開放討論。',
+      '討論卡住時，點卡片上的「轉成 action item」按鈕直接帶走，繼續往下走。',
+      '注意計時。寧可有一張卡來不及討論，也不要讓會議發散。',
     ],
     prompts: [
-      "What did we miss the first time around on this one?",
-      "Is this a one-off or a pattern we keep hitting?",
-      "What would have to be true for this to stop happening?",
+      '當初我們漏掉了什麼？',
+      '這是一次性的事件，還是反覆出現的模式？',
+      '要怎麼樣才能讓這個問題不再發生？',
     ],
   },
   {
     key: 'action',
-    title: 'Action',
+    title: '行動',
     emoji: '✅',
-    duration: '5–8 min',
-    goal: 'Lock in commitments, owners, and dates while energy is still high.',
+    duration: '5–8 分鐘',
+    goal: '在能量還在的時候，把承諾、負責人、期限都鎖定下來。',
     tips: [
-      'Every action item needs an owner — "the team" is not an owner.',
-      'Set a due date even if it\'s rough — "by next retro" beats "soon".',
-      'Cap to 3–5 items the team can actually do; surplus actions die on the vine.',
-      'Re-read each one out loud. Silence often hides confusion.',
+      '每一個 action item 都要有負責人 — 「整個團隊」不算負責人。',
+      '即使日期是粗估也要設下來 — 「下次 retro 前」勝過「之後再說」。',
+      '控制在 3–5 個團隊真正能做完的項目，過多的 action 通常會死在路上。',
+      '逐一把 action item 念出來。沉默通常代表困惑。',
     ],
     prompts: [
-      "Who can take the first step on this?",
-      "What's the smallest version of this we can ship before next retro?",
-      "Is anything in the way of you owning this?",
+      '誰可以先動手做這件事？',
+      '在下次 retro 之前，這件事最小可行的版本是什麼？',
+      '有什麼會擋住你接下這個 action？',
     ],
   },
   {
     key: 'wrap',
-    title: 'Wrap & export',
+    title: '收尾與匯出',
     emoji: '📦',
-    duration: '2 min',
-    goal: 'Make the artifact. Close the loop.',
+    duration: '2 分鐘',
+    goal: '產出成果並結束會議。',
     tips: [
-      'Click "Copy AI prompt" to grab a paste-ready summary prompt for ChatGPT / Claude / Gemini if you want themes.',
-      'Or just export Markdown / HTML and drop it in the team channel.',
-      'Close the room when you\'re done — but remember you can reopen it if something comes up.',
-      'Quick pulse: ask each person their one-word feeling about the meeting.',
+      '需要主題摘要的話，按 header 上的「複製 AI prompt」貼到 ChatGPT / Claude / Gemini 即可。',
+      '或者直接匯出 Markdown / HTML 丟到團隊頻道。',
+      '結束後再關房 — 不過記得有需要時可以重新開啟。',
+      '快速 pulse：請每個人用一個詞描述對這場會議的感覺。',
     ],
     prompts: [
-      "What's one word you'd use to describe today's session?",
-      "Anything we should change about how the next retro is run?",
+      '用一個詞來形容今天這場會議。',
+      '下次 retro 有沒有什麼地方想調整？',
     ],
   },
 ];

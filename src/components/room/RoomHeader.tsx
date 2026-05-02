@@ -5,7 +5,6 @@ import Link from 'next/link';
 import type { Room, CardDTO, ActionItem } from '@/lib/types';
 import { Avatar, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { useDensity } from '@/lib/hooks/useDensity';
 
 interface ParticipantSummary {
   id: string;
@@ -54,11 +53,9 @@ export function RoomHeader({
   const [copied, setCopied] = useState(false);
   const [aiCopied, setAiCopied] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-  const { density, toggle: toggleDensity, hydrated: densityHydrated } = useDensity();
 
   const onlineCount = participants.filter((p) => p.isOnline).length;
   const isLive = connectionStatus === 'connected';
-  const isCompact = density === 'compact';
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/room/${roomId}/join`;
@@ -80,6 +77,13 @@ export function RoomHeader({
     if (!res.ok) return;
     const text = await res.text();
     download(text, `retro-${roomId}.html`, 'text/html');
+  };
+
+  const handleExportCSV = async () => {
+    const res = await fetch(`/api/rooms/${roomId}/export?format=csv`);
+    if (!res.ok) return;
+    const text = await res.text();
+    download(text, `retro-${roomId}.csv`, 'text/csv;charset=utf-8');
   };
 
   const handleCopyAiPrompt = async () => {
@@ -229,59 +233,6 @@ export function RoomHeader({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={toggleDensity}
-        aria-label={`Switch to ${isCompact ? 'comfortable' : 'compact'} layout`}
-        title={`Switch to ${isCompact ? 'comfortable' : 'compact'} layout`}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '5px 10px 5px 6px',
-          borderRadius: 999,
-          background: 'var(--glass-bg)',
-          border: '1px solid var(--glass-border)',
-          color: 'var(--fg-1)',
-          cursor: 'pointer',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 11,
-          lineHeight: 1,
-          opacity: densityHydrated ? 1 : 0,
-          transition: 'background .15s, color .15s, opacity .15s',
-        }}
-      >
-        <span
-          aria-hidden="true"
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: '50%',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: isCompact
-              ? 'linear-gradient(135deg, var(--aurora-mint), var(--aurora-cyan))'
-              : 'linear-gradient(135deg, var(--aurora-pink), var(--aurora-amber))',
-            color: 'oklch(0.15 0.04 270)',
-          }}
-        >
-          {isCompact ? (
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M2 4h12M2 8h12M2 12h12" />
-            </svg>
-          ) : (
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M2 3h12M2 8h12M2 13h12" />
-              <circle cx="2" cy="3" r="0.6" fill="currentColor" />
-              <circle cx="2" cy="8" r="0.6" fill="currentColor" />
-              <circle cx="2" cy="13" r="0.6" fill="currentColor" />
-            </svg>
-          )}
-        </span>
-        {isCompact ? 'compact' : 'cozy'}
-      </button>
-
       <ThemeToggle />
 
       {/* Facilitator guide — useful for any participant running the meeting */}
@@ -289,13 +240,13 @@ export function RoomHeader({
         type="button"
         className="btn"
         onClick={onOpenFacilitator}
-        title="Open facilitator guide (tips & prompts per phase)"
+        title="主持人指南（每個階段的技巧與提問）"
       >
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M3 2h7l3 3v9H3z" />
           <path d="M5 6h6M5 9h6M5 12h4" />
         </svg>
-        Guide
+        主持人指南
       </button>
 
       {/* Share */}
@@ -315,7 +266,7 @@ export function RoomHeader({
             type="button"
             className="btn"
             onClick={handleCopyAiPrompt}
-            title="Copy an AI-ready prompt + retro content to your clipboard. Paste into ChatGPT / Claude / Gemini for theme summary."
+            title="複製整理好的 AI prompt + retro 內容到剪貼簿，貼到 ChatGPT / Claude / Gemini 即可取得主題摘要"
             style={{
               background: aiCopied ? 'oklch(0.78 0.15 175 / 0.20)' : undefined,
               borderColor: aiCopied ? 'oklch(0.78 0.15 175 / 0.45)' : undefined,
@@ -326,7 +277,7 @@ export function RoomHeader({
               <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2 2M10.6 10.6l2 2M3.4 12.6l2-2M10.6 5.4l2-2" />
               <circle cx="8" cy="8" r="1.5" fill="currentColor" />
             </svg>
-            {aiCopied ? 'Copied · paste into AI' : 'Copy AI prompt'}
+            {aiCopied ? '已複製 · 貼到 AI' : '複製 AI prompt'}
           </button>
           <button type="button" className="btn" onClick={handleExportMD} title="Export as Markdown">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -334,8 +285,11 @@ export function RoomHeader({
             </svg>
             MD
           </button>
-          <button type="button" className="btn" onClick={handleExportHTML} title="Export as HTML">
+          <button type="button" className="btn" onClick={handleExportHTML} title="匯出 HTML">
             HTML
+          </button>
+          <button type="button" className="btn" onClick={handleExportCSV} title="匯出 CSV（卡片 + action items 同表）">
+            CSV
           </button>
         </>
       )}

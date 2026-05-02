@@ -19,7 +19,9 @@ export async function POST(request: Request) {
     const room = roomRepo.create(name.trim());
     return NextResponse.json({
       roomId: room.id,
-      joinUrl: `/room/${room.id}/join`,
+      // Send users straight into the board — the board page auto-creates
+      // a guest participant when no session token is present.
+      joinUrl: `/room/${room.id}`,
     }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Failed to create room' }, { status: 500 });

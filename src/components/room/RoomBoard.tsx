@@ -17,7 +17,7 @@ interface RoomBoardProps {
   roomId: string;
 }
 
-type SidebarTab = 'actions' | 'metrics';
+type MainTab = 'board' | 'actions' | 'metrics';
 
 export function RoomBoard({ roomId }: RoomBoardProps) {
   const sessionToken =
@@ -56,47 +56,55 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'time' | 'tagCount'>('time');
   const [sortAsc, setSortAsc] = useState(true);
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('actions');
+  const [activeTab, setActiveTab] = useState<MainTab>('board');
   const [helpOpen, setHelpOpen] = useState(false);
   const [facilitatorOpen, setFacilitatorOpen] = useState(false);
   const [prefilledActionContent, setPrefilledActionContent] = useState('');
 
   const handleConvertCardToAction = (content: string) => {
-    setSidebarTab('actions');
+    setActiveTab('actions');
     setPrefilledActionContent(content);
   };
 
   const SHORTCUTS: KeyboardHelpItem[] = [
-    { keys: 'n', description: 'Focus the first card composer', group: 'Cards' },
-    { keys: 'a', description: 'Show Action items in sidebar', group: 'Sidebar' },
-    { keys: 'm', description: 'Show Sprint metrics in sidebar', group: 'Sidebar' },
-    { keys: 'g f', description: 'Open facilitator guide', group: 'Help' },
-    { keys: 'g h', description: 'Go to past retros (closed)', group: 'Navigation' },
-    { keys: 'g d', description: 'Go to dashboard', group: 'Navigation' },
-    { keys: '?', description: 'Show keyboard shortcuts', group: 'Help' },
+    { keys: 'b', description: '切換到 Board 分頁', group: 'Tabs' },
+    { keys: 'a', description: '切換到 Action items 分頁', group: 'Tabs' },
+    { keys: 'm', description: '切換到 Sprint metrics 分頁', group: 'Tabs' },
+    { keys: 'n', description: '聚焦第一個區塊的卡片新增框', group: 'Cards' },
+    { keys: 'g f', description: '開啟主持人指南', group: 'Help' },
+    { keys: 'g h', description: '前往 Past retros（已關閉）', group: 'Navigation' },
+    { keys: 'g d', description: '回到 dashboard', group: 'Navigation' },
+    { keys: '?', description: '顯示快捷鍵清單', group: 'Help' },
   ];
 
   useShortcuts([
     {
-      keys: 'n',
-      description: 'Focus first card composer',
-      handler: () => {
-        // Find the first card form textarea on the board (in DOM order = went-well first)
-        const firstTextarea = document.querySelector(
-          'main .col textarea, main .col input[type="text"]',
-        ) as HTMLElement | null;
-        firstTextarea?.focus();
-      },
+      keys: 'b',
+      description: 'Switch to board',
+      handler: () => setActiveTab('board'),
     },
     {
       keys: 'a',
-      description: 'Show Action items',
-      handler: () => setSidebarTab('actions'),
+      description: 'Switch to action items',
+      handler: () => setActiveTab('actions'),
     },
     {
       keys: 'm',
-      description: 'Show Sprint metrics',
-      handler: () => setSidebarTab('metrics'),
+      description: 'Switch to metrics',
+      handler: () => setActiveTab('metrics'),
+    },
+    {
+      keys: 'n',
+      description: 'Focus first card composer',
+      handler: () => {
+        setActiveTab('board');
+        setTimeout(() => {
+          const firstTextarea = document.querySelector(
+            'main .col textarea, main .col input[type="text"]',
+          ) as HTMLElement | null;
+          firstTextarea?.focus();
+        }, 0);
+      },
     },
     {
       keys: 'g h',
@@ -129,6 +137,40 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     return metricsAggregate.reduce((max, m) => Math.max(max, m.submissions || 0), 0);
   }, [metricsAggregate]);
 
+  const TABS: Array<{ key: MainTab; label: string; badge?: number; badgeSoft?: boolean; icon: React.ReactNode }> = [
+    {
+      key: 'board',
+      label: '回顧棋盤',
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="2" y="2" width="5" height="12" rx="1" />
+          <rect x="9" y="2" width="5" height="12" rx="1" />
+        </svg>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Action items',
+      badge: pendingActionsCount,
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3 8l3 3 6-6" />
+        </svg>
+      ),
+    },
+    {
+      key: 'metrics',
+      label: 'Sprint metrics',
+      badge: totalSubmissions,
+      badgeSoft: true,
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3 13V8M8 13V4M13 13v-6" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
     <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', isolation: 'isolate' }}>
       <AuroraBg />
@@ -148,7 +190,40 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         />
 
         <main className="room-shell">
-          <div className="room-main">
+          <nav className="main-tabs" role="tablist" aria-label="Retro 主分頁">
+            {TABS.map((t) => {
+              const isActive = activeTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`main-panel-${t.key}`}
+                  onClick={() => setActiveTab(t.key)}
+                  className={isActive ? 'main-tab main-tab-active' : 'main-tab'}
+                >
+                  {t.icon}
+                  {t.label}
+                  {t.badge != null && t.badge > 0 && (
+                    <span
+                      className={t.badgeSoft ? 'main-badge main-badge-soft' : 'main-badge'}
+                      aria-label={`${t.badge}`}
+                    >
+                      {t.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div
+            id="main-panel-board"
+            role="tabpanel"
+            hidden={activeTab !== 'board'}
+            style={{ display: activeTab === 'board' ? 'block' : 'none' }}
+          >
             <Board
               cards={cards}
               tags={tags}
@@ -172,78 +247,36 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
             />
           </div>
 
-          <aside className="room-aside" aria-label="Sprint sidebar">
-            <div className="aside-tabs" role="tablist" aria-label="Sidebar sections">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sidebarTab === 'actions'}
-                aria-controls="aside-panel-actions"
-                onClick={() => setSidebarTab('actions')}
-                className={sidebarTab === 'actions' ? 'tab tab-active' : 'tab'}
-              >
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 8l3 3 6-6" />
-                </svg>
-                Action items
-                {pendingActionsCount > 0 && (
-                  <span className="badge" aria-label={`${pendingActionsCount} pending`}>
-                    {pendingActionsCount}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sidebarTab === 'metrics'}
-                aria-controls="aside-panel-metrics"
-                onClick={() => setSidebarTab('metrics')}
-                className={sidebarTab === 'metrics' ? 'tab tab-active' : 'tab'}
-              >
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 13V8M8 13V4M13 13v-6" />
-                </svg>
-                Sprint metrics
-                {totalSubmissions > 0 && (
-                  <span className="badge badge-soft" aria-label={`${totalSubmissions} submissions`}>
-                    {totalSubmissions}
-                  </span>
-                )}
-              </button>
-            </div>
+          <div
+            id="main-panel-actions"
+            role="tabpanel"
+            hidden={activeTab !== 'actions'}
+            style={{ display: activeTab === 'actions' ? 'block' : 'none' }}
+          >
+            <ActionItemList
+              actionItems={actionItems}
+              participants={participants}
+              isScrumMaster={isScrumMaster}
+              onAdd={addActionItem}
+              onUpdate={updateActionItem}
+              onDelete={deleteActionItem}
+              prefilledContent={prefilledActionContent}
+              onConsumePrefill={() => setPrefilledActionContent('')}
+            />
+          </div>
 
-            <div className="aside-content">
-              <div
-                id="aside-panel-actions"
-                role="tabpanel"
-                hidden={sidebarTab !== 'actions'}
-                style={{ display: sidebarTab === 'actions' ? 'block' : 'none' }}
-              >
-                <ActionItemList
-                  actionItems={actionItems}
-                  participants={participants}
-                  isScrumMaster={isScrumMaster}
-                  onAdd={addActionItem}
-                  onUpdate={updateActionItem}
-                  onDelete={deleteActionItem}
-                  prefilledContent={prefilledActionContent}
-                  onConsumePrefill={() => setPrefilledActionContent('')}
-                />
-              </div>
-              <div
-                id="aside-panel-metrics"
-                role="tabpanel"
-                hidden={sidebarTab !== 'metrics'}
-                style={{ display: sidebarTab === 'metrics' ? 'block' : 'none' }}
-              >
-                <MetricsPanel
-                  metricsAggregate={metricsAggregate}
-                  ownMetricScores={ownMetricScores}
-                  onSubmit={submitMetrics}
-                />
-              </div>
-            </div>
-          </aside>
+          <div
+            id="main-panel-metrics"
+            role="tabpanel"
+            hidden={activeTab !== 'metrics'}
+            style={{ display: activeTab === 'metrics' ? 'block' : 'none' }}
+          >
+            <MetricsPanel
+              metricsAggregate={metricsAggregate}
+              ownMetricScores={ownMetricScores}
+              onSubmit={submitMetrics}
+            />
+          </div>
         </main>
       </div>
 
@@ -269,96 +302,67 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
       <style jsx>{`
         .room-shell {
           flex: 1;
-          padding: 20px clamp(16px, 3vw, 32px);
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
+          padding: 18px clamp(16px, 3vw, 32px) 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
           max-width: 1700px;
           width: 100%;
           margin: 0 auto;
         }
-        @media (min-width: 1100px) {
-          .room-shell {
-            grid-template-columns: minmax(0, 1fr) 380px;
-            align-items: start;
-          }
-        }
-        .room-main {
-          min-width: 0;
-        }
-        .room-aside {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          min-width: 0;
-        }
-        @media (min-width: 1100px) {
-          .room-aside {
-            position: sticky;
-            top: 76px;
-            max-height: calc(100vh - 96px);
-          }
-        }
-        .aside-tabs {
-          display: flex;
+        .main-tabs {
+          display: inline-flex;
           gap: 4px;
           padding: 4px;
           background: var(--glass-bg);
           border: 1px solid var(--glass-border);
-          border-radius: 12px;
+          border-radius: 14px;
           backdrop-filter: blur(20px) saturate(160%);
           -webkit-backdrop-filter: blur(20px) saturate(160%);
+          align-self: flex-start;
         }
-        .tab {
-          flex: 1;
-          padding: 8px 10px;
+        .main-tab {
+          padding: 8px 14px;
           font-family: var(--font-body);
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 500;
           color: var(--fg-2);
           background: transparent;
           border: none;
-          border-radius: 8px;
+          border-radius: 10px;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 6px;
-          transition: background 0.15s, color 0.15s, transform 0.15s;
+          gap: 8px;
+          transition: background 0.15s, color 0.15s;
           white-space: nowrap;
         }
-        .tab:hover {
+        .main-tab:hover {
           color: var(--fg-0);
         }
-        .tab-active {
+        .main-tab-active {
           background: var(--glass-bg-strong);
           color: var(--fg-0);
+          box-shadow: 0 1px 0 var(--glass-highlight) inset, 0 4px 12px oklch(0 0 0 / 0.15);
         }
-        .badge {
+        .main-badge {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-width: 18px;
-          height: 18px;
-          padding: 0 5px;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
           font-family: var(--font-mono);
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 600;
           background: var(--aurora-violet);
           color: #fff;
           border-radius: 999px;
-          letter-spacing: 0;
         }
-        .badge-soft {
+        .main-badge-soft {
           background: var(--glass-highlight);
           color: var(--fg-1);
           border: 1px solid var(--glass-border);
-        }
-        .aside-content {
-          flex: 1;
-          min-height: 0;
-          overflow-y: auto;
-          padding-right: 2px;
         }
       `}</style>
     </div>

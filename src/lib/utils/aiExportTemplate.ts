@@ -7,48 +7,43 @@ interface CardWithMeta extends CardDB {
   authorNickname: string | null;
 }
 
-const PROMPT_HEADER = `You are an experienced agile coach reviewing a retrospective record.
-The data below is from an anonymous team retro. Each card was contributed by a
-team member; identities are intentionally hidden.
+const PROMPT_HEADER = `你是一位資深敏捷教練，正在檢視一場團隊回顧會議的紀錄。
+以下資料來自一場匿名團隊回顧。每張卡片都是團隊成員的貢獻，作者身分刻意隱藏。
 
-Your tasks (please do all three):
+請完成下列三項任務：
 
-1. **Themes** — Cluster the cards into 3–6 named themes per section. Give each
-   theme a short title, one sentence summary, the most important cards that
-   support it, and a sentiment label (positive / neutral / negative).
-2. **Top signals** — Surface the strongest signals: cards or themes with high
-   votes, high comment volume, or strong consensus. Quote vote counts where
-   useful.
-3. **Action item suggestions** — Propose 3–7 concrete, owner-friendly action
-   items the team should consider for the next sprint, drawn from the themes.
-   Mark which existing action items in the retro already cover each suggestion.
+1. **主題分群** — 將每個區塊的卡片聚成 3–6 個有意義的主題。每個主題請給出：
+   一句話標題、一句摘要、最具代表性的支撐卡片、以及情緒標註（正向 / 中立 / 負向）。
+2. **強訊號** — 找出最值得注意的訊號：高票數、高留言量、或強共識的卡片或主題。
+   必要時引用票數。
+3. **建議的 action items** — 根據主題提出 3–7 個具體、容易指派的 action items，
+   供團隊在下一個 sprint 採用。請標註哪些建議已被現有 action items 涵蓋。
 
-Output format (Markdown):
+輸出格式（Markdown）：
 
 \`\`\`markdown
-## Themes
+## 主題
 
-### {Section name}
-- **{Theme title}** ({sentiment}): {summary}
-  - Supporting cards: …
-  - Suggested follow-up: …
+### {區塊名稱}
+- **{主題標題}**（{情緒}）：{摘要}
+  - 支撐卡片：…
+  - 建議跟進：…
 
-(repeat per section)
+（每個區塊重複）
 
-## Top signals
+## 強訊號
 - ...
 
-## Suggested action items
-- [ ] {action} — {why this matters} {(covered by existing action: yes/no)}
+## 建議的 action items
+- [ ] {action 內容} — {為什麼重要} {（是否已被現有 action 涵蓋：是/否）}
 
-## Open questions
-- ... (anything you noticed that the team didn't address)
+## 開放問題
+- ...（你觀察到但團隊沒處理到的疑問）
 \`\`\`
 
-Be concrete and specific to the cards below. If you don't see enough signal
-for a section, say so honestly rather than padding.
+請具體針對下方的卡片內容回答。若某區塊訊號不足，請誠實說明，不要硬補內容。
 
-— retrospective data follows below the line —
+— 以下為回顧資料 —
 
 ---
 `;
@@ -71,26 +66,26 @@ export function buildAiSummaryMarkdown(
   const lines: string[] = [];
   lines.push(PROMPT_HEADER);
 
-  lines.push(`# Retrospective: ${room.name}`);
+  lines.push(`# 回顧會議：${room.name}`);
   lines.push('');
-  lines.push(`- Status: ${room.status}`);
-  lines.push(`- Participants (anonymous, count only): ${participantCount}`);
-  lines.push(`- Total cards: ${cards.length}`);
-  lines.push(`- Total tags: ${tags.length}`);
-  lines.push(`- Total action items: ${actionItems.length}`);
-  lines.push(`- Exported at: ${new Date().toISOString()}`);
+  lines.push(`- 狀態：${room.status === 'active' ? '進行中' : '已關閉'}`);
+  lines.push(`- 參與人數（匿名，僅人數）：${participantCount}`);
+  lines.push(`- 卡片總數：${cards.length}`);
+  lines.push(`- 標籤數：${tags.length}`);
+  lines.push(`- 既有 action items 數：${actionItems.length}`);
+  lines.push(`- 匯出時間：${new Date().toISOString()}`);
   lines.push('');
 
   for (const section of SECTIONS) {
     const sectionCards = cards.filter((c) => c.section === section);
-    lines.push(`## ${SECTION_LABELS[section]} (${sectionCards.length})`);
+    lines.push(`## ${SECTION_LABELS[section]}（${sectionCards.length}）`);
     lines.push('');
     if (sectionCards.length === 0) {
-      lines.push('_(no cards in this section)_');
+      lines.push('_（本區塊無卡片）_');
     } else {
       for (const card of sectionCards) {
         const tagStr = card.tags.length > 0 ? ` [${card.tags.map((t) => `#${t.name}`).join(' ')}]` : '';
-        const author = card.isRevealed && card.authorNickname ? ` _(revealed: ${card.authorNickname})_` : '';
+        const author = card.isRevealed && card.authorNickname ? ` _（已顯名：${card.authorNickname}）_` : '';
         lines.push(`- ${card.content}${tagStr}${author}`);
       }
     }
@@ -99,37 +94,37 @@ export function buildAiSummaryMarkdown(
 
   // Tag distribution
   if (tags.length > 0) {
-    lines.push('## Tag distribution');
+    lines.push('## 標籤分布');
     lines.push('');
-    lines.push('| Tag | Card count | Sections seen in |');
-    lines.push('|-----|-----------|------------------|');
+    lines.push('| 標籤 | 卡片數 | 出現區塊 |');
+    lines.push('|------|-------|---------|');
     for (const tag of tags) {
       const tagCards = cards.filter((c) => c.tags.some((t) => t.id === tag.id));
       const sections = [...new Set(tagCards.map((c) => SECTION_LABELS[c.section as SectionType]))];
-      lines.push(`| ${tag.name} | ${tagCards.length} | ${sections.join(', ') || '—'} |`);
+      lines.push(`| ${tag.name} | ${tagCards.length} | ${sections.join('、') || '—'} |`);
     }
     lines.push('');
   }
 
   // Existing action items so the AI can avoid duplicates
-  lines.push('## Existing action items already captured');
+  lines.push('## 既有 action items（避免重複建議）');
   lines.push('');
   if (actionItems.length === 0) {
-    lines.push('_(none yet — the AI is free to propose new ones)_');
+    lines.push('_（尚無，AI 可自由提出新的建議）_');
   } else {
     for (const item of actionItems) {
       const check = item.isCompleted ? 'x' : ' ';
-      const assignee = item.assignee ? ` — owner: ${item.assignee}` : '';
-      const due = item.dueDate ? ` — due ${item.dueDate}` : '';
+      const assignee = item.assignee ? ` — 負責人：${item.assignee}` : '';
+      const due = item.dueDate ? ` — 期限：${item.dueDate}` : '';
       lines.push(`- [${check}] ${item.description}${assignee}${due}`);
     }
   }
   lines.push('');
 
-  lines.push('— end of retro data —');
+  lines.push('— 回顧資料結束 —');
   lines.push('');
   lines.push(
-    'Now produce the Themes / Top signals / Suggested action items / Open questions sections in the format described above.',
+    '現在請依上述格式產出「主題 / 強訊號 / 建議的 action items / 開放問題」四個段落。',
   );
 
   return lines.join('\n');

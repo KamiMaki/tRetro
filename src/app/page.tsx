@@ -393,7 +393,9 @@ function BoardGrid({ rooms }: { rooms: RoomSummary[] }) {
 function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
   const isActive = room.status === 'active';
   const hue = hueFor(room.id);
-  const href = isActive ? `/room/${room.id}/join` : `/room/${room.id}/history`;
+  // Active room: go straight to the board (auto-creates guest participant).
+  // Closed room: read-only history view.
+  const href = isActive ? `/room/${room.id}` : `/room/${room.id}/history`;
   const lastActive = relDate(room.lastActivityAt);
 
   return (
