@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 
@@ -15,30 +15,53 @@ const TAG_COLORS = [
 interface CardFormProps {
   section: SectionType;
   tags: Tag[];
+  isScrumMaster: boolean;
   onSubmit: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
-  onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
+  onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'> & { isDefault?: boolean }) => void;
+  onSetTagDefault: (tagId: string, isDefault: boolean) => void;
 }
 
-export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps) {
+export function CardForm({
+  section,
+  tags,
+  isScrumMaster,
+  onSubmit,
+  onCreateTag,
+  onSetTagDefault,
+}: CardFormProps) {
   const [content, setContent] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [touchedSelection, setTouchedSelection] = useState(false);
   const [newTagDraft, setNewTagDraft] = useState('');
   const [creatingTag, setCreatingTag] = useState(false);
-  const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-apply room default tags whenever the tag list changes, until the
+  // user manually toggles something. After they touch a chip we stop
+  // auto-syncing so we don't fight their selection.
+  useEffect(() => {
+    if (touchedSelection) return;
+    const defaults = tags.filter((t) => t.isDefault).map((t) => t.id);
+    setSelectedTagIds((prev) => {
+      const same = prev.length === defaults.length && prev.every((id, i) => id === defaults[i]);
+      return same ? prev : defaults;
+    });
+  }, [tags, touchedSelection]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
     onSubmit({ section, content: content.trim(), tagIds: selectedTagIds });
     setContent('');
-    setSelectedTagIds([]);
+    setTouchedSelection(false);
     setCreatingTag(false);
     setNewTagDraft('');
+    // re-applying the room defaults happens in the effect now that touched=false
     textareaRef.current?.focus();
   };
 
   const toggleTag = (tagId: string) => {
+    setTouchedSelection(true);
     setSelectedTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
@@ -59,46 +82,33 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
     }
   };
 
-  const showInlinePicker = focused || content.length > 0 || selectedTagIds.length > 0 || creatingTag;
-
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <textarea
-        ref={textareaRef}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onKeyDown={handleKeyDown}
-        placeholder="Drop a thought… (⌘↵ to send)"
-        rows={showInlinePicker ? 3 : 2}
-        className="field"
+      {/* Tag chips — always visible, even before typing */}
+      <div
         style={{
-          fontSize: 13,
-          padding: 10,
-          resize: 'none',
-          transition: 'min-height 0.2s',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 4,
+          minHeight: 26,
         }}
-      />
-
-      {showInlinePicker && (
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 4,
-            padding: '2px 0',
-          }}
-        >
-          {tags.map((tag) => {
-            const active = selectedTagIds.includes(tag.id);
-            return (
+      >
+        {tags.map((tag) => {
+          const active = selectedTagIds.includes(tag.id);
+          return (
+            <span
+              key={tag.id}
+              style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}
+            >
               <button
-                key={tag.id}
                 type="button"
                 onClick={() => toggleTag(tag.id)}
-                title={active ? `Remove ${tag.name}` : `Add ${tag.name}`}
+                title={
+                  active
+                    ? `Remove ${tag.name}${tag.isDefault ? ' (room default)' : ''}`
+                    : `Add ${tag.name}${tag.isDefault ? ' (room default)' : ''}`
+                }
                 aria-pressed={active}
                 style={{
                   padding: 0,
@@ -111,108 +121,161 @@ export function CardForm({ section, tags, onSubmit, onCreateTag }: CardFormProps
                   borderRadius: 999,
                   transition: 'opacity .15s',
                 }}
-                onMouseEnter={(e) => { if (!active) e.currentTarget.style.opacity = '0.9'; }}
-                onMouseLeave={(e) => { if (!active) e.currentTarget.style.opacity = '0.55'; }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.opacity = '0.55';
+                }}
               >
                 <TagBadge tag={tag} />
               </button>
-            );
-          })}
-
-          {creatingTag ? (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                background: 'var(--glass-bg-strong)',
-                border: '1px solid var(--aurora-violet)',
-                borderRadius: 999,
-                padding: '1px 4px 1px 8px',
-                fontSize: 11,
-                fontFamily: 'var(--font-mono)',
-              }}
-            >
-              <span aria-hidden="true">#</span>
-              <input
-                autoFocus
-                type="text"
-                value={newTagDraft}
-                onChange={(e) => setNewTagDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCreateTag();
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setCreatingTag(false);
-                    setNewTagDraft('');
+              {isScrumMaster && (
+                <button
+                  type="button"
+                  onClick={() => onSetTagDefault(tag.id, !tag.isDefault)}
+                  title={
+                    tag.isDefault
+                      ? 'Unset as room default tag'
+                      : 'Mark as room default tag (auto-applied to new cards)'
                   }
-                }}
-                onBlur={() => {
-                  if (!newTagDraft.trim()) setCreatingTag(false);
-                }}
-                placeholder="new tag"
-                aria-label="New tag name"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--fg-0)',
-                  fontFamily: 'inherit',
-                  fontSize: 11,
-                  width: 80,
-                  padding: '2px 0',
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleCreateTag}
-                disabled={!newTagDraft.trim()}
-                style={{
-                  padding: '2px 8px',
-                  fontSize: 10,
-                  fontFamily: 'inherit',
-                  background: 'var(--aurora-violet)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 999,
-                  cursor: 'pointer',
-                  opacity: newTagDraft.trim() ? 1 : 0.5,
-                }}
-              >
-                add
-              </button>
+                  aria-label={tag.isDefault ? `Unset ${tag.name} as default` : `Set ${tag.name} as default`}
+                  aria-pressed={tag.isDefault}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    marginLeft: -2,
+                    background: 'transparent',
+                    border: 'none',
+                    color: tag.isDefault ? 'var(--aurora-amber)' : 'var(--fg-3)',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    lineHeight: 1,
+                    padding: 0,
+                    opacity: tag.isDefault ? 1 : 0.55,
+                    transition: 'color .12s, opacity .12s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = tag.isDefault ? '1' : '0.55')}
+                >
+                  {tag.isDefault ? '★' : '☆'}
+                </button>
+              )}
             </span>
-          ) : (
+          );
+        })}
+
+        {creatingTag ? (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              background: 'var(--glass-bg-strong)',
+              border: '1px solid var(--aurora-violet)',
+              borderRadius: 999,
+              padding: '1px 4px 1px 8px',
+              fontSize: 11,
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            <span aria-hidden="true">#</span>
+            <input
+              autoFocus
+              type="text"
+              value={newTagDraft}
+              onChange={(e) => setNewTagDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCreateTag();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setCreatingTag(false);
+                  setNewTagDraft('');
+                }
+              }}
+              onBlur={() => {
+                if (!newTagDraft.trim()) setCreatingTag(false);
+              }}
+              placeholder="new tag"
+              aria-label="New tag name"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--fg-0)',
+                fontFamily: 'inherit',
+                fontSize: 11,
+                width: 80,
+                padding: '2px 0',
+              }}
+            />
             <button
               type="button"
-              onClick={() => setCreatingTag(true)}
-              title="Create new tag"
-              aria-label="Create new tag"
+              onClick={handleCreateTag}
+              disabled={!newTagDraft.trim()}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 11,
-                fontFamily: 'var(--font-mono)',
                 padding: '2px 8px',
+                fontSize: 10,
+                fontFamily: 'inherit',
+                background: 'var(--aurora-violet)',
+                color: '#fff',
+                border: 'none',
                 borderRadius: 999,
-                background: 'var(--glass-highlight)',
-                color: 'var(--fg-2)',
-                border: '1px dashed var(--glass-border)',
                 cursor: 'pointer',
+                opacity: newTagDraft.trim() ? 1 : 0.5,
               }}
             >
-              + tag
+              add
             </button>
-          )}
-        </div>
-      )}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCreatingTag(true)}
+            title="Create new tag"
+            aria-label="Create new tag"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              fontSize: 11,
+              fontFamily: 'var(--font-mono)',
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: 'var(--glass-highlight)',
+              color: 'var(--fg-2)',
+              border: '1px dashed var(--glass-border)',
+              cursor: 'pointer',
+            }}
+          >
+            + tag
+          </button>
+        )}
+      </div>
+
+      <textarea
+        ref={textareaRef}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Drop a thought… (⌘↵ to send)"
+        rows={2}
+        className="field"
+        style={{
+          fontSize: 13,
+          padding: 10,
+          resize: 'none',
+          transition: 'min-height 0.2s',
+        }}
+      />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span className="text-mono fg-3" style={{ fontSize: 10, opacity: 0.7 }}>
-          {selectedTagIds.length > 0 ? `${selectedTagIds.length} tag${selectedTagIds.length === 1 ? '' : 's'}` : ''}
+          {selectedTagIds.length > 0
+            ? `${selectedTagIds.length} tag${selectedTagIds.length === 1 ? '' : 's'}`
+            : ''}
         </span>
         <button
           type="submit"

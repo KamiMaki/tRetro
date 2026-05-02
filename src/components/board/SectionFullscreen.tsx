@@ -32,6 +32,7 @@ interface SectionFullscreenProps {
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
+  onSetTagDefault: (tagId: string, isDefault: boolean) => void;
 }
 
 export function SectionFullscreen(props: SectionFullscreenProps) {
@@ -52,6 +53,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onToggleVote,
     onAddDrawing,
     onConvertToAction,
+    onSetTagDefault,
   } = props;
 
   const tone = SECTION_TONES[section];
@@ -153,8 +155,10 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
           <CardForm
             section={section}
             tags={tags}
+            isScrumMaster={isScrumMaster}
             onSubmit={onAddCard}
             onCreateTag={onCreateTag}
+            onSetTagDefault={onSetTagDefault}
           />
         </div>
       </div>

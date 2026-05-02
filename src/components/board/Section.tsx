@@ -32,6 +32,7 @@ interface SectionProps {
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
+  onSetTagDefault: (tagId: string, isDefault: boolean) => void;
 }
 
 export function Section({
@@ -50,6 +51,7 @@ export function Section({
   onToggleVote,
   onAddDrawing,
   onConvertToAction,
+  onSetTagDefault,
 }: SectionProps) {
   const tone = SECTION_TONES[section];
   const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
@@ -161,8 +163,10 @@ export function Section({
           <CardForm
             section={section}
             tags={tags}
+            isScrumMaster={isScrumMaster}
             onSubmit={onAddCard}
             onCreateTag={onCreateTag}
+            onSetTagDefault={onSetTagDefault}
           />
         </div>
       </GlassPanel>
@@ -185,6 +189,7 @@ export function Section({
           onToggleVote={onToggleVote}
           onAddDrawing={onAddDrawing}
           onConvertToAction={onConvertToAction}
+          onSetTagDefault={onSetTagDefault}
         />
       )}
     </div>

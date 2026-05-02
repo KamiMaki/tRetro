@@ -55,6 +55,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     submitMetrics,
     phaseState,
     setPhase,
+    setTagDefault,
   } = roomState;
 
   const router = useRouter();
@@ -260,6 +261,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onToggleVote={toggleVote}
               onAddDrawing={addDrawing}
               onConvertToAction={handleConvertCardToAction}
+              onSetTagDefault={setTagDefault}
             />
           </div>
 

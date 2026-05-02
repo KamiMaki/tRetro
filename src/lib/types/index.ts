@@ -103,6 +103,8 @@ export interface Tag {
   roomId: string;
   name: string;
   color: string;
+  /** When true, the tag is auto-selected on new cards in this room. */
+  isDefault: boolean;
 }
 
 export interface ActionItem {
@@ -275,9 +277,9 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: 'comms',    label: '溝通',       shortLabel: 'Comms',     emoji: '💬', tone: 'cyan'   },
   { key: 'mood',     label: '心情',       shortLabel: 'Mood',      emoji: '☀️', tone: 'amber'  },
   { key: 'fun',      label: '有趣度',     shortLabel: 'Fun',       emoji: '🎈', tone: 'pink'   },
-  { key: 'quality',  label: '開發品質',   shortLabel: 'Quality',   emoji: '◆',  tone: 'violet' },
-  { key: 'refactor', label: 'Refactor',  shortLabel: 'Refactor',  emoji: '⟳',  tone: 'mint'   },
-  { key: 'incident', label: '解報案時間', shortLabel: 'Incident',  emoji: '⏱',  tone: 'cyan'   },
+  { key: 'quality',  label: '開發品質',   shortLabel: 'Quality',   emoji: '💎', tone: 'violet' },
+  { key: 'refactor', label: 'Refactor',  shortLabel: 'Refactor',  emoji: '🛠️', tone: 'mint'   },
+  { key: 'incident', label: '解報案時間', shortLabel: 'Incident',  emoji: '🚨', tone: 'cyan'   },
 ];
 
 export const METRIC_KEYS: MetricKey[] = METRIC_DEFS.map((d) => d.key);

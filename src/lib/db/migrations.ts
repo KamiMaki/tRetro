@@ -31,4 +31,11 @@ export function runMigrations(): void {
            updated_at = datetime('now')
      WHERE score > 10
   `);
+
+  // 2026-05-02: tag.is_default flag — mark certain tags as room defaults
+  // so new cards auto-pick them up.
+  const tagCols = db.prepare(`PRAGMA table_info(tags)`).all() as Array<{ name: string }>;
+  if (!tagCols.some((c) => c.name === 'is_default')) {
+    db.exec(`ALTER TABLE tags ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0`);
+  }
 }

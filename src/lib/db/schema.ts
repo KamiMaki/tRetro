@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS tags (
   room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   color         TEXT NOT NULL DEFAULT '#6B7280',
+  is_default    INTEGER NOT NULL DEFAULT 0,
   UNIQUE(room_id, name)
 );
 

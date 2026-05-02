@@ -51,7 +51,8 @@ interface UseRoomReturn {
   updateCard: (payload: UpdateCardPayload) => void;
   deleteCard: (cardId: string) => void;
   revealCard: (cardId: string) => void;
-  createTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
+  createTag: (payload: Omit<CreateTagPayload, 'roomId'> & { isDefault?: boolean }) => void;
+  setTagDefault: (tagId: string, isDefault: boolean) => void;
   addActionItem: (payload: Omit<CreateActionItemPayload, 'roomId'>) => void;
   updateActionItem: (payload: UpdateActionItemPayload) => void;
   deleteActionItem: (actionItemId: string) => void;
@@ -188,6 +189,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
 
     socket.on(SOCKET_EVENTS.TAG_CREATED, (tag: Tag) => {
       setTags((prev) => [...prev, tag]);
+    });
+
+    socket.on(SOCKET_EVENTS.TAG_UPDATED, (tag: Tag) => {
+      setTags((prev) => prev.map((t) => (t.id === tag.id ? tag : t)));
     });
 
     socket.on(SOCKET_EVENTS.ACTION_CREATED, (actionItem: ActionItem) => {
@@ -328,11 +333,15 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
   }, []);
 
   const createTag = useCallback(
-    (payload: Omit<CreateTagPayload, 'roomId'>) => {
+    (payload: Omit<CreateTagPayload, 'roomId'> & { isDefault?: boolean }) => {
       socketRef.current?.emit(SOCKET_EVENTS.TAG_CREATE, { ...payload, roomId });
     },
     [roomId]
   );
+
+  const setTagDefault = useCallback((tagId: string, isDefault: boolean) => {
+    socketRef.current?.emit(SOCKET_EVENTS.TAG_SET_DEFAULT, { tagId, isDefault });
+  }, []);
 
   const addActionItem = useCallback(
     (payload: Omit<CreateActionItemPayload, 'roomId'>) => {
@@ -398,6 +407,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     deleteCard,
     revealCard,
     createTag,
+    setTagDefault,
     addActionItem,
     updateActionItem,
     deleteActionItem,

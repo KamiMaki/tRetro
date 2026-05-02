@@ -28,6 +28,7 @@ interface BoardProps {
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
+  onSetTagDefault: (tagId: string, isDefault: boolean) => void;
 }
 
 export function Board({
@@ -51,6 +52,7 @@ export function Board({
   onToggleVote,
   onAddDrawing,
   onConvertToAction,
+  onSetTagDefault,
 }: BoardProps) {
   const filterAndSort = (sectionCards: CardDTOv2[]) => {
     let result = sectionCards;
@@ -113,6 +115,7 @@ export function Board({
             onToggleVote={onToggleVote}
             onAddDrawing={onAddDrawing}
             onConvertToAction={onConvertToAction}
+            onSetTagDefault={onSetTagDefault}
           />
         ))}
       </div>
