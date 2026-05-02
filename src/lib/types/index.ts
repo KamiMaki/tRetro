@@ -28,6 +28,8 @@ export interface Room {
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
+  /** Optional webhook URL — POSTed an action-item digest on room close. */
+  webhookUrl: string | null;
 }
 
 export interface Participant {

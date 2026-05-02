@@ -9,6 +9,7 @@ interface RoomRow {
   created_at: string;
   updated_at: string;
   closed_at: string | null;
+  webhook_url: string | null;
 }
 
 function toRoom(row: RoomRow): Room {
@@ -19,6 +20,7 @@ function toRoom(row: RoomRow): Room {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     closedAt: row.closed_at,
+    webhookUrl: row.webhook_url ?? null,
   };
 }
 
@@ -112,6 +114,14 @@ export const roomRepo = {
     db.prepare(
       "UPDATE rooms SET status = 'active', closed_at = NULL, updated_at = datetime('now') WHERE id = ?"
     ).run(id);
+    return this.findById(id);
+  },
+
+  updateWebhook(id: string, url: string | null): Room | null {
+    const db = getDb();
+    db.prepare(
+      "UPDATE rooms SET webhook_url = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(url, id);
     return this.findById(id);
   },
 };

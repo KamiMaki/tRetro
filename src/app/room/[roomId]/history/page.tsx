@@ -84,6 +84,24 @@ export default function HistoryPage() {
     window.open(`/api/rooms/${roomId}/export?format=html`, '_blank');
   }
 
+  function handleExportCsv() {
+    window.open(`/api/rooms/${roomId}/export?format=csv`, '_blank');
+  }
+
+  const [aiCopied, setAiCopied] = useState(false);
+  async function handleCopyAiPrompt() {
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/export?format=ai`);
+      if (!res.ok) return;
+      const text = await res.text();
+      await navigator.clipboard.writeText(text);
+      setAiCopied(true);
+      setTimeout(() => setAiCopied(false), 2200);
+    } catch {
+      /* clipboard may fail in iframes / insecure context */
+    }
+  }
+
   if (loading) {
     return (
       <main style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
@@ -141,8 +159,22 @@ export default function HistoryPage() {
           </Link>
           <div style={{ flex: 1 }} />
           <ThemeToggle />
-          <button type="button" className="btn" onClick={handleExportMd}>Export MD</button>
-          <button type="button" className="btn" onClick={handleExportHtml}>Export HTML</button>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleCopyAiPrompt}
+            title="複製整理好的 AI prompt + retro 內容到剪貼簿，貼到 ChatGPT / Claude / Gemini 即可取得主題摘要"
+            style={{
+              background: aiCopied ? 'oklch(0.78 0.15 175 / 0.20)' : undefined,
+              borderColor: aiCopied ? 'oklch(0.78 0.15 175 / 0.45)' : undefined,
+              color: aiCopied ? 'oklch(0.92 0.12 175)' : undefined,
+            }}
+          >
+            {aiCopied ? '已複製 · 貼到 AI' : '複製 AI prompt'}
+          </button>
+          <button type="button" className="btn" onClick={handleExportMd}>匯出 MD</button>
+          <button type="button" className="btn" onClick={handleExportHtml}>匯出 HTML</button>
+          <button type="button" className="btn" onClick={handleExportCsv}>匯出 CSV</button>
         </header>
 
         <div style={{ padding: 'clamp(20px, 3vw, 32px)', maxWidth: 1600, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>

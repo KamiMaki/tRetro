@@ -8,6 +8,7 @@ import { actionItemRepo } from '../../db/repositories/action-item.repo';
 import { metricRepo } from '../../db/repositories/metric.repo';
 import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
+import { sendActionItemDigest } from '../../integrations/digest';
 
 export function registerRoomHandlers(io: Server, socket: Socket): void {
   const data = socket.data as SocketData;
@@ -62,6 +63,21 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     }
     const room = roomRepo.close(data.roomId);
     io.to(data.roomId).emit(SOCKET_EVENTS.ROOM_CLOSED, { room });
+
+    // Fire-and-forget action-item digest webhook. Errors are logged
+    // server-side only so a flaky webhook never blocks the close.
+    if (room && room.webhookUrl) {
+      const items = actionItemRepo.findByRoomId(data.roomId);
+      sendActionItemDigest(room, items)
+        .then((r) => {
+          if (!r.ok) {
+            console.warn(`[webhook] digest failed room=${data.roomId} status=${r.status} err=${r.error ?? ''}`);
+          }
+        })
+        .catch((err) => {
+          console.warn('[webhook] digest exception', err);
+        });
+    }
   });
 
   // Reopen room (SM only) — undo a close

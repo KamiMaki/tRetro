@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS rooms (
   status        TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','closed')),
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  closed_at     TEXT
+  closed_at     TEXT,
+  webhook_url   TEXT
 );
 
 CREATE TABLE IF NOT EXISTS participants (

@@ -24,6 +24,7 @@ interface RoomHeaderProps {
   onCloseRoom: () => void;
   onReopenRoom: () => void;
   onOpenFacilitator: () => void;
+  onOpenSettings: () => void;
 }
 
 const STATUS_COLORS: Record<RoomHeaderProps['connectionStatus'], string> = {
@@ -49,6 +50,7 @@ export function RoomHeader({
   onCloseRoom,
   onReopenRoom,
   onOpenFacilitator,
+  onOpenSettings,
 }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [aiCopied, setAiCopied] = useState(false);
@@ -290,6 +292,18 @@ export function RoomHeader({
           </button>
           <button type="button" className="btn" onClick={handleExportCSV} title="匯出 CSV（卡片 + action items 同表）">
             CSV
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={onOpenSettings}
+            title="房間設定（webhook digest）"
+            aria-label="房間設定"
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="2" />
+              <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" />
+            </svg>
           </button>
         </>
       )}
