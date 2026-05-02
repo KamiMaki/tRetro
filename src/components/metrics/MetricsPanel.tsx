@@ -39,7 +39,6 @@ function toneToColor(tone: 'mint' | 'cyan' | 'violet' | 'pink' | 'amber'): strin
   }
 }
 
-/** Normalised 0..1 percentage from a 1..10 score. */
 function pctFromScore(score: number | null): number {
   if (score == null) return 0;
   return ((score - METRIC_SCORE_MIN) / SCORE_RANGE) * 100;
@@ -52,6 +51,20 @@ function scoreEmoji(score: number | null): string {
   if (score <= 7) return '🙂';
   if (score <= 9) return '😄';
   return '🤩';
+}
+
+/** Find the lowest / highest score actually submitted from the histogram. */
+function minMaxFromDistribution(distribution: number[]): { min: number | null; max: number | null } {
+  let min: number | null = null;
+  let max: number | null = null;
+  for (let i = 0; i < distribution.length; i++) {
+    if (distribution[i] > 0) {
+      const score = i + METRIC_SCORE_MIN;
+      if (min == null) min = score;
+      max = score;
+    }
+  }
+  return { min, max };
 }
 
 export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: MetricsPanelProps) {
@@ -164,8 +177,8 @@ export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: Me
         </button>
       </div>
 
-      {/* Aggregate (always visible) */}
-      <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Aggregate rows */}
+      <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
         {METRIC_DEFS.map((def) => {
           const agg = aggregateByKey.get(def.key);
           const avg = agg?.average ?? null;
@@ -211,7 +224,7 @@ export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: Me
           </div>
           <div className="fg-2" style={{ fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>
             Drag a slider to score each dimension from 1 to 10. Your individual scores stay private —
-            only the team average and an anonymous histogram are shown to others.
+            only the team average and an anonymous min/max range are shown to others.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {METRIC_DEFS.map((def) => (
@@ -277,13 +290,8 @@ function AggregateRow({
   const tint = toneToColor(tone);
   const pct = pctFromScore(average);
   const ownPct = pctFromScore(ownScore);
-  const maxBucket = Math.max(1, ...distribution);
-
-  // Detect outliers — any score that's just one person far below or above the median.
-  const lowOutlier = distribution.slice(0, 3).reduce((a, b) => a + b, 0); // scores 1–3
-  const highOutlier = distribution.slice(-3).reduce((a, b) => a + b, 0); // scores 8–10
-  const flagLow = submissions >= 3 && lowOutlier > 0 && lowOutlier <= Math.max(1, Math.round(submissions * 0.2));
-  const flagHigh = submissions >= 3 && highOutlier > 0 && highOutlier <= Math.max(1, Math.round(submissions * 0.2));
+  const { min, max } = minMaxFromDistribution(distribution);
+  const hasSpread = min != null && max != null && min !== max;
 
   return (
     <div className="agg-row">
@@ -293,6 +301,33 @@ function AggregateRow({
           <span className="agg-label">{label}</span>
           <span className="agg-sublabel">{chineseLabel}</span>
         </div>
+      </div>
+
+      <div
+        className="agg-minmax"
+        aria-label={
+          submissions === 0
+            ? 'No submissions yet'
+            : hasSpread
+              ? `Range from ${min} to ${max}`
+              : `All ${submissions} submitted ${min}`
+        }
+      >
+        {submissions === 0 ? (
+          <span className="agg-minmax-empty">—</span>
+        ) : (
+          <>
+            <span className="agg-minmax-pill agg-minmax-low" title={`Lowest score: ${min}`}>
+              <span aria-hidden="true">▼</span>
+              {min}
+            </span>
+            <span className="agg-minmax-sep" aria-hidden="true">…</span>
+            <span className="agg-minmax-pill agg-minmax-high" title={`Highest score: ${max}`}>
+              <span aria-hidden="true">▲</span>
+              {max}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="agg-track-wrap">
@@ -312,34 +347,15 @@ function AggregateRow({
             }}
           />
           {ownScore != null && (
-            <div
-              className="agg-own-tick"
-              style={{ left: `calc(${ownPct}% - 1px)` }}
+            <span
+              className="agg-own-marker"
+              style={{ left: `calc(${ownPct}% - 8px)` }}
               title={`Your score: ${ownScore}`}
               aria-hidden="true"
-            />
+            >
+              <span className="agg-own-dot" />
+            </span>
           )}
-        </div>
-
-        <div className="agg-histogram" aria-label={`Distribution of ${submissions} submissions`}>
-          {distribution.map((count, i) => {
-            const score = i + METRIC_SCORE_MIN;
-            const h = (count / maxBucket) * 100;
-            const empty = count === 0;
-            return (
-              <div
-                key={score}
-                className={'agg-bar ' + (empty ? 'agg-bar-empty' : '')}
-                style={{
-                  height: empty ? 4 : `max(6px, ${h}%)`,
-                  background: empty
-                    ? 'transparent'
-                    : `linear-gradient(180deg, ${tint}, color-mix(in oklch, ${tint} 60%, transparent))`,
-                }}
-                title={`${score}: ${count}`}
-              />
-            );
-          })}
         </div>
       </div>
 
@@ -351,24 +367,12 @@ function AggregateRow({
         <span className="agg-sub-meta">
           {ownScore != null ? `you · ${ownScore}` : `${submissions} sub${submissions === 1 ? '' : 's'}`}
         </span>
-        {(flagLow || flagHigh) && submissions >= 3 && (
-          <span
-            className={'agg-outlier ' + (flagLow ? 'agg-outlier-low' : 'agg-outlier-high')}
-            title={
-              flagLow
-                ? `Outlier: ${lowOutlier} low score${lowOutlier === 1 ? '' : 's'} (1–3)`
-                : `Outlier: ${highOutlier} high score${highOutlier === 1 ? '' : 's'} (8–10)`
-            }
-          >
-            {flagLow ? '⚠ low' : '★ high'}
-          </span>
-        )}
       </div>
 
       <style jsx>{`
         .agg-row {
           display: grid;
-          grid-template-columns: 130px minmax(0, 1fr) 96px;
+          grid-template-columns: 130px 86px minmax(0, 1fr) 96px;
           align-items: center;
           gap: 14px;
         }
@@ -393,6 +397,46 @@ function AggregateRow({
           color: var(--fg-3);
           font-family: var(--font-mono);
         }
+        .agg-minmax {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--fg-2);
+          justify-content: flex-start;
+        }
+        .agg-minmax-empty {
+          color: var(--fg-3);
+        }
+        .agg-minmax-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          padding: 2px 6px;
+          border-radius: 999px;
+          font-weight: 600;
+        }
+        .agg-minmax-low {
+          background: oklch(0.65 0.18 25 / 0.16);
+          color: oklch(0.92 0.10 25);
+          border: 1px solid oklch(0.65 0.18 25 / 0.30);
+        }
+        .agg-minmax-high {
+          background: oklch(0.78 0.15 175 / 0.16);
+          color: oklch(0.92 0.12 175);
+          border: 1px solid oklch(0.78 0.15 175 / 0.30);
+        }
+        .agg-minmax-sep {
+          color: var(--fg-3);
+          font-weight: 400;
+        }
+        :global([data-theme="light"]) .agg-minmax-low {
+          color: oklch(0.42 0.16 25);
+        }
+        :global([data-theme="light"]) .agg-minmax-high {
+          color: oklch(0.32 0.13 175);
+        }
         .agg-track-wrap {
           display: flex;
           flex-direction: column;
@@ -401,42 +445,40 @@ function AggregateRow({
         }
         .agg-track {
           position: relative;
-          height: 8px;
+          height: 10px;
           border-radius: 999px;
           background: var(--glass-border);
-          overflow: hidden;
+          overflow: visible;
         }
         .agg-fill {
           height: 100%;
           border-radius: 999px;
           transition: width 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
         }
-        .agg-own-tick {
+        .agg-own-marker {
           position: absolute;
-          top: -2px;
-          width: 2px;
-          height: calc(100% + 4px);
-          background: var(--fg-0);
-          box-shadow: 0 0 0 1px oklch(0 0 0 / 0.4);
-          border-radius: 1px;
+          top: 50%;
+          width: 16px;
+          height: 16px;
+          transform: translateY(-50%);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           pointer-events: none;
+          transition: left 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
         }
-        .agg-histogram {
-          display: grid;
-          grid-template-columns: repeat(10, 1fr);
-          align-items: end;
-          gap: 2px;
-          height: 28px;
-          padding: 0 1px;
+        .agg-own-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: var(--aurora-violet);
+          border: 2.5px solid var(--bg-0);
+          box-shadow:
+            0 0 0 1.5px var(--aurora-violet),
+            0 4px 10px oklch(0.62 0.20 285 / 0.35);
         }
-        .agg-bar {
-          width: 100%;
-          border-radius: 2px 2px 1px 1px;
-          transition: height 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
-        }
-        .agg-bar-empty {
-          background: var(--glass-border);
-          opacity: 0.45;
+        :global([data-theme="light"]) .agg-own-dot {
+          border-color: #fff;
         }
         .agg-readout {
           display: flex;
@@ -458,24 +500,6 @@ function AggregateRow({
           font-size: 10.5px;
           color: var(--fg-3);
           font-family: var(--font-mono);
-        }
-        .agg-outlier {
-          margin-top: 2px;
-          font-size: 9.5px;
-          font-family: var(--font-mono);
-          padding: 1px 6px;
-          border-radius: 999px;
-          line-height: 1.4;
-        }
-        .agg-outlier-low {
-          background: oklch(0.65 0.18 25 / 0.16);
-          color: oklch(0.92 0.10 25);
-          border: 1px solid oklch(0.65 0.18 25 / 0.30);
-        }
-        .agg-outlier-high {
-          background: oklch(0.78 0.15 175 / 0.16);
-          color: oklch(0.92 0.12 175);
-          border: 1px solid oklch(0.78 0.15 175 / 0.30);
         }
       `}</style>
     </div>

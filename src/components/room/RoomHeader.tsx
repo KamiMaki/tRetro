@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Room, CardDTO, ActionItem } from '@/lib/types';
-import { Avatar, Logo } from '@/components/ui/Aurora';
+import { Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface ParticipantSummary {
@@ -133,6 +133,7 @@ export function RoomHeader({
         WebkitBackdropFilter: 'blur(20px) saturate(160%)',
       }}
     >
+      <ThemeToggle />
       <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
         <Logo size={20} />
       </Link>
@@ -213,42 +214,19 @@ export function RoomHeader({
         </div>
       </div>
 
-      {/* Avatars stack */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {participants.slice(0, 5).map((p, i) => (
-          <div
-            key={p.id}
-            style={{
-              marginLeft: i ? -8 : 0,
-              opacity: p.isOnline ? 1 : 0.45,
-              filter: p.isOnline ? 'none' : 'grayscale(0.4)',
-            }}
-            title={`${p.nickname}${p.isScrumMaster ? ' (SM)' : ''}${p.isOnline ? '' : ' · offline'}`}
-          >
-            <Avatar name={p.nickname} size={26} colorIndex={i} />
-          </div>
-        ))}
-        {participants.length > 5 && (
-          <span className="text-mono fg-3" style={{ marginLeft: 6, fontSize: 11 }}>
-            +{participants.length - 5}
-          </span>
-        )}
-      </div>
-
-      <ThemeToggle />
-
-      {/* Facilitator guide — useful for any participant running the meeting */}
+      {/* Guide — per-phase tips and prompts */}
       <button
         type="button"
         className="btn"
         onClick={onOpenFacilitator}
-        title="Facilitator guide (per-phase tips & prompts)"
+        title="Guide (per-phase tips & prompts)"
       >
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M3 2h7l3 3v9H3z" />
-          <path d="M5 6h6M5 9h6M5 12h4" />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+          <path d="M13 3v5h5" />
+          <path d="M8 13h8M8 17h5" />
         </svg>
-        Facilitator
+        Guide
       </button>
 
       {/* Share — three-node share icon */}

@@ -17,10 +17,10 @@ interface PhaseBarProps {
 
 const QUICK_DURATIONS: Array<{ label: string; sec: number | null }> = [
   { label: 'No timer', sec: null },
-  { label: '3 min', sec: 3 * 60 },
-  { label: '5 min', sec: 5 * 60 },
-  { label: '10 min', sec: 10 * 60 },
-  { label: '15 min', sec: 15 * 60 },
+  { label: '3', sec: 3 * 60 },
+  { label: '5', sec: 5 * 60 },
+  { label: '10', sec: 10 * 60 },
+  { label: '15', sec: 15 * 60 },
 ];
 
 function formatRemaining(seconds: number): string {
@@ -31,23 +31,46 @@ function formatRemaining(seconds: number): string {
 }
 
 export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProps) {
-  const [now, setNow] = useState(() => Date.now());
+  // We don't store `now` in state; we just bump a tick counter every second
+  // to force a re-render. Remaining is computed from Date.now() at render
+  // time so the first paint after a phase change is correct (no off-by-one).
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     if (!phaseState.durationSec) return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
   }, [phaseState.durationSec, phaseState.startedAt]);
 
   let remaining: number | null = null;
   if (phaseState.durationSec) {
     const startMs = new Date(phaseState.startedAt).getTime();
-    const elapsedSec = Math.floor((now - startMs) / 1000);
+    const elapsedSec = Math.floor((Date.now() - startMs) / 1000);
     remaining = Math.max(0, phaseState.durationSec - elapsedSec);
   }
 
+  const [customMinutes, setCustomMinutes] = useState('');
+  function handleCustomTimer(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = customMinutes.trim();
+    if (!trimmed) return;
+    const minutes = Number(trimmed);
+    if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 600) return;
+    onSetPhase(phaseState.phase, Math.round(minutes * 60));
+    setCustomMinutes('');
+  }
+
   return (
-    <div className="phase-bar" role="region" aria-label="Current retro phase">
+    <div className="phase-bar" role="region" aria-label="Retro phase timer">
+      <div className="phase-bar-label">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="8" cy="9" r="5.5" />
+          <path d="M8 6v3l2 1.5" />
+          <path d="M6 1.5h4" />
+        </svg>
+        <span>Timer</span>
+      </div>
+
       <div className="phase-stages" role="tablist">
         {PHASE_ORDER.filter((p) => p !== 'closed').map((p) => {
           const isActive = p === phaseState.phase;
@@ -102,11 +125,37 @@ export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProp
                 type="button"
                 onClick={() => onSetPhase(phaseState.phase, d.sec)}
                 className="phase-timer-btn"
-                title={`Set ${d.label} timer for ${PHASE_LABELS[phaseState.phase]}`}
+                title={
+                  d.sec == null
+                    ? `Stop timer for ${PHASE_LABELS[phaseState.phase]}`
+                    : `Set ${d.sec / 60} min timer for ${PHASE_LABELS[phaseState.phase]}`
+                }
               >
                 {d.label}
+                {d.sec != null && <span style={{ opacity: 0.6, marginLeft: 1 }}>m</span>}
               </button>
             ))}
+            <form onSubmit={handleCustomTimer} className="phase-custom-timer">
+              <input
+                type="number"
+                min={1}
+                max={600}
+                step={1}
+                inputMode="numeric"
+                value={customMinutes}
+                onChange={(e) => setCustomMinutes(e.target.value)}
+                placeholder="min"
+                aria-label="Custom timer minutes"
+                title="Enter custom timer in minutes (1–600)"
+              />
+              <button
+                type="submit"
+                disabled={!customMinutes.trim()}
+                title="Start custom timer"
+              >
+                ▶
+              </button>
+            </form>
           </div>
         )}
       </div>
@@ -123,6 +172,20 @@ export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProp
           border-radius: 14px;
           backdrop-filter: blur(20px) saturate(160%);
           -webkit-backdrop-filter: blur(20px) saturate(160%);
+        }
+        .phase-bar-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: var(--font-mono);
+          font-size: 11px;
+          letter-spacing: 0.10em;
+          text-transform: uppercase;
+          color: var(--fg-2);
+          padding-right: 4px;
+          border-right: 1px solid var(--glass-border);
+          margin-right: 4px;
+          height: 22px;
         }
         .phase-stages {
           display: inline-flex;
@@ -169,6 +232,7 @@ export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProp
         }
         .phase-timer-quick {
           display: inline-flex;
+          align-items: center;
           gap: 3px;
           padding: 2px;
           background: var(--glass-highlight);
@@ -189,6 +253,52 @@ export function PhaseBar({ phaseState, isScrumMaster, onSetPhase }: PhaseBarProp
         .phase-timer-btn:hover {
           background: var(--glass-bg-strong);
           color: var(--fg-0);
+        }
+        .phase-custom-timer {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          padding: 0 0 0 6px;
+          margin-left: 2px;
+          border-left: 1px solid var(--glass-border);
+        }
+        .phase-custom-timer input {
+          width: 44px;
+          padding: 4px 6px;
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--fg-0);
+          background: transparent;
+          border: 1px solid var(--glass-border);
+          border-radius: 999px;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+        .phase-custom-timer input:focus {
+          border-color: var(--aurora-violet);
+        }
+        .phase-custom-timer input::-webkit-outer-spin-button,
+        .phase-custom-timer input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .phase-custom-timer button {
+          padding: 4px 10px;
+          font-size: 11px;
+          color: var(--fg-1);
+          background: transparent;
+          border: none;
+          border-radius: 999px;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s;
+        }
+        .phase-custom-timer button:hover:not(:disabled) {
+          background: var(--aurora-violet);
+          color: #fff;
+        }
+        .phase-custom-timer button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
         }
       `}</style>
     </div>

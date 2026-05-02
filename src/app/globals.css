@@ -225,16 +225,51 @@ body {
   transform: none;
 }
 .btn-primary {
-  background: linear-gradient(135deg, oklch(0.55 0.22 285), oklch(0.62 0.18 200));
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, oklch(0.62 0.22 285), oklch(0.68 0.18 200));
   border-color: transparent;
   color: #fff;
   font-weight: 600;
-  text-shadow: 0 1px 1px oklch(0 0 0 / 0.25);
+  text-shadow: 0 1px 2px oklch(0.20 0.10 285 / 0.45);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.18) inset,
+    0 4px 14px oklch(0.55 0.22 285 / 0.32);
+  isolation: isolate;
 }
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    oklch(1 0 0 / 0.28) 48%,
+    oklch(1 0 0 / 0.45) 50%,
+    oklch(1 0 0 / 0.28) 52%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  background-position: 200% 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: background-position 0s;
+  border-radius: inherit;
+}
+.btn-primary:hover:not(:disabled)::after {
+  animation: btn-shine 1.4s ease-in-out infinite;
+}
+.btn-primary > * { position: relative; z-index: 1; }
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, oklch(0.60 0.22 285), oklch(0.68 0.18 200));
-  box-shadow: 0 6px 24px oklch(0.55 0.22 285 / 0.45);
+  background: linear-gradient(135deg, oklch(0.66 0.22 285), oklch(0.72 0.18 200));
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.20) inset,
+    0 8px 28px oklch(0.55 0.22 285 / 0.50);
   transform: translateY(-1px);
+}
+@keyframes btn-shine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
 }
 .btn-primary:disabled {
   background: linear-gradient(135deg, oklch(0.55 0.22 285 / 0.5), oklch(0.62 0.18 200 / 0.5));

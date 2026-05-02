@@ -596,7 +596,15 @@ function NewRoomModal({
   return (
     <div onClick={onClose} className="modal-backdrop">
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 100%)', position: 'relative', zIndex: 81 }}>
-        <GlassPanel strong style={{ padding: 28 }}>
+        <div
+          style={{
+            padding: 28,
+            background: 'var(--bg-1)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: '0 24px 60px oklch(0 0 0 / 0.45), 0 1px 0 oklch(1 0 0 / 0.04) inset',
+          }}
+        >
           <div
             className="text-mono fg-3"
             style={{
@@ -722,7 +730,7 @@ function NewRoomModal({
               </button>
             </div>
           </form>
-        </GlassPanel>
+        </div>
       </div>
     </div>
   );

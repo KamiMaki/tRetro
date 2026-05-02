@@ -29,7 +29,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Facilitator guide"
+      aria-label="Guide"
       onClick={onClose}
       style={{
         position: 'fixed',
@@ -68,7 +68,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
           <span aria-hidden="true" style={{ fontSize: 20 }}>{stage.emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="text-mono fg-3" style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              Facilitator guide
+              Guide
             </div>
             <div className="text-display" style={{ fontSize: 16, fontWeight: 600 }}>
               {stage.title} · {stage.duration}
@@ -77,7 +77,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close facilitator guide"
+            aria-label="Close guide"
             title="Close (Esc)"
             className="btn btn-ghost"
             style={{ padding: '4px 10px', fontSize: 12 }}
@@ -192,7 +192,7 @@ export function FacilitatorPanel({ open, onClose }: FacilitatorPanelProps) {
             className="text-mono fg-3"
             style={{ marginTop: 22, fontSize: 11, lineHeight: 1.55 }}
           >
-            Want themes after closing? Click the <strong style={{ color: 'var(--fg-1)' }}>Summary Prompt</strong> button in the header — it copies a paste-ready prompt that works in any external AI tool.
+            Want themes? Click the <strong style={{ color: 'var(--fg-1)' }}>✦ Summary Prompt</strong> button in the header — it copies a ready-to-paste prompt that works in any external AI tool.
           </p>
         </div>
 
