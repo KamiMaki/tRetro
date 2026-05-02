@@ -25,7 +25,9 @@ interface SectionFullscreenProps {
   onClose: () => void;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
-  onRevealCard: (cardId: string) => void;
+  onRevealCard: (cardId: string, nickname?: string) => void;
+  onUnrevealCard: (cardId: string) => void;
+  onMoveCard: (cardId: string, section: SectionType) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
   onAddComment: (cardId: string, content: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
@@ -47,6 +49,8 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onAddCard,
     onDeleteCard,
     onRevealCard,
+    onUnrevealCard,
+    onMoveCard,
     onCreateTag,
     onAddComment,
     onToggleReaction,
@@ -140,6 +144,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               participantCount={participantCount}
               onDelete={onDeleteCard}
               onReveal={onRevealCard}
+              onUnreveal={onUnrevealCard}
               onAddComment={onAddComment}
               onToggleReaction={onToggleReaction}
               onToggleVote={onToggleVote}

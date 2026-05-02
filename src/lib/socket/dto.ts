@@ -11,8 +11,13 @@ export function toCardDTO(card: CardDB, viewerParticipantId: string): CardDTO {
   let authorNickname: string | null = null;
 
   if (card.isRevealed) {
-    const author = participantRepo.findById(card.authorId);
-    authorNickname = author?.nickname ?? null;
+    if (card.revealedNickname) {
+      // Author chose a custom name at reveal time.
+      authorNickname = card.revealedNickname;
+    } else {
+      const author = participantRepo.findById(card.authorId);
+      authorNickname = author?.nickname ?? null;
+    }
   }
 
   return {

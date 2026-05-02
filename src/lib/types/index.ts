@@ -81,6 +81,9 @@ export interface CardDB {
   content: string;
   authorId: string;
   isRevealed: boolean;
+  /** Custom nickname the author chose at reveal time. Null when never revealed
+   *  or after un-reveal. */
+  revealedNickname: string | null;
   createdAt: string;
   updatedAt: string;
 }

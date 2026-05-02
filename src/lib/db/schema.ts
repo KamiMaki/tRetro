@@ -21,14 +21,15 @@ CREATE TABLE IF NOT EXISTS participants (
 );
 
 CREATE TABLE IF NOT EXISTS cards (
-  id            TEXT PRIMARY KEY,
-  room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-  section       TEXT NOT NULL CHECK(section IN ('went-well','to-improve','thanks','deep-dive')),
-  content       TEXT NOT NULL,
-  author_id     TEXT NOT NULL REFERENCES participants(id),
-  is_revealed   INTEGER NOT NULL DEFAULT 0,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  id                TEXT PRIMARY KEY,
+  room_id           TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  section           TEXT NOT NULL CHECK(section IN ('went-well','to-improve','thanks','deep-dive')),
+  content           TEXT NOT NULL,
+  author_id         TEXT NOT NULL REFERENCES participants(id),
+  is_revealed       INTEGER NOT NULL DEFAULT 0,
+  revealed_nickname TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS tags (

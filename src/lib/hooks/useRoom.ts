@@ -50,7 +50,9 @@ interface UseRoomReturn {
   addCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   updateCard: (payload: UpdateCardPayload) => void;
   deleteCard: (cardId: string) => void;
-  revealCard: (cardId: string) => void;
+  revealCard: (cardId: string, nickname?: string) => void;
+  unrevealCard: (cardId: string) => void;
+  moveCard: (cardId: string, section: string) => void;
   createTag: (payload: Omit<CreateTagPayload, 'roomId'> & { isDefault?: boolean }) => void;
   setTagDefault: (tagId: string, isDefault: boolean) => void;
   addActionItem: (payload: Omit<CreateActionItemPayload, 'roomId'>) => void;
@@ -182,6 +184,16 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
         prev.map((c) =>
           c.id === payload.cardId
             ? { ...c, isRevealed: true, authorNickname: payload.authorNickname }
+            : c
+        )
+      );
+    });
+
+    socket.on(SOCKET_EVENTS.CARD_UNREVEALED, (payload: { cardId: string }) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === payload.cardId
+            ? { ...c, isRevealed: false, authorNickname: null }
             : c
         )
       );
@@ -328,8 +340,16 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.CARD_DELETE, { cardId });
   }, []);
 
-  const revealCard = useCallback((cardId: string) => {
-    socketRef.current?.emit(SOCKET_EVENTS.CARD_REVEAL, { cardId });
+  const revealCard = useCallback((cardId: string, nickname?: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.CARD_REVEAL, { cardId, nickname });
+  }, []);
+
+  const unrevealCard = useCallback((cardId: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.CARD_UNREVEAL, { cardId });
+  }, []);
+
+  const moveCard = useCallback((cardId: string, section: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.CARD_MOVE, { cardId, section });
   }, []);
 
   const createTag = useCallback(
@@ -406,6 +426,8 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     updateCard,
     deleteCard,
     revealCard,
+    unrevealCard,
+    moveCard,
     createTag,
     setTagDefault,
     addActionItem,

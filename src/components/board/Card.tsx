@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CardDTOv2 } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 import { VoteButton } from '@/components/board/VoteButton';
@@ -15,15 +15,14 @@ interface CardProps {
   card: CardDTOv2;
   tone?: 'mint' | 'pink' | 'amber' | 'violet';
   isScrumMaster: boolean;
-  /** Total participants in the room (consensus denominator). */
   participantCount: number;
   onDelete: (cardId: string) => void;
-  onReveal: (cardId: string) => void;
+  onReveal: (cardId: string, nickname?: string) => void;
+  onUnreveal: (cardId: string) => void;
   onAddComment: (cardId: string, content: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
-  /** Send this card's content to the action-items sidebar as a prefilled draft. */
   onConvertToAction?: (content: string) => void;
 }
 
@@ -34,6 +33,7 @@ export function Card({
   participantCount,
   onDelete,
   onReveal,
+  onUnreveal,
   onAddComment,
   onToggleReaction,
   onToggleVote,
@@ -42,10 +42,23 @@ export function Card({
 }: CardProps) {
   const canDelete = card.isOwnCard || isScrumMaster;
   const canReveal = card.isOwnCard && !card.isRevealed;
+  const canUnreveal = card.isOwnCard && card.isRevealed;
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
+  const [revealOpen, setRevealOpen] = useState(false);
+  const [revealNickname, setRevealNickname] = useState('');
+  const revealInputRef = useRef<HTMLInputElement>(null);
   const consensus = computeConsensus(card.voteCount, participantCount);
   const showConsensus = card.voteCount > 0 && participantCount > 0;
+
+  useEffect(() => {
+    if (revealOpen) {
+      const stored = typeof window !== 'undefined' ? sessionStorage.getItem('nickname') ?? '' : '';
+      setRevealNickname((prev) => prev || stored);
+      // Defer focus until after DOM commits the input.
+      requestAnimationFrame(() => revealInputRef.current?.focus());
+    }
+  }, [revealOpen]);
 
   const authorLabel = card.isRevealed && card.authorNickname
     ? card.authorNickname
@@ -53,12 +66,35 @@ export function Card({
       ? 'You'
       : 'Anonymous';
 
+  function handleRevealSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = revealNickname.trim();
+    onReveal(card.id, trimmed.length > 0 ? trimmed : undefined);
+    setRevealOpen(false);
+    setRevealNickname('');
+  }
+
+  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    // Don't initiate drag if the user is interacting with text input/textarea.
+    const tgt = e.target as HTMLElement;
+    const tag = tgt.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tgt.isContentEditable) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/x-tretro-card', card.id);
+    e.dataTransfer.setData('text/plain', card.id);
+  }
+
   return (
     <>
       <div
         className="sticky-card"
         data-tone={tone}
         data-consensus={showConsensus ? consensus.level : undefined}
+        draggable
+        onDragStart={handleDragStart}
         style={{ position: 'relative' }}
       >
         {/* Card content */}
@@ -102,13 +138,14 @@ export function Card({
           />
         </div>
 
-        {/* Footer */}
+        {/* Footer — flex-wrap so the action chips never overflow */}
         <div
           className="card-footer"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            flexWrap: 'wrap',
+            gap: 6,
             paddingTop: 8,
             borderTop: '1px solid var(--glass-border)',
             fontSize: 11,
@@ -136,7 +173,7 @@ export function Card({
           >
             {authorLabel}
           </span>
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1, minWidth: 0 }} />
 
           <VoteButton
             cardId={card.id}
@@ -245,10 +282,11 @@ export function Card({
               </svg>
             </button>
           )}
+
           {canReveal && (
             <button
               type="button"
-              onClick={() => onReveal(card.id)}
+              onClick={() => setRevealOpen(true)}
               title="Reveal your identity"
               style={{
                 padding: '3px 8px',
@@ -259,9 +297,30 @@ export function Card({
                 color: 'oklch(0.92 0.14 285)',
                 border: '1px solid oklch(0.68 0.20 285 / 0.32)',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
               reveal
+            </button>
+          )}
+          {canUnreveal && (
+            <button
+              type="button"
+              onClick={() => onUnreveal(card.id)}
+              title="Hide your identity again"
+              style={{
+                padding: '3px 8px',
+                fontSize: 11,
+                fontFamily: 'var(--font-mono)',
+                borderRadius: 6,
+                background: 'var(--glass-highlight)',
+                color: 'var(--fg-2)',
+                border: '1px solid var(--glass-border)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              hide
             </button>
           )}
           {canDelete && (
@@ -290,6 +349,66 @@ export function Card({
             </button>
           )}
         </div>
+
+        {revealOpen && (
+          <form
+            onSubmit={handleRevealSubmit}
+            style={{
+              marginTop: 10,
+              paddingTop: 10,
+              borderTop: '1px solid var(--glass-border)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 6,
+              alignItems: 'center',
+            }}
+          >
+            <span className="text-mono fg-3" style={{ fontSize: 11 }}>
+              reveal as
+            </span>
+            <input
+              ref={revealInputRef}
+              type="text"
+              value={revealNickname}
+              onChange={(e) => setRevealNickname(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setRevealOpen(false);
+                }
+              }}
+              placeholder="your name"
+              maxLength={40}
+              style={{
+                flex: 1,
+                minWidth: 80,
+                padding: '4px 8px',
+                fontSize: 12,
+                fontFamily: 'var(--font-mono)',
+                background: 'var(--glass-bg-strong)',
+                border: '1px solid var(--aurora-violet)',
+                borderRadius: 6,
+                color: 'var(--fg-0)',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ padding: '4px 12px', fontSize: 11 }}
+            >
+              reveal
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setRevealOpen(false)}
+              style={{ padding: '4px 10px', fontSize: 11 }}
+            >
+              cancel
+            </button>
+          </form>
+        )}
 
         {commentsOpen && (
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--glass-border)' }}>

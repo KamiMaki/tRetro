@@ -16,6 +16,8 @@ const SECTION_TONES: Record<SectionType, 'mint' | 'pink' | 'amber' | 'violet'> =
   'deep-dive':  'violet',
 };
 
+const DRAG_MIME = 'application/x-tretro-card';
+
 interface SectionProps {
   section: SectionType;
   cards: CardDTOv2[];
@@ -25,7 +27,9 @@ interface SectionProps {
   template?: RetroTemplate;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
-  onRevealCard: (cardId: string) => void;
+  onRevealCard: (cardId: string, nickname?: string) => void;
+  onUnrevealCard: (cardId: string) => void;
+  onMoveCard: (cardId: string, section: SectionType) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
   onAddComment: (cardId: string, content: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
@@ -45,6 +49,8 @@ export function Section({
   onAddCard,
   onDeleteCard,
   onRevealCard,
+  onUnrevealCard,
+  onMoveCard,
   onCreateTag,
   onAddComment,
   onToggleReaction,
@@ -57,9 +63,52 @@ export function Section({
   const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
   const label = template?.labels[section] ?? SECTION_LABELS[section];
   const [fullscreen, setFullscreen] = useState(false);
+  const [dragHover, setDragHover] = useState(false);
+
+  function isCardDrag(e: React.DragEvent): boolean {
+    return Array.from(e.dataTransfer.types).some((t) => t === DRAG_MIME || t === 'text/plain');
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    if (!isCardDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!dragHover) setDragHover(true);
+  }
+
+  function onDragLeave(e: React.DragEvent) {
+    // Only clear if we leave to outside the section.
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragHover(false);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    if (!isCardDrag(e)) return;
+    e.preventDefault();
+    setDragHover(false);
+    const id = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain');
+    if (!id) return;
+    onMoveCard(id, section);
+  }
 
   return (
-    <div className="col" data-col={section} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
+    <div
+      className="col"
+      data-col={section}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        height: '100%',
+        outline: dragHover ? '2px dashed var(--aurora-violet)' : 'none',
+        outlineOffset: -4,
+        borderRadius: 'var(--radius-lg)',
+        transition: 'outline-color 0.15s',
+      }}
+    >
       <GlassPanel
         style={{
           flex: 1,
@@ -134,7 +183,7 @@ export function Section({
                 opacity: 0.6,
               }}
             >
-              no cards yet
+              {dragHover ? 'drop to move here' : 'no cards yet'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -147,6 +196,7 @@ export function Section({
                   participantCount={participantCount}
                   onDelete={onDeleteCard}
                   onReveal={onRevealCard}
+                  onUnreveal={onUnrevealCard}
                   onAddComment={onAddComment}
                   onToggleReaction={onToggleReaction}
                   onToggleVote={onToggleVote}
@@ -183,6 +233,8 @@ export function Section({
           onAddCard={onAddCard}
           onDeleteCard={onDeleteCard}
           onRevealCard={onRevealCard}
+          onUnrevealCard={onUnrevealCard}
+          onMoveCard={onMoveCard}
           onCreateTag={onCreateTag}
           onAddComment={onAddComment}
           onToggleReaction={onToggleReaction}

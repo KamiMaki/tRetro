@@ -86,26 +86,84 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
     }
   });
 
-  socket.on(SOCKET_EVENTS.CARD_REVEAL, ({ cardId }: { cardId: string }) => {
+  socket.on(
+    SOCKET_EVENTS.CARD_REVEAL,
+    ({ cardId, nickname }: { cardId: string; nickname?: string }) => {
+      try {
+        const card = cardRepo.findById(cardId);
+        if (!card) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });
+          return;
+        }
+        if (card.authorId !== data.participantId) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can reveal identity', code: 'FORBIDDEN' });
+          return;
+        }
+        const fallback = participantRepo.findById(card.authorId)?.nickname ?? 'Unknown';
+        const trimmed = (nickname ?? '').trim();
+        const finalName = trimmed.length > 0 ? trimmed.slice(0, 40) : fallback;
+        cardRepo.reveal(cardId, finalName);
+        io.to(data.roomId).emit(SOCKET_EVENTS.CARD_REVEALED, {
+          cardId,
+          authorNickname: finalName,
+        });
+      } catch {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to reveal card', code: 'REVEAL_FAILED' });
+      }
+    },
+  );
+
+  socket.on(SOCKET_EVENTS.CARD_UNREVEAL, ({ cardId }: { cardId: string }) => {
     try {
       const card = cardRepo.findById(cardId);
       if (!card) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });
         return;
       }
-      // Permission: only author can reveal
       if (card.authorId !== data.participantId) {
-        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can reveal identity', code: 'FORBIDDEN' });
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can hide identity', code: 'FORBIDDEN' });
         return;
       }
-      cardRepo.reveal(cardId);
-      const author = participantRepo.findById(card.authorId);
-      io.to(data.roomId).emit(SOCKET_EVENTS.CARD_REVEALED, {
-        cardId,
-        authorNickname: author?.nickname ?? 'Unknown',
-      });
-    } catch (err) {
-      socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to reveal card', code: 'REVEAL_FAILED' });
+      cardRepo.unreveal(cardId);
+      io.to(data.roomId).emit(SOCKET_EVENTS.CARD_UNREVEALED, { cardId });
+    } catch {
+      socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to hide card', code: 'UNREVEAL_FAILED' });
     }
   });
+
+  socket.on(
+    SOCKET_EVENTS.CARD_MOVE,
+    ({ cardId, section }: { cardId: string; section: string }) => {
+      try {
+        const card = cardRepo.findById(cardId);
+        if (!card) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });
+          return;
+        }
+        const allowed: ReadonlySet<string> = new Set([
+          'went-well',
+          'to-improve',
+          'thanks',
+          'deep-dive',
+        ]);
+        if (!allowed.has(section)) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid section', code: 'BAD_INPUT' });
+          return;
+        }
+        if (card.section === section) return;
+        const updated = cardRepo.update(cardId, { section });
+        if (!updated) return;
+        const sockets = io.sockets.adapter.rooms.get(data.roomId);
+        if (!sockets) return;
+        for (const socketId of sockets) {
+          const targetSocket = io.sockets.sockets.get(socketId);
+          if (!targetSocket) continue;
+          const targetData = targetSocket.data as SocketData;
+          targetSocket.emit(SOCKET_EVENTS.CARD_UPDATED, toCardDTOv2(updated, targetData.participantId));
+        }
+      } catch {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to move card', code: 'MOVE_FAILED' });
+      }
+    },
+  );
 }

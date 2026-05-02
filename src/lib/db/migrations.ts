@@ -38,4 +38,11 @@ export function runMigrations(): void {
   if (!tagCols.some((c) => c.name === 'is_default')) {
     db.exec(`ALTER TABLE tags ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0`);
   }
+
+  // 2026-05-02: cards.revealed_nickname — author can reveal under a custom
+  // name and toggle it back to anonymous later.
+  const cardCols = db.prepare(`PRAGMA table_info(cards)`).all() as Array<{ name: string }>;
+  if (!cardCols.some((c) => c.name === 'revealed_nickname')) {
+    db.exec(`ALTER TABLE cards ADD COLUMN revealed_nickname TEXT`);
+  }
 }

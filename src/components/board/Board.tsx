@@ -1,6 +1,6 @@
 'use client';
 
-import type { CardDTOv2, Tag, CreateCardPayload, CreateTagPayload } from '@/lib/types';
+import type { CardDTOv2, Tag, CreateCardPayload, CreateTagPayload, SectionType } from '@/lib/types';
 import { SECTIONS } from '@/lib/types';
 import type { RetroTemplate } from '@/lib/templates';
 import { Section } from '@/components/board/Section';
@@ -21,7 +21,9 @@ interface BoardProps {
   setSortAsc: (asc: boolean) => void;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
-  onRevealCard: (cardId: string) => void;
+  onRevealCard: (cardId: string, nickname?: string) => void;
+  onUnrevealCard: (cardId: string) => void;
+  onMoveCard: (cardId: string, section: SectionType) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
   onAddComment: (cardId: string, content: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
@@ -46,6 +48,8 @@ export function Board({
   onAddCard,
   onDeleteCard,
   onRevealCard,
+  onUnrevealCard,
+  onMoveCard,
   onCreateTag,
   onAddComment,
   onToggleReaction,
@@ -109,6 +113,8 @@ export function Board({
             onAddCard={onAddCard}
             onDeleteCard={onDeleteCard}
             onRevealCard={onRevealCard}
+            onUnrevealCard={onUnrevealCard}
+            onMoveCard={onMoveCard}
             onCreateTag={onCreateTag}
             onAddComment={onAddComment}
             onToggleReaction={onToggleReaction}

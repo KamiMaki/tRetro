@@ -9,8 +9,17 @@ interface CardRow {
   content: string;
   author_id: string;
   is_revealed: number;
+  revealed_nickname: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface TagRow {
+  id: string;
+  room_id: string;
+  name: string;
+  color: string;
+  is_default: number;
 }
 
 function toCardDB(row: CardRow): CardDB {
@@ -21,6 +30,7 @@ function toCardDB(row: CardRow): CardDB {
     content: row.content,
     authorId: row.author_id,
     isRevealed: row.is_revealed === 1,
+    revealedNickname: row.revealed_nickname ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -59,19 +69,32 @@ export const cardRepo = {
 
   getTagsForCard(cardId: string): Tag[] {
     const db = getDb();
-    const rows = db.prepare(
-      'SELECT t.* FROM tags t JOIN card_tags ct ON t.id = ct.tag_id WHERE ct.card_id = ?'
-    ).all(cardId) as Array<{ id: string; room_id: string; name: string; color: string }>;
-    return rows.map(r => ({ id: r.id, roomId: r.room_id, name: r.name, color: r.color }));
+    const rows = db
+      .prepare(
+        'SELECT t.* FROM tags t JOIN card_tags ct ON t.id = ct.tag_id WHERE ct.card_id = ?',
+      )
+      .all(cardId) as TagRow[];
+    return rows.map((r) => ({
+      id: r.id,
+      roomId: r.room_id,
+      name: r.name,
+      color: r.color,
+      isDefault: r.is_default === 1,
+    }));
   },
 
-  update(id: string, updates: { content?: string; tagIds?: string[] }): CardDB | null {
+  update(id: string, updates: { content?: string; tagIds?: string[]; section?: string }): CardDB | null {
     const db = getDb();
     db.transaction(() => {
       if (updates.content !== undefined) {
         db.prepare(
           "UPDATE cards SET content = ?, updated_at = datetime('now') WHERE id = ?"
         ).run(updates.content, id);
+      }
+      if (updates.section !== undefined) {
+        db.prepare(
+          "UPDATE cards SET section = ?, updated_at = datetime('now') WHERE id = ?"
+        ).run(updates.section, id);
       }
       if (updates.tagIds !== undefined) {
         db.prepare('DELETE FROM card_tags WHERE card_id = ?').run(id);
@@ -84,10 +107,18 @@ export const cardRepo = {
     return this.findById(id);
   },
 
-  reveal(id: string): CardDB | null {
+  reveal(id: string, nickname: string): CardDB | null {
     const db = getDb();
     db.prepare(
-      "UPDATE cards SET is_revealed = 1, updated_at = datetime('now') WHERE id = ?"
+      "UPDATE cards SET is_revealed = 1, revealed_nickname = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(nickname, id);
+    return this.findById(id);
+  },
+
+  unreveal(id: string): CardDB | null {
+    const db = getDb();
+    db.prepare(
+      "UPDATE cards SET is_revealed = 0, revealed_nickname = NULL, updated_at = datetime('now') WHERE id = ?"
     ).run(id);
     return this.findById(id);
   },
