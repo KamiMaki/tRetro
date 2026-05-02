@@ -6,6 +6,7 @@ import { actionItemRepo } from '@/lib/db/repositories/action-item.repo';
 import { participantRepo } from '@/lib/db/repositories/participant.repo';
 import { exportToMarkdown, exportToHtml } from '@/lib/utils/export';
 import { buildAiSummaryMarkdown } from '@/lib/utils/aiExportTemplate';
+import { buildRetroCsv } from '@/lib/utils/csvExport';
 
 export async function GET(
   request: Request,
@@ -52,6 +53,18 @@ export async function GET(
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
         'Content-Disposition': `attachment; filename="${room.name}-retro-ai-summary.md"`,
+      },
+    });
+  }
+
+  if (format === 'csv') {
+    const csv = buildRetroCsv(room, cardsWithMeta, tags, actionItems);
+    // BOM so Excel auto-detects UTF-8 (avoids mojibake on Windows / 中文 cells).
+    const body = '﻿' + csv;
+    return new Response(body, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${room.name}-retro.csv"`,
       },
     });
   }
