@@ -9,7 +9,7 @@ import { CommentList } from '@/components/board/CommentList';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { DrawingModal } from '@/components/board/DrawingModal';
 import { Avatar } from '@/components/ui/Aurora';
-import { computeConsensus } from '@/lib/util/consensus';
+import { computeConsensus } from '@/lib/utils/consensus';
 
 interface CardProps {
   card: CardDTOv2;

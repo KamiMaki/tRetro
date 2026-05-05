@@ -12,10 +12,8 @@ import { registerDrawingHandlers } from './handlers/drawing.handler';
 import { registerMetricHandlers } from './handlers/metric.handler';
 import { SOCKET_EVENTS } from './events';
 
-let io: SocketIOServer | null = null;
-
 export function initSocketServer(httpServer: HttpServer): SocketIOServer {
-  io = new SocketIOServer(httpServer, {
+  const io = new SocketIOServer(httpServer, {
     cors: {
       origin: process.env.NODE_ENV === 'development' ? '*' : undefined,
       methods: ['GET', 'POST'],
@@ -36,9 +34,5 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
     registerMetricHandlers(io!, socket);
   });
 
-  return io;
-}
-
-export function getIO(): SocketIOServer | null {
   return io;
 }

@@ -25,8 +25,13 @@ export function useTheme() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // SSR-safe hydration: window / localStorage are unavailable during render,
+    // so we read the real theme on the client only. The brief default-dark
+    // flash is hidden by the `hydrated` flag (opacity:0 until ready).
+    /* eslint-disable react-hooks/set-state-in-effect */
     setThemeState(readStoredTheme());
     setHydrated(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   const setTheme = useCallback((next: Theme) => {

@@ -92,8 +92,6 @@ export const RETRO_TEMPLATES: RetroTemplate[] = [
   },
 ];
 
-export const DEFAULT_TEMPLATE_ID = 'classic';
-
 export function findTemplate(id: string | null | undefined): RetroTemplate {
   return RETRO_TEMPLATES.find((t) => t.id === id) ?? RETRO_TEMPLATES[0];
 }

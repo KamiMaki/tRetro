@@ -14,10 +14,3 @@ export function getDb(): Database.Database {
   }
   return db;
 }
-
-export function closeDb(): void {
-  if (db) {
-    db.close();
-    db = null;
-  }
-}

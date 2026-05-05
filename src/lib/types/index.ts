@@ -17,6 +17,14 @@ export const SECTION_EMOJIS: Record<SectionType, string> = {
 
 export const SECTIONS: SectionType[] = ['went-well', 'to-improve', 'thanks', 'deep-dive'];
 
+/** Visual tone mapping for each section — used by board section panels. */
+export const SECTION_TONES: Record<SectionType, 'mint' | 'pink' | 'amber' | 'violet'> = {
+  'went-well':  'mint',
+  'to-improve': 'amber',
+  'thanks':     'pink',
+  'deep-dive':  'violet',
+};
+
 // Room status
 export type RoomStatus = 'active' | 'closed';
 
@@ -138,12 +146,6 @@ export interface Reaction {
   hasReacted: boolean; // whether current user reacted
 }
 
-export interface Vote {
-  cardId: string;
-  count: number;
-  hasVoted: boolean;
-}
-
 export interface Drawing {
   id: string;
   cardId: string;
@@ -180,11 +182,6 @@ export interface RoomSummary {
 }
 
 // Socket event payloads
-export interface JoinRoomPayload {
-  roomId: string;
-  sessionToken: string;
-}
-
 export interface RoomJoinedPayload {
   room: Room;
   participant: Participant;

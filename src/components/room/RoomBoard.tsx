@@ -191,8 +191,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           connectionStatus={connectionStatus}
           isScrumMaster={isScrumMaster}
           roomId={roomId}
-          cards={cards}
-          actionItems={actionItems}
           onCloseRoom={closeRoom}
           onReopenRoom={reopenRoom}
           onOpenFacilitator={() => setFacilitatorOpen(true)}

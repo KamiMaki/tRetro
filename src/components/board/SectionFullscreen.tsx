@@ -3,17 +3,10 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
-import { SECTION_LABELS, SECTION_EMOJIS } from '@/lib/types';
+import { SECTION_LABELS, SECTION_EMOJIS, SECTION_TONES } from '@/lib/types';
 import type { RetroTemplate } from '@/lib/templates';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
-
-const SECTION_TONES: Record<SectionType, 'mint' | 'pink' | 'amber' | 'violet'> = {
-  'went-well':  'mint',
-  'to-improve': 'amber',
-  'thanks':     'pink',
-  'deep-dive':  'violet',
-};
 
 interface SectionFullscreenProps {
   section: SectionType;

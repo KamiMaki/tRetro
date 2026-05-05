@@ -9,6 +9,8 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     createdAt: '2025-01-01T00:00:00',
     updatedAt: '2025-01-01T00:00:00',
     closedAt: null,
+    webhookUrl: null,
+    templateId: 'classic',
     ...overrides,
   };
 }
@@ -23,6 +25,7 @@ function makeCard(overrides: Partial<CardWithMeta> = {}): CardWithMeta {
     content: 'Team collaboration was great',
     authorId: 'participant-1',
     isRevealed: false,
+    revealedNickname: null,
     tags: [],
     authorNickname: null,
     createdAt: '2025-01-01T00:00:00',
@@ -59,10 +62,12 @@ describe('exportToMarkdown', () => {
 
   it('renders all four section headings', () => {
     const md = exportToMarkdown(makeRoom(), [], [], [], 0);
+    // Match the labels in SECTION_LABELS — Went Well / Didn't Go Well /
+    // Thanks / Deep Discussion.
     expect(md).toContain('## Went Well');
-    expect(md).toContain('## To Improve');
+    expect(md).toContain("## Didn't Go Well");
     expect(md).toContain('## Thanks');
-    expect(md).toContain('## Deep Dive');
+    expect(md).toContain('## Deep Discussion');
   });
 
   it('shows _No cards_ for empty sections', () => {
@@ -101,14 +106,14 @@ describe('exportToMarkdown', () => {
   });
 
   it('renders card tags inline', () => {
-    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Process', color: '#3b82f6' };
+    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Process', color: '#3b82f6', isDefault: false };
     const card = makeCard({ tags: [tag], content: 'Slow deploys' });
     const md = exportToMarkdown(makeRoom(), [card], [tag], [], 1);
     expect(md).toContain('[Process]');
   });
 
   it('includes tag statistics section', () => {
-    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Bug', color: '#ef4444' };
+    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Bug', color: '#ef4444', isDefault: false };
     const card = makeCard({ section: 'went-well', tags: [tag] });
     const md = exportToMarkdown(makeRoom(), [card], [tag], [], 1);
     expect(md).toContain('## Tag Statistics');

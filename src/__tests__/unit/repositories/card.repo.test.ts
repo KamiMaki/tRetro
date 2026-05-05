@@ -151,9 +151,10 @@ describe('cardRepo', () => {
       const card = cardRepo.create(roomId, 'went-well', 'Hidden card', authorId, []);
       expect(card.isRevealed).toBe(false);
 
-      const revealed = cardRepo.reveal(card.id);
+      const revealed = cardRepo.reveal(card.id, 'TestUser');
       expect(revealed).not.toBeNull();
       expect(revealed!.isRevealed).toBe(true);
+      expect(revealed!.revealedNickname).toBe('TestUser');
     });
   });
 

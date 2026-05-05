@@ -29,7 +29,11 @@ describe('participantRepo', () => {
   });
 
   describe('create', () => {
-    it('first participant in a room is assigned ScrumMaster', () => {
+    // Everyone joining a retro is a ScrumMaster — anonymous shared facilitation
+    // (see participant.repo.ts). Avoids the "first joiner only" trap where a SM
+    // who reconnects loses their controls.
+
+    it('first participant in a room is a ScrumMaster', () => {
       const p = participantRepo.create(roomId, 'Alice');
 
       expect(p.id).toBeDefined();
@@ -43,12 +47,13 @@ describe('participantRepo', () => {
       expect(p.joinedAt).toBeDefined();
     });
 
-    it('second participant in a room is NOT ScrumMaster', () => {
+    it('every additional participant is also a ScrumMaster', () => {
       participantRepo.create(roomId, 'Alice');
       const p2 = participantRepo.create(roomId, 'Bob');
+      const p3 = participantRepo.create(roomId, 'Carol');
 
-      expect(p2.isScrumMaster).toBe(false);
-      expect(p2.nickname).toBe('Bob');
+      expect(p2.isScrumMaster).toBe(true);
+      expect(p3.isScrumMaster).toBe(true);
     });
 
     it('each participant receives a unique sessionToken', () => {
@@ -57,8 +62,8 @@ describe('participantRepo', () => {
       expect(p1.sessionToken).not.toBe(p2.sessionToken);
     });
 
-    it('first participant in a different room is also ScrumMaster', () => {
-      participantRepo.create(roomId, 'Alice'); // SM in room1
+    it('participants in a different room are also ScrumMasters', () => {
+      participantRepo.create(roomId, 'Alice');
 
       const room2 = roomRepo.create('Room 2');
       const pRoom2 = participantRepo.create(room2.id, 'Bob');

@@ -50,7 +50,6 @@ function row(values: Array<string | number | null | undefined>): string {
 export function buildRetroCsv(
   room: Room,
   cards: CardWithMeta[],
-  _tags: Tag[],
   actionItems: ActionItem[],
 ): string {
   const lines: string[] = [];

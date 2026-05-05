@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { Room, CardDTO, ActionItem } from '@/lib/types';
+import type { Room } from '@/lib/types';
 import { Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
@@ -19,8 +19,6 @@ interface RoomHeaderProps {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   isScrumMaster: boolean;
   roomId: string;
-  cards: CardDTO[];
-  actionItems: ActionItem[];
   onCloseRoom: () => void;
   onReopenRoom: () => void;
   onOpenFacilitator: () => void;

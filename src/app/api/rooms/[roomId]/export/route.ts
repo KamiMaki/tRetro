@@ -58,7 +58,7 @@ export async function GET(
   }
 
   if (format === 'csv') {
-    const csv = buildRetroCsv(room, cardsWithMeta, tags, actionItems);
+    const csv = buildRetroCsv(room, cardsWithMeta, actionItems);
     // BOM so Excel auto-detects UTF-8 (avoids mojibake on Windows / 中文 cells).
     const body = '﻿' + csv;
     return new Response(body, {

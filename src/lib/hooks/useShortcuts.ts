@@ -37,7 +37,10 @@ function eventToKey(e: KeyboardEvent): string {
  */
 export function useShortcuts(bindings: ShortcutBinding[], enabled = true) {
   const bindingsRef = useRef(bindings);
-  bindingsRef.current = bindings;
+  // Keep latest bindings without re-registering the keydown listener every render.
+  useEffect(() => {
+    bindingsRef.current = bindings;
+  });
 
   // Track current chord buffer
   const chordRef = useRef<string[]>([]);

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { SocketProvider } from '@/lib/context/SocketContext';
 import { RoomBoard } from '@/components/room/RoomBoard';
 import { AuroraBg, Logo } from '@/components/ui/Aurora';
 
@@ -131,9 +130,5 @@ export default function RoomPage() {
     );
   }
 
-  return (
-    <SocketProvider roomId={roomId} sessionToken={sessionToken}>
-      <RoomBoard roomId={roomId} />
-    </SocketProvider>
-  );
+  return <RoomBoard roomId={roomId} />;
 }
