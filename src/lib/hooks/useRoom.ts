@@ -53,6 +53,7 @@ interface UseRoomReturn {
   revealCard: (cardId: string, nickname?: string) => void;
   unrevealCard: (cardId: string) => void;
   moveCard: (cardId: string, section: string) => void;
+  setCardParked: (cardId: string, isParked: boolean) => void;
   createTag: (payload: Omit<CreateTagPayload, 'roomId'> & { isDefault?: boolean }) => void;
   setTagDefault: (tagId: string, isDefault: boolean) => void;
   addActionItem: (payload: Omit<CreateActionItemPayload, 'roomId'>) => void;
@@ -352,6 +353,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.CARD_MOVE, { cardId, section });
   }, []);
 
+  const setCardParked = useCallback((cardId: string, isParked: boolean) => {
+    socketRef.current?.emit(SOCKET_EVENTS.CARD_PARK, { cardId, isParked });
+  }, []);
+
   const createTag = useCallback(
     (payload: Omit<CreateTagPayload, 'roomId'> & { isDefault?: boolean }) => {
       socketRef.current?.emit(SOCKET_EVENTS.TAG_CREATE, { ...payload, roomId });
@@ -428,6 +433,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     revealCard,
     unrevealCard,
     moveCard,
+    setCardParked,
     createTag,
     setTagDefault,
     addActionItem,

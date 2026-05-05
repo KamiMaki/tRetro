@@ -10,6 +10,7 @@ interface CardRow {
   author_id: string;
   is_revealed: number;
   revealed_nickname: string | null;
+  is_parked: number;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +32,7 @@ function toCardDB(row: CardRow): CardDB {
     authorId: row.author_id,
     isRevealed: row.is_revealed === 1,
     revealedNickname: row.revealed_nickname ?? null,
+    isParked: row.is_parked === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -120,6 +122,14 @@ export const cardRepo = {
     db.prepare(
       "UPDATE cards SET is_revealed = 0, revealed_nickname = NULL, updated_at = datetime('now') WHERE id = ?"
     ).run(id);
+    return this.findById(id);
+  },
+
+  setParked(id: string, isParked: boolean): CardDB | null {
+    const db = getDb();
+    db.prepare(
+      "UPDATE cards SET is_parked = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(isParked ? 1 : 0, id);
     return this.findById(id);
   },
 

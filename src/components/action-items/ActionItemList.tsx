@@ -5,16 +5,8 @@ import { ActionItemCard } from '@/components/action-items/ActionItemCard';
 import { ActionItemForm } from '@/components/action-items/ActionItemForm';
 import { GlassPanel } from '@/components/ui/Aurora';
 
-interface ParticipantSummary {
-  id: string;
-  nickname: string;
-  isScrumMaster: boolean;
-  isOnline: boolean;
-}
-
 interface ActionItemListProps {
   actionItems: ActionItem[];
-  participants: ParticipantSummary[];
   isScrumMaster: boolean;
   onAdd: (payload: Omit<CreateActionItemPayload, 'roomId'>) => void;
   onUpdate: (payload: UpdateActionItemPayload) => void;
@@ -25,7 +17,6 @@ interface ActionItemListProps {
 
 export function ActionItemList({
   actionItems,
-  participants,
   isScrumMaster,
   onAdd,
   onUpdate,
@@ -129,7 +120,6 @@ export function ActionItemList({
         {isScrumMaster && (
           <div style={{ paddingTop: 8, borderTop: '1px solid var(--glass-border)' }}>
             <ActionItemForm
-              participants={participants}
               onSubmit={onAdd}
               prefilledContent={prefilledContent}
               onConsumePrefill={onConsumePrefill}

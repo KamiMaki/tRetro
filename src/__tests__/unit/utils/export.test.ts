@@ -26,6 +26,7 @@ function makeCard(overrides: Partial<CardWithMeta> = {}): CardWithMeta {
     authorId: 'participant-1',
     isRevealed: false,
     revealedNickname: null,
+    isParked: false,
     tags: [],
     authorNickname: null,
     createdAt: '2025-01-01T00:00:00',

@@ -3,15 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { CreateActionItemPayload } from '@/lib/types';
 
-interface ParticipantSummary {
-  id: string;
-  nickname: string;
-  isScrumMaster: boolean;
-  isOnline: boolean;
-}
-
 interface ActionItemFormProps {
-  participants: ParticipantSummary[];
   onSubmit: (payload: Omit<CreateActionItemPayload, 'roomId'>) => void;
   /** When set (non-empty), auto-open the form with this description prefilled. */
   prefilledContent?: string;
@@ -20,7 +12,6 @@ interface ActionItemFormProps {
 }
 
 export function ActionItemForm({
-  participants,
   onSubmit,
   prefilledContent,
   onConsumePrefill,
@@ -43,9 +34,10 @@ export function ActionItemForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) return;
+    const owner = assignee.trim();
     onSubmit({
       description: description.trim(),
-      assignee: assignee || undefined,
+      assignee: owner || undefined,
       dueDate: dueDate || undefined,
     });
     setDescription('');
@@ -128,25 +120,20 @@ export function ActionItemForm({
           <label
             className="text-mono fg-2"
             style={{ display: 'block', marginBottom: 4, fontSize: 11 }}
-            htmlFor="ai-assignee"
+            htmlFor="ai-owner"
           >
-            Assignee
+            Owner
           </label>
-          <select
-            id="ai-assignee"
+          <input
+            id="ai-owner"
+            type="text"
             value={assignee}
             onChange={(e) => setAssignee(e.target.value)}
+            placeholder="Owner's name"
+            maxLength={60}
             className="field"
             style={{ padding: '9px 10px' }}
-          >
-            <option value="">Unassigned</option>
-            {participants.map((p) => (
-              <option key={p.id} value={p.nickname}>
-                {p.nickname}
-                {p.isScrumMaster ? ' (SM)' : ''}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         <div>
           <label

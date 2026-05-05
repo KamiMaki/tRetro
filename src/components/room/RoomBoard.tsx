@@ -8,6 +8,7 @@ import { RoomHeader } from '@/components/room/RoomHeader';
 import { Board } from '@/components/board/Board';
 import { ActionItemList } from '@/components/action-items/ActionItemList';
 import { MetricsPanel } from '@/components/metrics/MetricsPanel';
+import { DiscussionPanel } from '@/components/discussion/DiscussionPanel';
 import { Toast } from '@/components/ui/Toast';
 import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
@@ -19,7 +20,7 @@ interface RoomBoardProps {
   roomId: string;
 }
 
-type MainTab = 'board' | 'actions' | 'metrics';
+type MainTab = 'board' | 'actions' | 'metrics' | 'discussion';
 
 export function RoomBoard({ roomId }: RoomBoardProps) {
   const sessionToken =
@@ -41,6 +42,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     revealCard,
     unrevealCard,
     moveCard,
+    setCardParked,
     createTag,
     addActionItem,
     updateActionItem,
@@ -77,6 +79,9 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     { keys: 'b', description: 'Switch to Board tab', group: 'Tabs' },
     { keys: 'a', description: 'Switch to Action items tab', group: 'Tabs' },
     { keys: 'm', description: 'Switch to Sprint metrics tab', group: 'Tabs' },
+    ...(isScrumMaster
+      ? [{ keys: 'd', description: 'Switch to Discussion tab', group: 'Tabs' }]
+      : []),
     { keys: 'n', description: 'Focus the first card composer', group: 'Cards' },
     { keys: 'g f', description: 'Open facilitator guide', group: 'Help' },
     { keys: 'g h', description: 'Past retros (closed)', group: 'Navigation' },
@@ -100,6 +105,13 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
       description: 'Switch to metrics',
       handler: () => setActiveTab('metrics'),
     },
+    ...(isScrumMaster
+      ? [{
+          keys: 'd',
+          description: 'Switch to discussion',
+          handler: () => setActiveTab('discussion'),
+        }]
+      : []),
     {
       keys: 'n',
       description: 'Focus first card composer',
@@ -146,6 +158,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
 
   const template = useMemo(() => findTemplate(room?.templateId), [room?.templateId]);
 
+  const parkedCount = useMemo(() => cards.filter((c) => c.isParked).length, [cards]);
+
   const TABS: Array<{ key: MainTab; label: string; badge?: number; badgeSoft?: boolean; icon: React.ReactNode }> = [
     {
       key: 'board',
@@ -178,6 +192,21 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         </svg>
       ),
     },
+    ...(isScrumMaster
+      ? [
+          {
+            key: 'discussion' as MainTab,
+            label: 'Discussion',
+            badge: parkedCount,
+            badgeSoft: true,
+            icon: (
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2 4h12v7H6l-3 3v-3H2z" />
+              </svg>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -272,7 +301,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           >
             <ActionItemList
               actionItems={actionItems}
-              participants={participants}
               isScrumMaster={isScrumMaster}
               onAdd={addActionItem}
               onUpdate={updateActionItem}
@@ -294,6 +322,22 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onSubmit={submitMetrics}
             />
           </div>
+
+          {isScrumMaster && (
+            <div
+              id="main-panel-discussion"
+              role="tabpanel"
+              hidden={activeTab !== 'discussion'}
+              style={{ display: activeTab === 'discussion' ? 'block' : 'none' }}
+            >
+              <DiscussionPanel
+                cards={cards}
+                tags={tags}
+                onConvertToAction={handleConvertCardToAction}
+                onSetCardParked={setCardParked}
+              />
+            </div>
+          )}
         </main>
       </div>
 

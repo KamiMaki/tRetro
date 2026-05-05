@@ -45,4 +45,10 @@ export function runMigrations(): void {
   if (!cardCols.some((c) => c.name === 'revealed_nickname')) {
     db.exec(`ALTER TABLE cards ADD COLUMN revealed_nickname TEXT`);
   }
+
+  // 2026-05-05: cards.is_parked — Scrum-Master parking lot for cards that
+  // need a deeper dive than the main walk-through.
+  if (!cardCols.some((c) => c.name === 'is_parked')) {
+    db.exec(`ALTER TABLE cards ADD COLUMN is_parked INTEGER NOT NULL DEFAULT 0`);
+  }
 }

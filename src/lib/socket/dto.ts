@@ -28,6 +28,7 @@ export function toCardDTO(card: CardDB, viewerParticipantId: string): CardDTO {
     isOwnCard: card.authorId === viewerParticipantId,
     isRevealed: card.isRevealed,
     authorNickname,
+    isParked: card.isParked,
     tags,
     createdAt: card.createdAt,
   };

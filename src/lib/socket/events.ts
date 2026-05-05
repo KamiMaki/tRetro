@@ -27,6 +27,7 @@ export const SOCKET_EVENTS = {
   CARD_UNREVEAL: 'card:unreveal',
   CARD_UNREVEALED: 'card:unrevealed',
   CARD_MOVE: 'card:move',
+  CARD_PARK: 'card:park',
 
   // Tags
   TAG_CREATE: 'tag:create',

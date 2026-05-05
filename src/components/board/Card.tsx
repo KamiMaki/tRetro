@@ -93,10 +93,31 @@ export function Card({
         className="sticky-card"
         data-tone={tone}
         data-consensus={showConsensus ? consensus.level : undefined}
+        data-parked={card.isParked || undefined}
         draggable
         onDragStart={handleDragStart}
-        style={{ position: 'relative' }}
+        style={{ position: 'relative', opacity: card.isParked ? 0.6 : 1 }}
       >
+        {card.isParked && (
+          <span
+            className="text-mono"
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              padding: '2px 8px',
+              borderRadius: 999,
+              fontSize: 10,
+              background: 'oklch(0.78 0.16 75 / 0.20)',
+              color: 'oklch(0.92 0.12 75)',
+              border: '1px solid oklch(0.78 0.16 75 / 0.40)',
+              letterSpacing: '0.04em',
+            }}
+            title="Parked by Scrum Master for later deep-dive"
+          >
+            ⏸ parked
+          </span>
+        )}
         {/* Card content */}
         <div
           style={{

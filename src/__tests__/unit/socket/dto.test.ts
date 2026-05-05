@@ -25,6 +25,7 @@ function makeCard(overrides: Partial<CardDB> = {}): CardDB {
     authorId: 'author-id',
     isRevealed: false,
     revealedNickname: null,
+    isParked: false,
     createdAt: '2025-01-01T00:00:00',
     updatedAt: '2025-01-01T00:00:00',
     ...overrides,
