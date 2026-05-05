@@ -1,0 +1,42 @@
+# VCS / agent harness state
+.git
+.gitignore
+.github
+.claude
+.omc
+
+# Local artefacts
+node_modules
+.next
+out
+build
+coverage
+test-results
+playwright-report
+*.tsbuildinfo
+next-env.d.ts
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+
+# Local env / data
+.env
+.env.local
+.env.*.local
+data
+
+# Docs are not needed at runtime; keep image small.
+docs
+
+# Tests are not run inside the runtime image.
+src/__tests__
+playwright.config.ts
+jest.config.ts
+tsconfig.jest.json
+
+# Misc development files
+*.log
+*.bak
