@@ -10,7 +10,9 @@ async function createAndJoinRoom(
     data: { name: roomName },
   });
   const body = await res.json();
-  await page.goto(body.joinUrl);
+  // POST /api/rooms returns joinUrl=/room/{id} (direct to board, auto-joins
+  // as guest). Force the explicit /join page so we can pick a real nickname.
+  await page.goto(`/room/${body.roomId}/join`);
   await page.getByPlaceholder('e.g. Aria').fill(nickname);
   await page.getByRole('button', { name: /Enter retro/i }).click();
   // Wait for the board to mount
@@ -33,7 +35,9 @@ test.describe('tRetro E2E', () => {
       await expect(nameInput).toBeVisible({ timeout: 5000 });
       await nameInput.fill('Sprint 99 Retro');
       await page.getByRole('button', { name: 'Create board' }).click();
-      await expect(page).toHaveURL(/\/room\/[\w-]+\/join/, { timeout: 15000 });
+      // Dashboard now sends the creator straight to /room/{id} (board auto-joins
+      // them as a guest). Match that without requiring the legacy /join hop.
+      await expect(page).toHaveURL(/\/room\/[\w-]+(?:\/join)?$/, { timeout: 15000 });
     });
 
     test('should toggle theme between dark and light', async ({ page }) => {
@@ -57,7 +61,10 @@ test.describe('tRetro E2E', () => {
         data: { name: 'Join Flow Retro' },
       });
       const body = await res.json();
-      await page.goto(body.joinUrl);
+      // Use the explicit /join page (the share-link entry point) so we can
+      // exercise the nickname picker. POST /api/rooms now returns the direct
+      // board URL, which auto-joins as a guest.
+      await page.goto(`/room/${body.roomId}/join`);
       await expect(page.getByText('Join Flow Retro')).toBeVisible({ timeout: 10000 });
       await page.getByPlaceholder('e.g. Aria').fill('TestUser');
       await page.getByRole('button', { name: /Enter retro/i }).click();
@@ -97,9 +104,14 @@ test.describe('tRetro E2E', () => {
       const sendBtn = textarea.locator('..').locator('..').getByRole('button', { name: /Send/ });
       await sendBtn.click();
       await expect(page.getByText('Reveal me please')).toBeVisible({ timeout: 15000 });
-      // Click the reveal button (lowercase chip-style label)
-      const revealBtn = page.getByRole('button', { name: 'reveal' });
+      // The chip-style "reveal" button opens an inline form pre-filled with the
+      // user's nickname. The form's submit button is also labelled "reveal" —
+      // clicking it actually publishes the identity.
+      const revealBtn = page.getByRole('button', { name: 'reveal' }).first();
       await revealBtn.click({ force: true });
+      // Submit the inline reveal form (second "reveal" button — the form submit).
+      const submitRevealBtn = page.getByRole('button', { name: 'reveal' }).last();
+      await submitRevealBtn.click({ force: true });
       await expect(page.getByText('Alice').first()).toBeVisible({ timeout: 15000 });
     });
 
@@ -180,9 +192,17 @@ test.describe('tRetro E2E', () => {
       const historyRes = await request.get(`/api/rooms/${roomId}/history`);
       const body = await historyRes.json();
       const json = JSON.stringify(body.metricsAggregate);
-      // Each entry must have exactly: metricKey, average, submissions
+      // Each entry must have exactly: metricKey, average, submissions, distribution.
+      // distribution is a 10-bucket histogram (counts only — no identity).
       for (const m of body.metricsAggregate) {
-        expect(Object.keys(m).sort()).toEqual(['average', 'metricKey', 'submissions']);
+        expect(Object.keys(m).sort()).toEqual([
+          'average',
+          'distribution',
+          'metricKey',
+          'submissions',
+        ]);
+        expect(Array.isArray(m.distribution)).toBe(true);
+        expect(m.distribution).toHaveLength(10);
       }
       expect(json.toLowerCase()).not.toContain('participant');
       expect(json.toLowerCase()).not.toContain('nickname');
@@ -210,11 +230,14 @@ test.describe('tRetro E2E', () => {
   test.describe('Sprint Metrics', () => {
     test('renders panel with empty aggregate then shows submitter own scores', async ({ page, request }) => {
       await createAndJoinRoom(page, request, 'Metrics UI Retro', 'MetricsAlice');
-      // Header is always visible
-      await expect(page.getByText('Sprint metrics')).toBeVisible({ timeout: 10000 });
-      await expect(page.getByText('Anonymous · team average only', { exact: false })).toBeVisible();
+      // Switch to the metrics tab so the panel is in view (board is the default).
+      await page.getByRole('tab', { name: 'Sprint metrics' }).click();
+      const metricsPanel = page.locator('#main-panel-metrics');
+      // Panel header (heading-style) is always visible once the tab is active.
+      await expect(metricsPanel.getByText('Sprint metrics')).toBeVisible({ timeout: 10000 });
+      await expect(metricsPanel.getByText('Anonymous', { exact: false })).toBeVisible();
       // No submissions yet
-      await expect(page.getByText('no submissions yet')).toBeVisible();
+      await expect(metricsPanel.getByText('no submissions yet')).toBeVisible();
 
       // Open the private slider form
       await page.getByRole('button', { name: /Submit my scores/i }).click();
@@ -234,8 +257,10 @@ test.describe('tRetro E2E', () => {
       await expect(page.getByRole('button', { name: /Update my scores|Hide my scores/ })).toBeVisible({ timeout: 5000 });
       // The header line shows "you submitted"
       await expect(page.getByText(/you submitted/i)).toBeVisible({ timeout: 5000 });
-      // Aggregate row reflects 1 submission
-      await expect(page.getByText(/1 sub\b/).first()).toBeVisible();
+      // Header tally reflects exactly 1 submission. (The aggregate-row sub-meta
+      // switches to "you · X" once you've submitted, so we read the header
+      // sentence directly instead of the row.)
+      await expect(page.getByText(/1 submission\b/i)).toBeVisible({ timeout: 5000 });
     });
   });
 

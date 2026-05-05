@@ -237,6 +237,14 @@ body {
   isolation: isolate;
   z-index: 0;
 }
+/* Animated angle for the conic gradient — rotating an angle rather than
+   the element keeps the spinning frame clipped to the button shape, so the
+   rectangle's corners can't sweep cyan/violet smudges into the page. */
+@property --btn-frame-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
 /* Outer rotating gradient frame — always on, no hover gating. */
 .btn-primary::before {
   content: '';
@@ -245,7 +253,7 @@ body {
   z-index: -1;
   border-radius: inherit;
   background: conic-gradient(
-    from 0deg,
+    from var(--btn-frame-angle),
     oklch(0.85 0.20 285) 0deg,
     oklch(0.78 0.18 200) 90deg,
     oklch(0.92 0.16 75) 180deg,
@@ -272,7 +280,22 @@ body {
     0 6px 20px oklch(0.60 0.22 285 / 0.50);
 }
 @keyframes btn-frame-spin {
-  to { transform: rotate(360deg); }
+  to { --btn-frame-angle: 360deg; }
+}
+/* Fallback for browsers without @property support (Firefox <128, etc.):
+   the angle won't animate but the static gradient still reads as a frame. */
+@supports not (background: conic-gradient(from var(--btn-frame-angle))) {
+  .btn-primary::before {
+    background: conic-gradient(
+      from 0deg,
+      oklch(0.85 0.20 285) 0deg,
+      oklch(0.78 0.18 200) 90deg,
+      oklch(0.92 0.16 75) 180deg,
+      oklch(0.78 0.18 200) 270deg,
+      oklch(0.85 0.20 285) 360deg
+    );
+    animation: none;
+  }
 }
 [data-theme="light"] .btn-primary {
   background: linear-gradient(135deg, oklch(0.72 0.22 285), oklch(0.78 0.20 200));
