@@ -43,8 +43,13 @@ Dockerfile and the image is published to Docker Hub at
   with `DATABASE_PATH` env override. `HEALTHCHECK` polls `/api/health`.
 - `.dockerignore` — excludes `.git`, `.next`, `node_modules`, `.omc`, `.claude`,
   test artefacts, docs, and editor noise.
-- Image tagged `kamimaki/tretro:latest` and `kamimaki/tretro:v0.2.0`, pushed
-  to Docker Hub.
+- Image build + Docker Hub push **deferred** in this commit: Docker Desktop's
+  Linux engine could not finish starting on the local host (named pipe
+  `\\.\pipe\dockerDesktopLinuxEngine` never appeared, even after restart). The
+  Dockerfile is verified at the configuration level (multi-stage, `npm prune`,
+  HEALTHCHECK) but the image is not yet on `kamimaki/tretro:latest`. Once the
+  daemon is up, run `docker build -t kamimaki/tretro:latest -t kamimaki/tretro:v0.2.0 .`
+  followed by `docker push kamimaki/tretro:latest && docker push kamimaki/tretro:v0.2.0`.
 
 ### Tests
 - New unit-test block for `cardRepo.setParked`: default state, round-trip,
@@ -68,11 +73,8 @@ Two motivations:
 - `npx tsc --noEmit` — 0 errors
 - `npm test` — 95/95 green (3 new park tests)
 - `npx eslint . --quiet` — 0 errors
-- `docker build .` — succeeds (multi-stage, ~7 min cold cache)
-- `docker run -p 3000:3000 -v tretro-data:/data kamimaki/tretro:latest` —
-  serves http://localhost:3000 returning 200 within 20s
-- `docker push kamimaki/tretro:latest` — succeeds; verified pull from a
-  separate machine
+- `docker build .` — **deferred** (engine-down, see Caveats)
+- `docker push kamimaki/tretro:*` — **deferred** (engine-down)
 
 ## Caveats
 
