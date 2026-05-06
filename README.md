@@ -41,6 +41,28 @@ NODE_ENV=production npm start
 State is a single SQLite file at `data/retro.db` (auto-created on first run).
 Wipe it with `rm data/retro.db*` to start over.
 
+### Docker
+
+```bash
+# Build (multi-stage, ~150 MB final image)
+docker build -t kamimaki/tretro:latest .
+
+# Run (SQLite persisted in a named volume)
+docker run -d --name tretro -p 3000:3000 \
+  -e DATABASE_PATH=/data/retro.db \
+  -v tretro-data:/data \
+  kamimaki/tretro:latest
+
+# Logs
+docker logs -f tretro
+
+# Stop / cleanup
+docker stop tretro && docker rm tretro
+```
+
+The image runs `tsx server.ts` directly (no build of the custom server),
+exposes port 3000, and includes a `HEALTHCHECK` against `/api/health`.
+
 ---
 
 ## Architecture in 30 seconds

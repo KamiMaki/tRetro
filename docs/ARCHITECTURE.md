@@ -224,6 +224,7 @@ src/components/
 ├── room/          房間外殼（RoomHeader、RoomBoard、PhaseBar、FacilitatorPanel）
 ├── action-items/  action item list / form / card
 ├── metrics/       MetricsPanel（匿名 sprint 評分）
+├── discussion/    DiscussionPanel（SM-only：tag 分群、parking lot、決策按鈕）
 └── ui/            共用視覺基礎（Aurora bg、GlassPanel、Avatar、Logo、Toast、ThemeToggle、KeyboardHelp）
 ```
 
