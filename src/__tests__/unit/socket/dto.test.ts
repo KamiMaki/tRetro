@@ -117,8 +117,8 @@ describe('toCardDTO', () => {
   describe('tags', () => {
     it('includes tags returned by cardRepo.getTagsForCard', () => {
       const tags: Tag[] = [
-        { id: 't1', roomId: 'room-1', name: 'Bug', color: '#ef4444', isDefault: false },
-        { id: 't2', roomId: 'room-1', name: 'Process', color: '#3b82f6', isDefault: false },
+        { id: 't1', roomId: 'room-1', name: 'Bug', color: '#ef4444' },
+        { id: 't2', roomId: 'room-1', name: 'Process', color: '#3b82f6' },
       ];
       mockGetTagsForCard.mockReturnValue(tags);
 

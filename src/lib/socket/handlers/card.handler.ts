@@ -42,13 +42,19 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
         socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });
         return;
       }
-      // Permission: only author can update
-      if (card.authorId !== data.participantId) {
-        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can update this card', code: 'FORBIDDEN' });
+      const isAuthor = card.authorId === data.participantId;
+      const isSM = data.isScrumMaster;
+      // Permission: author can edit anything; SM can re-tag any card.
+      if (!isAuthor && !isSM) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'No permission to update this card', code: 'FORBIDDEN' });
+        return;
+      }
+      if (!isAuthor && payload.content !== undefined) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can edit card text', code: 'FORBIDDEN' });
         return;
       }
       const updated = cardRepo.update(payload.cardId, {
-        content: payload.content,
+        content: isAuthor ? payload.content : undefined,
         tagIds: payload.tagIds,
       });
       if (!updated) return;

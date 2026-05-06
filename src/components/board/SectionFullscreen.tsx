@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
+import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types'; // SectionType retained as data-col attribute
 import { SECTION_LABELS, SECTION_EMOJIS, SECTION_TONES } from '@/lib/types';
 import type { RetroTemplate } from '@/lib/templates';
 import { Card } from '@/components/board/Card';
@@ -20,14 +20,15 @@ interface SectionFullscreenProps {
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string, nickname?: string) => void;
   onUnrevealCard: (cardId: string) => void;
-  onMoveCard: (cardId: string, section: SectionType) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
   onAddComment: (cardId: string, content: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
-  onSetTagDefault: (tagId: string, isDefault: boolean) => void;
+  shareMode: boolean;
+  onSetCardParked?: (cardId: string, isParked: boolean) => void;
+  onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
 
 export function SectionFullscreen(props: SectionFullscreenProps) {
@@ -43,14 +44,15 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onDeleteCard,
     onRevealCard,
     onUnrevealCard,
-    onMoveCard,
     onCreateTag,
     onAddComment,
     onToggleReaction,
     onToggleVote,
     onAddDrawing,
     onConvertToAction,
-    onSetTagDefault,
+    shareMode,
+    onSetCardParked,
+    onUpdateCardTags,
   } = props;
 
   const tone = SECTION_TONES[section];
@@ -135,6 +137,8 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               tone={tone}
               isScrumMaster={isScrumMaster}
               participantCount={participantCount}
+              roomTags={tags}
+              shareMode={shareMode}
               onDelete={onDeleteCard}
               onReveal={onRevealCard}
               onUnreveal={onUnrevealCard}
@@ -143,6 +147,8 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               onToggleVote={onToggleVote}
               onAddDrawing={onAddDrawing}
               onConvertToAction={onConvertToAction}
+              onSetParked={onSetCardParked}
+              onUpdateCardTags={onUpdateCardTags}
             />
           ))
         )}
@@ -153,10 +159,8 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
           <CardForm
             section={section}
             tags={tags}
-            isScrumMaster={isScrumMaster}
             onSubmit={onAddCard}
             onCreateTag={onCreateTag}
-            onSetTagDefault={onSetTagDefault}
           />
         </div>
       </div>

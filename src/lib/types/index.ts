@@ -118,8 +118,6 @@ export interface Tag {
   roomId: string;
   name: string;
   color: string;
-  /** When true, the tag is auto-selected on new cards in this room. */
-  isDefault: boolean;
 }
 
 export interface ActionItem {

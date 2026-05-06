@@ -16,6 +16,10 @@ interface MetricsPanelProps {
   metricsAggregate: MetricAggregate[];
   ownMetricScores: OwnMetricScores;
   onSubmit: (scores: OwnMetricScores) => void;
+  /** When true (SM share mode), hide the user's own scores: the
+   *  "you submitted" label, the dot on each histogram row, and the
+   *  submit/edit form. Aggregate rows still render. */
+  shareMode?: boolean;
 }
 
 const SCORE_RANGE = METRIC_SCORE_MAX - METRIC_SCORE_MIN; // 9
@@ -67,7 +71,7 @@ function minMaxFromDistribution(distribution: number[]): { min: number | null; m
   return { min, max };
 }
 
-export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: MetricsPanelProps) {
+export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit, shareMode = false }: MetricsPanelProps) {
   const totalSubmissions = useMemo(() => {
     if (!Array.isArray(metricsAggregate)) return 0;
     return metricsAggregate.reduce((max, m) => Math.max(max, m.submissions || 0), 0);
@@ -148,33 +152,35 @@ export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: Me
             {totalSubmissions === 0
               ? 'no submissions yet'
               : `${totalSubmissions} submission${totalSubmissions === 1 ? '' : 's'}`}
-            {hasOwnScores ? ' · you submitted' : ''}
+            {hasOwnScores && !shareMode ? ' · you submitted' : ''}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((e) => !e)}
-          aria-expanded={expanded}
-          aria-controls="metrics-form"
-          className="btn"
-          style={{ fontSize: 12 }}
-        >
-          {expanded ? 'Hide my scores' : hasOwnScores ? 'Update my scores' : 'Submit my scores'}
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .18s' }}
+        {!shareMode && (
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            aria-expanded={expanded}
+            aria-controls="metrics-form"
+            className="btn"
+            style={{ fontSize: 12 }}
           >
-            <path d="M4 6l4 4 4-4" />
-          </svg>
-        </button>
+            {expanded ? 'Hide my scores' : hasOwnScores ? 'Update my scores' : 'Submit my scores'}
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .18s' }}
+            >
+              <path d="M4 6l4 4 4-4" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Aggregate rows */}
@@ -195,13 +201,13 @@ export function MetricsPanel({ metricsAggregate, ownMetricScores, onSubmit }: Me
               average={avg}
               submissions={subs}
               distribution={distribution}
-              ownScore={typeof ownScore === 'number' ? ownScore : null}
+              ownScore={!shareMode && typeof ownScore === 'number' ? ownScore : null}
             />
           );
         })}
       </div>
 
-      {expanded && (
+      {expanded && !shareMode && (
         <div
           id="metrics-form"
           style={{

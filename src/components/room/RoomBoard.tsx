@@ -1,14 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRoom } from '@/lib/hooks/useRoom';
 import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { RoomHeader } from '@/components/room/RoomHeader';
 import { Board } from '@/components/board/Board';
+import { TagFilter } from '@/components/board/TagFilter';
+import { SortControls } from '@/components/board/SortControls';
 import { ActionItemList } from '@/components/action-items/ActionItemList';
 import { MetricsPanel } from '@/components/metrics/MetricsPanel';
-import { DiscussionPanel } from '@/components/discussion/DiscussionPanel';
 import { Toast } from '@/components/ui/Toast';
 import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
@@ -20,7 +21,10 @@ interface RoomBoardProps {
   roomId: string;
 }
 
-type MainTab = 'board' | 'actions' | 'metrics' | 'discussion';
+type MainTab = 'board' | 'actions' | 'metrics';
+
+const SHARE_MODE_KEY = 'tretro-share-mode';
+const TOOLS_OPEN_KEY = 'tretro-tools-open';
 
 export function RoomBoard({ roomId }: RoomBoardProps) {
   const sessionToken =
@@ -38,6 +42,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     toastMessage,
     clearToast,
     addCard,
+    updateCard,
     deleteCard,
     revealCard,
     unrevealCard,
@@ -58,7 +63,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     submitMetrics,
     phaseState,
     setPhase,
-    setTagDefault,
   } = roomState;
 
   const router = useRouter();
@@ -70,17 +74,60 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const [facilitatorOpen, setFacilitatorOpen] = useState(false);
   const [prefilledActionContent, setPrefilledActionContent] = useState('');
 
+  // SM share-mode toggle. SessionStorage so a tab refresh during a live retro
+  // doesn't accidentally drop the SM out of share mode.
+  const [shareMode, setShareModeState] = useState(false);
+  const [toolsOpen, setToolsOpenState] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setShareModeState(sessionStorage.getItem(SHARE_MODE_KEY) === '1');
+    setToolsOpenState(sessionStorage.getItem(TOOLS_OPEN_KEY) === '1');
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  const setShareMode = useCallback((next: boolean) => {
+    setShareModeState(next);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(SHARE_MODE_KEY, next ? '1' : '0');
+    }
+  }, []);
+
+  const setToolsOpen = useCallback((next: boolean) => {
+    setToolsOpenState(next);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(TOOLS_OPEN_KEY, next ? '1' : '0');
+    }
+  }, []);
+
+  // Force share mode off if the participant is no longer SM (defence in depth;
+  // the toggle button is also gated on isScrumMaster).
+  useEffect(() => {
+    if (!isScrumMaster && shareMode) {
+      setShareMode(false);
+    }
+  }, [isScrumMaster, shareMode, setShareMode]);
+
   const handleConvertCardToAction = (content: string) => {
     setActiveTab('actions');
     setPrefilledActionContent(content);
   };
 
+  const onUpdateCardTags = useCallback(
+    (cardId: string, tagIds: string[]) => {
+      updateCard({ cardId, tagIds });
+    },
+    [updateCard],
+  );
+
   const SHORTCUTS: KeyboardHelpItem[] = [
     { keys: 'b', description: 'Switch to Board tab', group: 'Tabs' },
     { keys: 'a', description: 'Switch to Action items tab', group: 'Tabs' },
     { keys: 'm', description: 'Switch to Sprint metrics tab', group: 'Tabs' },
+    { keys: 't', description: 'Toggle Tools drawer (timer + filter + sort)', group: 'Tabs' },
     ...(isScrumMaster
-      ? [{ keys: 'd', description: 'Switch to Discussion tab', group: 'Tabs' }]
+      ? [{ keys: 's', description: 'Toggle Share mode (anonymise board)', group: 'Tabs' }]
       : []),
     { keys: 'n', description: 'Focus the first card composer', group: 'Cards' },
     { keys: 'g f', description: 'Open facilitator guide', group: 'Help' },
@@ -105,12 +152,19 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
       description: 'Switch to metrics',
       handler: () => setActiveTab('metrics'),
     },
+    {
+      keys: 't',
+      description: 'Toggle tools drawer',
+      handler: () => setToolsOpen(!toolsOpen),
+    },
     ...(isScrumMaster
-      ? [{
-          keys: 'd',
-          description: 'Switch to discussion',
-          handler: () => setActiveTab('discussion'),
-        }]
+      ? [
+          {
+            keys: 's',
+            description: 'Toggle share mode',
+            handler: () => setShareMode(!shareMode),
+          },
+        ]
       : []),
     {
       keys: 'n',
@@ -158,8 +212,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
 
   const template = useMemo(() => findTemplate(room?.templateId), [room?.templateId]);
 
-  const parkedCount = useMemo(() => cards.filter((c) => c.isParked).length, [cards]);
-
   const TABS: Array<{ key: MainTab; label: string; badge?: number; badgeSoft?: boolean; icon: React.ReactNode }> = [
     {
       key: 'board',
@@ -192,22 +244,10 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         </svg>
       ),
     },
-    ...(isScrumMaster
-      ? [
-          {
-            key: 'discussion' as MainTab,
-            label: 'Discussion',
-            badge: parkedCount,
-            badgeSoft: true,
-            icon: (
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M2 4h12v7H6l-3 3v-3H2z" />
-              </svg>
-            ),
-          },
-        ]
-      : []),
   ];
+
+  const filterCount = activeTagFilters.length;
+  const hasTimer = phaseState.durationSec != null;
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', isolation: 'isolate' }}>
@@ -226,39 +266,102 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         />
 
         <main className="room-shell">
-          <PhaseBar
-            phaseState={phaseState}
-            isScrumMaster={isScrumMaster}
-            onSetPhase={setPhase}
-          />
+          {/* Top control row: tabs + tools / share-mode pills */}
+          <div className="top-controls">
+            <nav className="main-tabs" role="tablist" aria-label="Retro tabs">
+              {TABS.map((t) => {
+                const isActive = activeTab === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`main-panel-${t.key}`}
+                    onClick={() => setActiveTab(t.key)}
+                    className={isActive ? 'main-tab main-tab-active' : 'main-tab'}
+                  >
+                    {t.icon}
+                    {t.label}
+                    {t.badge != null && t.badge > 0 && (
+                      <span
+                        className={t.badgeSoft ? 'main-badge main-badge-soft' : 'main-badge'}
+                        aria-label={`${t.badge}`}
+                      >
+                        {t.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
 
-          <nav className="main-tabs" role="tablist" aria-label="Retro tabs">
-            {TABS.map((t) => {
-              const isActive = activeTab === t.key;
-              return (
+            <div className="control-pills">
+              <button
+                type="button"
+                onClick={() => setToolsOpen(!toolsOpen)}
+                aria-expanded={toolsOpen}
+                aria-controls="tools-drawer"
+                className={toolsOpen ? 'pill pill-active' : 'pill'}
+                title="Timer · Filter · Sort"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2 4h12M2 8h12M2 12h8" />
+                </svg>
+                Tools
+                {(hasTimer || filterCount > 0) && !toolsOpen && (
+                  <span className="pill-dot" aria-hidden="true" />
+                )}
+              </button>
+              {isScrumMaster && (
                 <button
-                  key={t.key}
                   type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-controls={`main-panel-${t.key}`}
-                  onClick={() => setActiveTab(t.key)}
-                  className={isActive ? 'main-tab main-tab-active' : 'main-tab'}
+                  onClick={() => setShareMode(!shareMode)}
+                  aria-pressed={shareMode}
+                  className={shareMode ? 'pill pill-share-on' : 'pill'}
+                  title={
+                    shareMode
+                      ? 'Share mode ON — board hides "You", reveal, and your private metric scores'
+                      : 'Switch to share mode for screen-sharing (hides personal info)'
+                  }
                 >
-                  {t.icon}
-                  {t.label}
-                  {t.badge != null && t.badge > 0 && (
-                    <span
-                      className={t.badgeSoft ? 'main-badge main-badge-soft' : 'main-badge'}
-                      aria-label={`${t.badge}`}
-                    >
-                      {t.badge}
-                    </span>
-                  )}
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="2" y="3" width="12" height="8" rx="1.5" />
+                    <path d="M5 14h6M8 11v3" />
+                  </svg>
+                  {shareMode ? 'Sharing' : 'Share mode'}
+                  {shareMode && <span className="live-dot" aria-hidden="true" />}
                 </button>
-              );
-            })}
-          </nav>
+              )}
+            </div>
+          </div>
+
+          {/* Tools drawer — collapsed by default, holds the timer + filter +
+              sort. Slides open on demand so it doesn't eat board space. */}
+          {toolsOpen && (
+            <div id="tools-drawer" className="tools-drawer" role="region" aria-label="Tools">
+              <PhaseBar
+                phaseState={phaseState}
+                isScrumMaster={isScrumMaster}
+                onSetPhase={setPhase}
+              />
+              {activeTab === 'board' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
+                  <TagFilter
+                    tags={tags}
+                    activeTagFilters={activeTagFilters}
+                    setActiveTagFilters={setActiveTagFilters}
+                  />
+                  <SortControls
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    sortAsc={sortAsc}
+                    setSortAsc={setSortAsc}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div
             id="main-panel-board"
@@ -273,11 +376,9 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               participantCount={participants.length}
               template={template}
               activeTagFilters={activeTagFilters}
-              setActiveTagFilters={setActiveTagFilters}
               sortBy={sortBy}
-              setSortBy={setSortBy}
               sortAsc={sortAsc}
-              setSortAsc={setSortAsc}
+              shareMode={shareMode}
               onAddCard={addCard}
               onDeleteCard={deleteCard}
               onRevealCard={revealCard}
@@ -289,7 +390,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onToggleVote={toggleVote}
               onAddDrawing={addDrawing}
               onConvertToAction={handleConvertCardToAction}
-              onSetTagDefault={setTagDefault}
+              onSetCardParked={setCardParked}
+              onUpdateCardTags={onUpdateCardTags}
             />
           </div>
 
@@ -320,24 +422,9 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               metricsAggregate={metricsAggregate}
               ownMetricScores={ownMetricScores}
               onSubmit={submitMetrics}
+              shareMode={shareMode}
             />
           </div>
-
-          {isScrumMaster && (
-            <div
-              id="main-panel-discussion"
-              role="tabpanel"
-              hidden={activeTab !== 'discussion'}
-              style={{ display: activeTab === 'discussion' ? 'block' : 'none' }}
-            >
-              <DiscussionPanel
-                cards={cards}
-                tags={tags}
-                onConvertToAction={handleConvertCardToAction}
-                onSetCardParked={setCardParked}
-              />
-            </div>
-          )}
         </main>
       </div>
 
@@ -366,10 +453,73 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           padding: 18px clamp(16px, 3vw, 32px) 24px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
           max-width: 1700px;
           width: 100%;
           margin: 0 auto;
+        }
+        .top-controls {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+        }
+        .control-pills {
+          display: inline-flex;
+          gap: 6px;
+          margin-left: auto;
+          flex-wrap: wrap;
+        }
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 12px;
+          font-family: var(--font-body);
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--fg-1);
+          background: var(--glass-bg);
+          border: 1px solid var(--glass-border);
+          border-radius: 999px;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s, border-color 0.15s;
+          backdrop-filter: blur(20px) saturate(160%);
+          -webkit-backdrop-filter: blur(20px) saturate(160%);
+        }
+        .pill:hover {
+          background: var(--glass-bg-strong);
+          color: var(--fg-0);
+        }
+        .pill-active {
+          background: var(--glass-bg-strong);
+          color: var(--fg-0);
+          border-color: var(--aurora-violet);
+          box-shadow: 0 0 0 3px oklch(0.68 0.20 285 / 0.18);
+        }
+        .pill-share-on {
+          background: oklch(0.78 0.15 175 / 0.20);
+          border-color: oklch(0.78 0.15 175 / 0.45);
+          color: oklch(0.92 0.12 175);
+          box-shadow: 0 0 0 3px oklch(0.78 0.15 175 / 0.16);
+        }
+        .pill-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: var(--aurora-violet);
+          margin-left: 2px;
+        }
+        .tools-drawer {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 12px;
+          background: var(--glass-bg);
+          border: 1px solid var(--glass-border);
+          border-radius: 14px;
+          backdrop-filter: blur(20px) saturate(160%);
+          -webkit-backdrop-filter: blur(20px) saturate(160%);
         }
         .main-tabs {
           display: inline-flex;
@@ -380,7 +530,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           border-radius: 14px;
           backdrop-filter: blur(20px) saturate(160%);
           -webkit-backdrop-filter: blur(20px) saturate(160%);
-          align-self: flex-start;
         }
         .main-tab {
           padding: 8px 14px;

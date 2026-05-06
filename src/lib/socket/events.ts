@@ -32,8 +32,6 @@ export const SOCKET_EVENTS = {
   // Tags
   TAG_CREATE: 'tag:create',
   TAG_CREATED: 'tag:created',
-  TAG_SET_DEFAULT: 'tag:set-default',
-  TAG_UPDATED: 'tag:updated',
 
   // Action Items
   ACTION_CREATE: 'action:create',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 
@@ -15,53 +15,34 @@ const TAG_COLORS = [
 interface CardFormProps {
   section: SectionType;
   tags: Tag[];
-  isScrumMaster: boolean;
   onSubmit: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
-  onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'> & { isDefault?: boolean }) => void;
-  onSetTagDefault: (tagId: string, isDefault: boolean) => void;
+  onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
 }
 
 export function CardForm({
   section,
   tags,
-  isScrumMaster,
   onSubmit,
   onCreateTag,
-  onSetTagDefault,
 }: CardFormProps) {
   const [content, setContent] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [touchedSelection, setTouchedSelection] = useState(false);
   const [newTagDraft, setNewTagDraft] = useState('');
   const [creatingTag, setCreatingTag] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Auto-apply room default tags whenever the tag list changes, until the
-  // user manually toggles something. After they touch a chip we stop
-  // auto-syncing so we don't fight their selection.
-  useEffect(() => {
-    if (touchedSelection) return;
-    const defaults = tags.filter((t) => t.isDefault).map((t) => t.id);
-    setSelectedTagIds((prev) => {
-      const same = prev.length === defaults.length && prev.every((id, i) => id === defaults[i]);
-      return same ? prev : defaults;
-    });
-  }, [tags, touchedSelection]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
     onSubmit({ section, content: content.trim(), tagIds: selectedTagIds });
     setContent('');
-    setTouchedSelection(false);
+    setSelectedTagIds([]);
     setCreatingTag(false);
     setNewTagDraft('');
-    // re-applying the room defaults happens in the effect now that touched=false
     textareaRef.current?.focus();
   };
 
   const toggleTag = (tagId: string) => {
-    setTouchedSelection(true);
     setSelectedTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
@@ -97,71 +78,32 @@ export function CardForm({
         {tags.map((tag) => {
           const active = selectedTagIds.includes(tag.id);
           return (
-            <span
+            <button
               key={tag.id}
-              style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}
+              type="button"
+              onClick={() => toggleTag(tag.id)}
+              title={active ? `Remove ${tag.name}` : `Add ${tag.name}`}
+              aria-pressed={active}
+              style={{
+                padding: 0,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                opacity: active ? 1 : 0.55,
+                outline: active ? '1.5px solid var(--aurora-violet)' : 'none',
+                outlineOffset: 1,
+                borderRadius: 999,
+                transition: 'opacity .15s',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.opacity = '0.9';
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.opacity = '0.55';
+              }}
             >
-              <button
-                type="button"
-                onClick={() => toggleTag(tag.id)}
-                title={
-                  active
-                    ? `Remove ${tag.name}${tag.isDefault ? ' (room default)' : ''}`
-                    : `Add ${tag.name}${tag.isDefault ? ' (room default)' : ''}`
-                }
-                aria-pressed={active}
-                style={{
-                  padding: 0,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  opacity: active ? 1 : 0.55,
-                  outline: active ? '1.5px solid var(--aurora-violet)' : 'none',
-                  outlineOffset: 1,
-                  borderRadius: 999,
-                  transition: 'opacity .15s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.opacity = '0.55';
-                }}
-              >
-                <TagBadge tag={tag} />
-              </button>
-              {isScrumMaster && (
-                <button
-                  type="button"
-                  onClick={() => onSetTagDefault(tag.id, !tag.isDefault)}
-                  title={
-                    tag.isDefault
-                      ? 'Unset as room default tag'
-                      : 'Mark as room default tag (auto-applied to new cards)'
-                  }
-                  aria-label={tag.isDefault ? `Unset ${tag.name} as default` : `Set ${tag.name} as default`}
-                  aria-pressed={tag.isDefault}
-                  style={{
-                    width: 14,
-                    height: 14,
-                    marginLeft: -2,
-                    background: 'transparent',
-                    border: 'none',
-                    color: tag.isDefault ? 'var(--aurora-amber)' : 'var(--fg-3)',
-                    cursor: 'pointer',
-                    fontSize: 11,
-                    lineHeight: 1,
-                    padding: 0,
-                    opacity: tag.isDefault ? 1 : 0.55,
-                    transition: 'color .12s, opacity .12s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = tag.isDefault ? '1' : '0.55')}
-                >
-                  {tag.isDefault ? '★' : '☆'}
-                </button>
-              )}
-            </span>
+              <TagBadge tag={tag} />
+            </button>
           );
         })}
 

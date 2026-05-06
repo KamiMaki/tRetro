@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { CardDTOv2 } from '@/lib/types';
+import type { CardDTOv2, Tag } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 import { VoteButton } from '@/components/board/VoteButton';
 import { ReactionBar } from '@/components/board/ReactionBar';
@@ -16,6 +16,12 @@ interface CardProps {
   tone?: 'mint' | 'pink' | 'amber' | 'violet';
   isScrumMaster: boolean;
   participantCount: number;
+  /** Room-wide tag list — used by the inline tag editor. */
+  roomTags: Tag[];
+  /** When true, the SM is sharing their screen. Hide 'You', author name, and
+   *  reveal/un-reveal/delete affordances so the audience can't tell which card
+   *  belongs to whom. SM-only park button is also gated on this flag. */
+  shareMode: boolean;
   onDelete: (cardId: string) => void;
   onReveal: (cardId: string, nickname?: string) => void;
   onUnreveal: (cardId: string) => void;
@@ -24,6 +30,10 @@ interface CardProps {
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction?: (content: string) => void;
+  /** SM-only park toggle (no-op when shareMode is off). */
+  onSetParked?: (cardId: string, isParked: boolean) => void;
+  /** Update the card's tag set (author or SM). */
+  onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
 
 export function Card({
@@ -31,6 +41,8 @@ export function Card({
   tone = 'violet',
   isScrumMaster,
   participantCount,
+  roomTags,
+  shareMode,
   onDelete,
   onReveal,
   onUnreveal,
@@ -39,14 +51,19 @@ export function Card({
   onToggleVote,
   onAddDrawing,
   onConvertToAction,
+  onSetParked,
+  onUpdateCardTags,
 }: CardProps) {
-  const canDelete = card.isOwnCard || isScrumMaster;
-  const canReveal = card.isOwnCard && !card.isRevealed;
-  const canUnreveal = card.isOwnCard && card.isRevealed;
+  const canDelete = (card.isOwnCard || isScrumMaster) && !shareMode;
+  const canReveal = card.isOwnCard && !card.isRevealed && !shareMode;
+  const canUnreveal = card.isOwnCard && card.isRevealed && !shareMode;
+  const canEditTags = (card.isOwnCard || isScrumMaster) && !!onUpdateCardTags;
+  const canPark = isScrumMaster && shareMode && !!onSetParked;
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [revealNickname, setRevealNickname] = useState('');
+  const [tagEditorOpen, setTagEditorOpen] = useState(false);
   const revealInputRef = useRef<HTMLInputElement>(null);
   const consensus = computeConsensus(card.voteCount, participantCount);
   const showConsensus = card.voteCount > 0 && participantCount > 0;
@@ -60,11 +77,30 @@ export function Card({
     }
   }, [revealOpen]);
 
-  const authorLabel = card.isRevealed && card.authorNickname
-    ? card.authorNickname
-    : card.isOwnCard
-      ? 'You'
-      : 'Anonymous';
+  const authorLabel = shareMode
+    ? 'Anonymous'
+    : card.isRevealed && card.authorNickname
+      ? card.authorNickname
+      : card.isOwnCard
+        ? 'You'
+        : 'Anonymous';
+  const showAnonAvatar = shareMode || (!card.isRevealed && !card.isOwnCard);
+  const authorColor = shareMode
+    ? 'var(--fg-3)'
+    : card.isRevealed
+      ? 'var(--fg-1)'
+      : card.isOwnCard
+        ? 'var(--aurora-violet)'
+        : 'var(--fg-3)';
+
+  function toggleTagSelection(tagId: string) {
+    if (!onUpdateCardTags) return;
+    const current = card.tags.map((t) => t.id);
+    const next = current.includes(tagId)
+      ? current.filter((id) => id !== tagId)
+      : [...current, tagId];
+    onUpdateCardTags(card.id, next);
+  }
 
   function handleRevealSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -173,18 +209,14 @@ export function Card({
           }}
         >
           <Avatar
-            name={card.authorNickname}
-            anon={!card.isRevealed && !card.isOwnCard}
+            name={shareMode ? null : card.authorNickname}
+            anon={showAnonAvatar}
             size={20}
           />
           <span
             className="text-mono"
             style={{
-              color: card.isRevealed
-                ? 'var(--fg-1)'
-                : card.isOwnCard
-                  ? 'var(--aurora-violet)'
-                  : 'var(--fg-3)',
+              color: authorColor,
               fontSize: 11,
               minWidth: 0,
               overflow: 'hidden',
@@ -270,6 +302,62 @@ export function Card({
               <path d="M11 2l3 3-9 9H2v-3z" />
             </svg>
           </button>
+
+          {canEditTags && (
+            <button
+              type="button"
+              onClick={() => setTagEditorOpen((v) => !v)}
+              aria-label="Edit tags on this card"
+              aria-expanded={tagEditorOpen}
+              title="Edit tags"
+              style={{
+                padding: 4,
+                borderRadius: 6,
+                background: tagEditorOpen ? 'var(--glass-bg-strong)' : 'transparent',
+                border: '1px solid ' + (tagEditorOpen ? 'var(--glass-border)' : 'transparent'),
+                color: tagEditorOpen ? 'var(--fg-0)' : 'var(--fg-3)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                transition: 'color .15s, background .15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--fg-0)')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = tagEditorOpen ? 'var(--fg-0)' : 'var(--fg-3)')
+              }
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2 9V3h6l6 6-6 6z" />
+                <circle cx="5" cy="6" r="1" />
+              </svg>
+            </button>
+          )}
+
+          {canPark && (
+            <button
+              type="button"
+              onClick={() => onSetParked!(card.id, !card.isParked)}
+              aria-label={card.isParked ? 'Unpark card' : 'Park card for deeper discussion'}
+              title={card.isParked ? 'Unpark — back to active' : 'Park for deeper discussion'}
+              style={{
+                padding: '3px 8px',
+                borderRadius: 6,
+                fontSize: 10,
+                fontFamily: 'var(--font-mono)',
+                background: card.isParked
+                  ? 'oklch(0.78 0.16 75 / 0.20)'
+                  : 'var(--glass-highlight)',
+                color: card.isParked ? 'oklch(0.92 0.12 75)' : 'var(--fg-2)',
+                border: '1px solid ' + (card.isParked
+                  ? 'oklch(0.78 0.16 75 / 0.40)'
+                  : 'var(--glass-border)'),
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {card.isParked ? '↩ unpark' : '⏸ park'}
+            </button>
+          )}
 
           {isScrumMaster && onConvertToAction && (
             <button
@@ -370,6 +458,66 @@ export function Card({
             </button>
           )}
         </div>
+
+        {tagEditorOpen && canEditTags && (
+          <div
+            style={{
+              marginTop: 10,
+              paddingTop: 10,
+              borderTop: '1px solid var(--glass-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            <div className="text-mono fg-3" style={{ fontSize: 10, letterSpacing: '0.06em' }}>
+              edit tags
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {roomTags.length === 0 ? (
+                <span className="text-mono fg-3" style={{ fontSize: 11 }}>
+                  no tags in this room yet — add one from the card form
+                </span>
+              ) : (
+                roomTags.map((tag) => {
+                  const active = card.tags.some((t) => t.id === tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTagSelection(tag.id)}
+                      aria-pressed={active}
+                      title={active ? `Remove ${tag.name}` : `Add ${tag.name}`}
+                      style={{
+                        padding: 0,
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        opacity: active ? 1 : 0.55,
+                        outline: active ? '1.5px solid var(--aurora-violet)' : 'none',
+                        outlineOffset: 1,
+                        borderRadius: 999,
+                        transition: 'opacity .15s',
+                      }}
+                    >
+                      <TagBadge tag={tag} />
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setTagEditorOpen(false)}
+                style={{ padding: '4px 10px', fontSize: 11 }}
+              >
+                done
+              </button>
+            </div>
+          </div>
+        )}
 
         {revealOpen && (
           <form

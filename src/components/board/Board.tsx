@@ -4,8 +4,6 @@ import type { CardDTOv2, Tag, CreateCardPayload, CreateTagPayload, SectionType }
 import { SECTIONS } from '@/lib/types';
 import type { RetroTemplate } from '@/lib/templates';
 import { Section } from '@/components/board/Section';
-import { TagFilter } from '@/components/board/TagFilter';
-import { SortControls } from '@/components/board/SortControls';
 
 interface BoardProps {
   cards: CardDTOv2[];
@@ -13,12 +11,12 @@ interface BoardProps {
   isScrumMaster: boolean;
   participantCount: number;
   template?: RetroTemplate;
+  /** Read-only filter/sort values; the controls live in the room shell's
+   *  Tools drawer so they don't eat board space. */
   activeTagFilters: string[];
-  setActiveTagFilters: (filters: string[]) => void;
   sortBy: 'time' | 'tagCount';
-  setSortBy: (sort: 'time' | 'tagCount') => void;
   sortAsc: boolean;
-  setSortAsc: (asc: boolean) => void;
+  shareMode: boolean;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string, nickname?: string) => void;
@@ -30,7 +28,8 @@ interface BoardProps {
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
-  onSetTagDefault: (tagId: string, isDefault: boolean) => void;
+  onSetCardParked?: (cardId: string, isParked: boolean) => void;
+  onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
 
 export function Board({
@@ -40,11 +39,9 @@ export function Board({
   participantCount,
   template,
   activeTagFilters,
-  setActiveTagFilters,
   sortBy,
-  setSortBy,
   sortAsc,
-  setSortAsc,
+  shareMode,
   onAddCard,
   onDeleteCard,
   onRevealCard,
@@ -56,7 +53,8 @@ export function Board({
   onToggleVote,
   onAddDrawing,
   onConvertToAction,
-  onSetTagDefault,
+  onSetCardParked,
+  onUpdateCardTags,
 }: BoardProps) {
   const filterAndSort = (sectionCards: CardDTOv2[]) => {
     let result = sectionCards;
@@ -82,24 +80,9 @@ export function Board({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* SM controls */}
-      {isScrumMaster && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
-          <TagFilter
-            tags={tags}
-            activeTagFilters={activeTagFilters}
-            setActiveTagFilters={setActiveTagFilters}
-          />
-          <SortControls
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            sortAsc={sortAsc}
-            setSortAsc={setSortAsc}
-          />
-        </div>
-      )}
-
-      {/* 4-column board grid */}
+      {/* 4-column board grid — filter + sort + timer live in the Tools drawer
+          above (room shell), so the board itself takes the full available
+          space. */}
       <div className="board-grid">
         {SECTIONS.map((section) => (
           <Section
@@ -110,6 +93,7 @@ export function Board({
             isScrumMaster={isScrumMaster}
             participantCount={participantCount}
             template={template}
+            shareMode={shareMode}
             onAddCard={onAddCard}
             onDeleteCard={onDeleteCard}
             onRevealCard={onRevealCard}
@@ -121,7 +105,8 @@ export function Board({
             onToggleVote={onToggleVote}
             onAddDrawing={onAddDrawing}
             onConvertToAction={onConvertToAction}
-            onSetTagDefault={onSetTagDefault}
+            onSetCardParked={onSetCardParked}
+            onUpdateCardTags={onUpdateCardTags}
           />
         ))}
       </div>
@@ -131,9 +116,10 @@ export function Board({
           display: grid;
           grid-template-columns: 1fr;
           gap: 16px;
-          /* Bound the board to viewport so each section scrolls independently
-             instead of the entire page growing forever. Subtract sticky header
-             (~52px) + page padding + sidebar tabs space (~120px). */
+          /* Bound the board to viewport so each section scrolls independently.
+             Header (~52px) + tabs (~50px) + room-shell padding (~50px). The
+             timer/filter/sort drawer is collapsed by default so we don't
+             reserve space for it here. */
           height: calc(100vh - 180px);
           min-height: 480px;
           grid-auto-rows: minmax(0, 1fr);

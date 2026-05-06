@@ -107,14 +107,14 @@ describe('exportToMarkdown', () => {
   });
 
   it('renders card tags inline', () => {
-    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Process', color: '#3b82f6', isDefault: false };
+    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Process', color: '#3b82f6' };
     const card = makeCard({ tags: [tag], content: 'Slow deploys' });
     const md = exportToMarkdown(makeRoom(), [card], [tag], [], 1);
     expect(md).toContain('[Process]');
   });
 
   it('includes tag statistics section', () => {
-    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Bug', color: '#ef4444', isDefault: false };
+    const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Bug', color: '#ef4444' };
     const card = makeCard({ section: 'went-well', tags: [tag] });
     const md = exportToMarkdown(makeRoom(), [card], [tag], [], 1);
     expect(md).toContain('## Tag Statistics');
