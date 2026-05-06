@@ -6,8 +6,6 @@ import { useRoom } from '@/lib/hooks/useRoom';
 import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { RoomHeader } from '@/components/room/RoomHeader';
 import { Board } from '@/components/board/Board';
-import { TagFilter } from '@/components/board/TagFilter';
-import { SortControls } from '@/components/board/SortControls';
 import { ActionItemList } from '@/components/action-items/ActionItemList';
 import { MetricsPanel } from '@/components/metrics/MetricsPanel';
 import { Toast } from '@/components/ui/Toast';
@@ -47,7 +45,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     revealCard,
     unrevealCard,
     moveCard,
-    setCardParked,
     createTag,
     addActionItem,
     updateActionItem,
@@ -66,9 +63,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   } = roomState;
 
   const router = useRouter();
-  const [activeTagFilters, setActiveTagFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'time' | 'tagCount'>('time');
-  const [sortAsc, setSortAsc] = useState(true);
   const [activeTab, setActiveTab] = useState<MainTab>('board');
   const [helpOpen, setHelpOpen] = useState(false);
   const [facilitatorOpen, setFacilitatorOpen] = useState(false);
@@ -246,7 +240,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     },
   ];
 
-  const filterCount = activeTagFilters.length;
   const hasTimer = phaseState.durationSec != null;
 
   return (
@@ -309,7 +302,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
                   <path d="M2 4h12M2 8h12M2 12h8" />
                 </svg>
                 Tools
-                {(hasTimer || filterCount > 0) && !toolsOpen && (
+                {hasTimer && !toolsOpen && (
                   <span className="pill-dot" aria-hidden="true" />
                 )}
               </button>
@@ -336,8 +329,9 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
             </div>
           </div>
 
-          {/* Tools drawer — collapsed by default, holds the timer + filter +
-              sort. Slides open on demand so it doesn't eat board space. */}
+          {/* Tools drawer — collapsed by default, holds just the phase timer
+              now. Filter + sort were removed; sort by tag happens directly
+              inside the fullscreen view of each section. */}
           {toolsOpen && (
             <div id="tools-drawer" className="tools-drawer" role="region" aria-label="Tools">
               <PhaseBar
@@ -345,21 +339,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
                 isScrumMaster={isScrumMaster}
                 onSetPhase={setPhase}
               />
-              {activeTab === 'board' && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
-                  <TagFilter
-                    tags={tags}
-                    activeTagFilters={activeTagFilters}
-                    setActiveTagFilters={setActiveTagFilters}
-                  />
-                  <SortControls
-                    sortBy={sortBy}
-                    setSortBy={setSortBy}
-                    sortAsc={sortAsc}
-                    setSortAsc={setSortAsc}
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -375,9 +354,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               isScrumMaster={isScrumMaster}
               participantCount={participants.length}
               template={template}
-              activeTagFilters={activeTagFilters}
-              sortBy={sortBy}
-              sortAsc={sortAsc}
               shareMode={shareMode}
               onAddCard={addCard}
               onDeleteCard={deleteCard}
@@ -390,7 +366,6 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onToggleVote={toggleVote}
               onAddDrawing={addDrawing}
               onConvertToAction={handleConvertCardToAction}
-              onSetCardParked={setCardParked}
               onUpdateCardTags={onUpdateCardTags}
             />
           </div>

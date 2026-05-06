@@ -173,43 +173,4 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
     },
   );
 
-  socket.on(
-    SOCKET_EVENTS.CARD_PARK,
-    ({ cardId, isParked }: { cardId: string; isParked: boolean }) => {
-      try {
-        if (!data.isScrumMaster) {
-          socket.emit(SOCKET_EVENTS.ERROR, {
-            message: 'Only a Scrum Master can park cards',
-            code: 'FORBIDDEN',
-          });
-          return;
-        }
-        const card = cardRepo.findById(cardId);
-        if (!card) {
-          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });
-          return;
-        }
-        const next = !!isParked;
-        if (card.isParked === next) return;
-        const updated = cardRepo.setParked(cardId, next);
-        if (!updated) return;
-        const sockets = io.sockets.adapter.rooms.get(data.roomId);
-        if (!sockets) return;
-        for (const socketId of sockets) {
-          const targetSocket = io.sockets.sockets.get(socketId);
-          if (!targetSocket) continue;
-          const targetData = targetSocket.data as SocketData;
-          targetSocket.emit(
-            SOCKET_EVENTS.CARD_UPDATED,
-            toCardDTOv2(updated, targetData.participantId),
-          );
-        }
-      } catch {
-        socket.emit(SOCKET_EVENTS.ERROR, {
-          message: 'Failed to park card',
-          code: 'PARK_FAILED',
-        });
-      }
-    },
-  );
 }

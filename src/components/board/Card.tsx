@@ -30,8 +30,9 @@ interface CardProps {
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction?: (content: string) => void;
-  /** SM-only park toggle (no-op when shareMode is off). */
-  onSetParked?: (cardId: string, isParked: boolean) => void;
+  /** SM-only "park" — moves the card to the deep-discussion column for a
+   *  later deeper conversation. No-op when the card is already there. */
+  onParkCard?: (cardId: string) => void;
   /** Update the card's tag set (author or SM). */
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
@@ -51,14 +52,17 @@ export function Card({
   onToggleVote,
   onAddDrawing,
   onConvertToAction,
-  onSetParked,
+  onParkCard,
   onUpdateCardTags,
 }: CardProps) {
   const canDelete = (card.isOwnCard || isScrumMaster) && !shareMode;
   const canReveal = card.isOwnCard && !card.isRevealed && !shareMode;
   const canUnreveal = card.isOwnCard && card.isRevealed && !shareMode;
   const canEditTags = (card.isOwnCard || isScrumMaster) && !!onUpdateCardTags;
-  const canPark = isScrumMaster && shareMode && !!onSetParked;
+  // Park = move the card to the deep-discussion column for a later deeper
+  // conversation. Only useful when (a) the SM is actively presenting and
+  // (b) the card isn't already in deep-discussion.
+  const canPark = isScrumMaster && shareMode && card.section !== 'deep-dive' && !!onParkCard;
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
@@ -129,31 +133,10 @@ export function Card({
         className="sticky-card"
         data-tone={tone}
         data-consensus={showConsensus ? consensus.level : undefined}
-        data-parked={card.isParked || undefined}
         draggable
         onDragStart={handleDragStart}
-        style={{ position: 'relative', opacity: card.isParked ? 0.6 : 1 }}
+        style={{ position: 'relative' }}
       >
-        {card.isParked && (
-          <span
-            className="text-mono"
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              padding: '2px 8px',
-              borderRadius: 999,
-              fontSize: 10,
-              background: 'oklch(0.78 0.16 75 / 0.20)',
-              color: 'oklch(0.92 0.12 75)',
-              border: '1px solid oklch(0.78 0.16 75 / 0.40)',
-              letterSpacing: '0.04em',
-            }}
-            title="Parked by Scrum Master for later deep-dive"
-          >
-            ⏸ parked
-          </span>
-        )}
         {/* Card content */}
         <div
           style={{
@@ -336,26 +319,12 @@ export function Card({
           {canPark && (
             <button
               type="button"
-              onClick={() => onSetParked!(card.id, !card.isParked)}
-              aria-label={card.isParked ? 'Unpark card' : 'Park card for deeper discussion'}
-              title={card.isParked ? 'Unpark — back to active' : 'Park for deeper discussion'}
-              style={{
-                padding: '3px 8px',
-                borderRadius: 6,
-                fontSize: 10,
-                fontFamily: 'var(--font-mono)',
-                background: card.isParked
-                  ? 'oklch(0.78 0.16 75 / 0.20)'
-                  : 'var(--glass-highlight)',
-                color: card.isParked ? 'oklch(0.92 0.12 75)' : 'var(--fg-2)',
-                border: '1px solid ' + (card.isParked
-                  ? 'oklch(0.78 0.16 75 / 0.40)'
-                  : 'var(--glass-border)'),
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              onClick={() => onParkCard!(card.id)}
+              aria-label="Park card — move to Deep Discussion"
+              title="Park for deeper discussion (move to the Deep Discussion column)"
+              className="btn-park"
             >
-              {card.isParked ? '↩ unpark' : '⏸ park'}
+              ⏸ park
             </button>
           )}
 
@@ -397,17 +366,7 @@ export function Card({
               type="button"
               onClick={() => setRevealOpen(true)}
               title="Reveal your identity"
-              style={{
-                padding: '3px 8px',
-                fontSize: 11,
-                fontFamily: 'var(--font-mono)',
-                borderRadius: 6,
-                background: 'oklch(0.68 0.20 285 / 0.22)',
-                color: 'oklch(0.92 0.14 285)',
-                border: '1px solid oklch(0.68 0.20 285 / 0.32)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              className="btn-reveal"
             >
               reveal
             </button>
@@ -493,9 +452,7 @@ export function Card({
                         background: 'transparent',
                         border: 'none',
                         cursor: 'pointer',
-                        opacity: active ? 1 : 0.55,
-                        outline: active ? '1.5px solid var(--aurora-violet)' : 'none',
-                        outlineOffset: 1,
+                        opacity: active ? 1 : 0.45,
                         borderRadius: 999,
                         transition: 'opacity .15s',
                       }}

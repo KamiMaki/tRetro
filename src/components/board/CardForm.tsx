@@ -89,17 +89,15 @@ export function CardForm({
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                opacity: active ? 1 : 0.55,
-                outline: active ? '1.5px solid var(--aurora-violet)' : 'none',
-                outlineOffset: 1,
+                opacity: active ? 1 : 0.45,
                 borderRadius: 999,
                 transition: 'opacity .15s',
               }}
               onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.opacity = '0.9';
+                if (!active) e.currentTarget.style.opacity = '0.85';
               }}
               onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.opacity = '0.55';
+                if (!active) e.currentTarget.style.opacity = '0.45';
               }}
             >
               <TagBadge tag={tag} />

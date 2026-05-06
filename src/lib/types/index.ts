@@ -92,9 +92,6 @@ export interface CardDB {
   /** Custom nickname the author chose at reveal time. Null when never revealed
    *  or after un-reveal. */
   revealedNickname: string | null;
-  /** SM-driven parking lot: card is set aside for a deeper dive later.
-   *  Visible to all clients but only mutable by an SM. */
-  isParked: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,7 +105,6 @@ export interface CardDTO {
   isOwnCard: boolean;
   isRevealed: boolean;
   authorNickname: string | null; // only set when isRevealed=true
-  isParked: boolean;
   tags: Tag[];
   createdAt: string;
 }

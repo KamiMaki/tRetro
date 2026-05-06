@@ -541,6 +541,7 @@ function SliderRow({ emoji, label, tone, value, hasSubmitted, onChange }: Slider
       </div>
       <input
         type="range"
+        className="metric-slider"
         min={METRIC_SCORE_MIN}
         max={METRIC_SCORE_MAX}
         step={1}
@@ -553,8 +554,6 @@ function SliderRow({ emoji, label, tone, value, hasSubmitted, onChange }: Slider
           height: 22,
           background: `linear-gradient(90deg, ${tint} 0%, ${tint} ${pct}%, var(--glass-border) ${pct}%, var(--glass-border) 100%)`,
           borderRadius: 999,
-          appearance: 'none',
-          WebkitAppearance: 'none',
           cursor: 'pointer',
         }}
       />

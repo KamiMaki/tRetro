@@ -30,7 +30,6 @@ interface SectionProps {
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
   shareMode: boolean;
-  onSetCardParked?: (cardId: string, isParked: boolean) => void;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
 
@@ -53,7 +52,6 @@ export function Section({
   onAddDrawing,
   onConvertToAction,
   shareMode,
-  onSetCardParked,
   onUpdateCardTags,
 }: SectionProps) {
   const tone = SECTION_TONES[section];
@@ -201,7 +199,7 @@ export function Section({
                   onToggleVote={onToggleVote}
                   onAddDrawing={onAddDrawing}
                   onConvertToAction={onConvertToAction}
-                  onSetParked={onSetCardParked}
+                  onParkCard={(cardId) => onMoveCard(cardId, 'deep-dive')}
                   onUpdateCardTags={onUpdateCardTags}
                 />
               ))}
@@ -233,6 +231,7 @@ export function Section({
           onDeleteCard={onDeleteCard}
           onRevealCard={onRevealCard}
           onUnrevealCard={onUnrevealCard}
+          onMoveCard={onMoveCard}
           onCreateTag={onCreateTag}
           onAddComment={onAddComment}
           onToggleReaction={onToggleReaction}
@@ -240,7 +239,6 @@ export function Section({
           onAddDrawing={onAddDrawing}
           onConvertToAction={onConvertToAction}
           shareMode={shareMode}
-          onSetCardParked={onSetCardParked}
           onUpdateCardTags={onUpdateCardTags}
         />
       )}

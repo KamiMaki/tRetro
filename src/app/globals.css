@@ -299,19 +299,21 @@ body {
     animation: none;
   }
 }
-[data-theme="light"] .btn-primary {
+/* Light-mode override needs the extra `.btn` selector so it beats the
+   later `[data-theme="light"] .btn { color: var(--fg-1) }` rule on
+   specificity, which would otherwise dye the New retro text dark. */
+[data-theme="light"] .btn.btn-primary {
   background: linear-gradient(135deg, oklch(0.72 0.22 285), oklch(0.78 0.20 200));
-  /* Light mode: keep the button text white so it stays readable on the
-     violet/cyan gradient (the global .btn defaults to a dark fg in light). */
   color: #fff;
   box-shadow:
     0 1px 0 oklch(1 0 0 / 0.45) inset,
     0 4px 14px oklch(0.55 0.22 285 / 0.32);
 }
-[data-theme="light"] .btn-primary::after {
+[data-theme="light"] .btn.btn-primary::after {
   background: linear-gradient(135deg, oklch(0.72 0.22 285), oklch(0.78 0.20 200));
 }
-[data-theme="light"] .btn-primary:hover:not(:disabled) {
+[data-theme="light"] .btn.btn-primary:hover:not(:disabled) {
+  color: #fff;
   box-shadow:
     0 1px 0 oklch(1 0 0 / 0.55) inset,
     0 6px 20px oklch(0.55 0.22 285 / 0.42);
@@ -797,4 +799,135 @@ input[type="date"].field::-webkit-calendar-picker-indicator:hover {
    focus brings the proper ring; mouse-focus stays subtle. */
 .field:focus:not(:focus-visible) {
   box-shadow: 0 0 0 3px oklch(0.68 0.20 285 / 0.10);
+}
+
+/* ─────────────────────────────────────────────────────
+   Card "park" + "reveal" buttons
+   Light-mode contrast tuned: dark text on the soft tinted
+   background instead of near-white text that washes out.
+   ───────────────────────────────────────────────────── */
+.btn-park {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: oklch(0.78 0.16 75 / 0.20);
+  color: oklch(0.92 0.12 75);
+  border: 1px solid oklch(0.78 0.16 75 / 0.40);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn-park:hover {
+  background: oklch(0.78 0.16 75 / 0.30);
+}
+[data-theme="light"] .btn-park {
+  background: oklch(0.86 0.13 75 / 0.65);
+  color: oklch(0.36 0.13 60);
+  border-color: oklch(0.55 0.13 60 / 0.45);
+}
+[data-theme="light"] .btn-park:hover {
+  background: oklch(0.82 0.14 75 / 0.85);
+  color: oklch(0.28 0.13 60);
+}
+
+.btn-reveal {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border-radius: 6px;
+  background: oklch(0.68 0.20 285 / 0.22);
+  color: oklch(0.92 0.14 285);
+  border: 1px solid oklch(0.68 0.20 285 / 0.32);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn-reveal:hover {
+  background: oklch(0.68 0.20 285 / 0.32);
+}
+[data-theme="light"] .btn-reveal {
+  background: oklch(0.84 0.13 285 / 0.55);
+  color: oklch(0.32 0.18 285);
+  border-color: oklch(0.55 0.18 285 / 0.45);
+}
+[data-theme="light"] .btn-reveal:hover {
+  background: oklch(0.78 0.15 285 / 0.70);
+  color: oklch(0.24 0.18 285);
+}
+
+/* Share-mode pill: when active in dark mode it reads pale mint on a soft
+   mint surface; in light mode that washes out completely. The pill base
+   styles live in RoomBoard's styled-jsx, so this override needs the extra
+   `.pill` selector to beat the scoped (.pill-share-on.jsx-xxx) cascade. */
+[data-theme="light"] .pill.pill-share-on {
+  background: oklch(0.84 0.13 175 / 0.55);
+  color: oklch(0.30 0.13 175);
+  border-color: oklch(0.55 0.15 175 / 0.55);
+  box-shadow: 0 0 0 3px oklch(0.78 0.15 175 / 0.20);
+}
+
+/* ─────────────────────────────────────────────────────
+   Sprint metric slider thumbs — give the draggable dot a
+   visible outline so it stands apart from the gradient track.
+   ───────────────────────────────────────────────────── */
+.metric-slider {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.metric-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: oklch(0.98 0.01 270);
+  border: 2px solid oklch(0.40 0.04 270);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.5) inset,
+    0 2px 6px oklch(0 0 0 / 0.45);
+  cursor: grab;
+  margin-top: -4px; /* center on the 10px-tall track inside the 22px input */
+  transition: transform .12s, box-shadow .12s;
+}
+.metric-slider::-webkit-slider-thumb:hover,
+.metric-slider:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.08);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.6) inset,
+    0 0 0 4px oklch(0.68 0.20 285 / 0.30),
+    0 2px 8px oklch(0 0 0 / 0.5);
+}
+.metric-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.0);
+}
+.metric-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: oklch(0.98 0.01 270);
+  border: 2px solid oklch(0.40 0.04 270);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.5) inset,
+    0 2px 6px oklch(0 0 0 / 0.45);
+  cursor: grab;
+  transition: transform .12s, box-shadow .12s;
+}
+.metric-slider::-moz-range-thumb:hover {
+  transform: scale(1.08);
+}
+.metric-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+}
+[data-theme="light"] .metric-slider::-webkit-slider-thumb {
+  background: oklch(1 0 0);
+  border-color: oklch(0.42 0.05 270);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.6) inset,
+    0 2px 6px oklch(0 0 0 / 0.18);
+}
+[data-theme="light"] .metric-slider::-moz-range-thumb {
+  background: oklch(1 0 0);
+  border-color: oklch(0.42 0.05 270);
 }

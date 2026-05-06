@@ -11,11 +11,6 @@ interface BoardProps {
   isScrumMaster: boolean;
   participantCount: number;
   template?: RetroTemplate;
-  /** Read-only filter/sort values; the controls live in the room shell's
-   *  Tools drawer so they don't eat board space. */
-  activeTagFilters: string[];
-  sortBy: 'time' | 'tagCount';
-  sortAsc: boolean;
   shareMode: boolean;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
@@ -28,7 +23,6 @@ interface BoardProps {
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
-  onSetCardParked?: (cardId: string, isParked: boolean) => void;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
 
@@ -38,9 +32,6 @@ export function Board({
   isScrumMaster,
   participantCount,
   template,
-  activeTagFilters,
-  sortBy,
-  sortAsc,
   shareMode,
   onAddCard,
   onDeleteCard,
@@ -53,42 +44,19 @@ export function Board({
   onToggleVote,
   onAddDrawing,
   onConvertToAction,
-  onSetCardParked,
   onUpdateCardTags,
 }: BoardProps) {
-  const filterAndSort = (sectionCards: CardDTOv2[]) => {
-    let result = sectionCards;
-
-    if (activeTagFilters.length > 0) {
-      result = result.filter((card) =>
-        card.tags.some((t) => activeTagFilters.includes(t.id))
-      );
-    }
-
-    result = [...result].sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === 'time') {
-        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      } else {
-        cmp = a.tags.length - b.tags.length;
-      }
-      return sortAsc ? cmp : -cmp;
-    });
-
-    return result;
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* 4-column board grid — filter + sort + timer live in the Tools drawer
-          above (room shell), so the board itself takes the full available
-          space. */}
+      {/* 4-column board grid. Sort/filter were removed; the per-section
+          fullscreen view sorts by tag automatically. The timer lives in the
+          Tools drawer above the tabs. */}
       <div className="board-grid">
         {SECTIONS.map((section) => (
           <Section
             key={section}
             section={section}
-            cards={filterAndSort(cards.filter((c) => c.section === section))}
+            cards={cards.filter((c) => c.section === section)}
             tags={tags}
             isScrumMaster={isScrumMaster}
             participantCount={participantCount}
@@ -105,7 +73,6 @@ export function Board({
             onToggleVote={onToggleVote}
             onAddDrawing={onAddDrawing}
             onConvertToAction={onConvertToAction}
-            onSetCardParked={onSetCardParked}
             onUpdateCardTags={onUpdateCardTags}
           />
         ))}
@@ -117,9 +84,8 @@ export function Board({
           grid-template-columns: 1fr;
           gap: 16px;
           /* Bound the board to viewport so each section scrolls independently.
-             Header (~52px) + tabs (~50px) + room-shell padding (~50px). The
-             timer/filter/sort drawer is collapsed by default so we don't
-             reserve space for it here. */
+             Header + tabs + room-shell padding ≈ 180px. The timer lives in a
+             collapsed drawer so we don't reserve space for it here. */
           height: calc(100vh - 180px);
           min-height: 480px;
           grid-auto-rows: minmax(0, 1fr);

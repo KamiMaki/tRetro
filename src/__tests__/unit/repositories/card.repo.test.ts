@@ -174,29 +174,4 @@ describe('cardRepo', () => {
       expect(result).toBe(false);
     });
   });
-
-  describe('setParked', () => {
-    it('newly created cards default to not parked', () => {
-      const card = cardRepo.create(roomId, 'went-well', 'Fresh card', authorId, []);
-      expect(card.isParked).toBe(false);
-    });
-
-    it('parks and unparks a card, persisting both directions', () => {
-      const card = cardRepo.create(roomId, 'went-well', 'Discuss me later', authorId, []);
-
-      const parked = cardRepo.setParked(card.id, true);
-      expect(parked).not.toBeNull();
-      expect(parked!.isParked).toBe(true);
-      expect(cardRepo.findById(card.id)!.isParked).toBe(true);
-
-      const unparked = cardRepo.setParked(card.id, false);
-      expect(unparked!.isParked).toBe(false);
-      expect(cardRepo.findById(card.id)!.isParked).toBe(false);
-    });
-
-    it('returns null when the card does not exist', () => {
-      const result = cardRepo.setParked('ghost-card-id', true);
-      expect(result).toBeNull();
-    });
-  });
 });

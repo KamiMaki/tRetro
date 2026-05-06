@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types'; // SectionType retained as data-col attribute
+import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { SECTION_LABELS, SECTION_EMOJIS, SECTION_TONES } from '@/lib/types';
 import type { RetroTemplate } from '@/lib/templates';
 import { Card } from '@/components/board/Card';
@@ -20,6 +20,7 @@ interface SectionFullscreenProps {
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string, nickname?: string) => void;
   onUnrevealCard: (cardId: string) => void;
+  onMoveCard: (cardId: string, section: SectionType) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
   onAddComment: (cardId: string, content: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
@@ -27,7 +28,6 @@ interface SectionFullscreenProps {
   onAddDrawing: (cardId: string, data: string) => void;
   onConvertToAction: (content: string) => void;
   shareMode: boolean;
-  onSetCardParked?: (cardId: string, isParked: boolean) => void;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
 
@@ -44,6 +44,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onDeleteCard,
     onRevealCard,
     onUnrevealCard,
+    onMoveCard,
     onCreateTag,
     onAddComment,
     onToggleReaction,
@@ -51,13 +52,26 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onAddDrawing,
     onConvertToAction,
     shareMode,
-    onSetCardParked,
     onUpdateCardTags,
   } = props;
 
   const tone = SECTION_TONES[section];
   const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
   const label = template?.labels[section] ?? SECTION_LABELS[section];
+
+  // Fullscreen view sorts cards by their first tag's name (untagged cards
+  // last). This puts cards that share a tag visually adjacent so the team
+  // can walk through them as a group during discussion.
+  const sortedCards = useMemo(() => {
+    const arr = [...cards];
+    arr.sort((a, b) => {
+      const aTag = a.tags[0]?.name?.toLowerCase() ?? '￿';
+      const bTag = b.tags[0]?.name?.toLowerCase() ?? '￿';
+      if (aTag !== bTag) return aTag.localeCompare(bTag);
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+    return arr;
+  }, [cards]);
 
   // ESC to close
   useEffect(() => {
@@ -97,7 +111,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
             {label}
           </div>
           <div className="text-mono fg-3" style={{ fontSize: 12 }}>
-            {cards.length} card{cards.length === 1 ? '' : 's'} · press Esc to exit
+            {cards.length} card{cards.length === 1 ? '' : 's'} · sorted by tag · press Esc to exit
           </div>
         </div>
         <button
@@ -115,7 +129,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
       </div>
 
       <div className="section-fullscreen-grid">
-        {cards.length === 0 ? (
+        {sortedCards.length === 0 ? (
           <div
             className="fg-3"
             style={{
@@ -130,7 +144,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
             no cards yet — add one below
           </div>
         ) : (
-          cards.map((card) => (
+          sortedCards.map((card) => (
             <Card
               key={card.id}
               card={card}
@@ -147,7 +161,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               onToggleVote={onToggleVote}
               onAddDrawing={onAddDrawing}
               onConvertToAction={onConvertToAction}
-              onSetParked={onSetCardParked}
+              onParkCard={(cardId) => onMoveCard(cardId, 'deep-dive')}
               onUpdateCardTags={onUpdateCardTags}
             />
           ))
