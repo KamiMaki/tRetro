@@ -252,11 +252,13 @@ body {
   inset: -2px;
   z-index: -1;
   border-radius: inherit;
+  /* Cool-only sweep — violet → cyan → mint → cyan → violet. Drops the
+     previous amber/orange spoke that clashed with light-mode surfaces. */
   background: conic-gradient(
     from var(--btn-frame-angle),
     oklch(0.85 0.20 285) 0deg,
     oklch(0.78 0.18 200) 90deg,
-    oklch(0.92 0.16 75) 180deg,
+    oklch(0.82 0.18 175) 180deg,
     oklch(0.78 0.18 200) 270deg,
     oklch(0.85 0.20 285) 360deg
   );
@@ -290,7 +292,7 @@ body {
       from 0deg,
       oklch(0.85 0.20 285) 0deg,
       oklch(0.78 0.18 200) 90deg,
-      oklch(0.92 0.16 75) 180deg,
+      oklch(0.82 0.18 175) 180deg,
       oklch(0.78 0.18 200) 270deg,
       oklch(0.85 0.20 285) 360deg
     );
@@ -299,6 +301,9 @@ body {
 }
 [data-theme="light"] .btn-primary {
   background: linear-gradient(135deg, oklch(0.72 0.22 285), oklch(0.78 0.20 200));
+  /* Light mode: keep the button text white so it stays readable on the
+     violet/cyan gradient (the global .btn defaults to a dark fg in light). */
+  color: #fff;
   box-shadow:
     0 1px 0 oklch(1 0 0 / 0.45) inset,
     0 4px 14px oklch(0.55 0.22 285 / 0.32);

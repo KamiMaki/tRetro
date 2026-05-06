@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Reaction } from '@/lib/types';
 
-const COMMON_EMOJIS = ['🔥', '👏', '🙌', '💯', '🚀', '🤔', '💡', '❤️', '😂', '🎉', '☕', '🛡️', '⏳', '💭', '✨'];
+const COMMON_EMOJIS = [
+  '🔥', '👏', '🙌', '💪', '🚀',
+  '❤️', '🎉', '😮', '😆', '🤔',
+  '😢', '😠', '😎', '🫡', '🛐',
+  '💯', '❓', '❗', '✅', '❌',
+];
 
 const CELL = 32;
 const PICKER_GAP = 4;
