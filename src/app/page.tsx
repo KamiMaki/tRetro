@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { RoomSummary, SectionType } from '@/lib/types';
@@ -38,6 +38,16 @@ function hueFor(id: string) {
 }
 
 export default function DashboardPage() {
+  // useSearchParams() forces dynamic rendering — wrap in Suspense so the
+  // build can prerender the shell while the inner component reads params.
+  return (
+    <Suspense fallback={null}>
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialStatus = (() => {

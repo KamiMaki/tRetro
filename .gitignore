@@ -51,6 +51,7 @@ data/
 # playwright
 /test-results/
 /playwright-report/
+/playwright/.auth/
 
 # claude / agent harness (local-only)
 .claude/settings.local.json
