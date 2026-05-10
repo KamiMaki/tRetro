@@ -109,8 +109,8 @@ function LoginForm() {
               autoComplete="off"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="yyyymmdd"
-              maxLength={16}
+              placeholder="••••••••"
+              maxLength={32}
               disabled={submitting}
               autoFocus
               className="field"
