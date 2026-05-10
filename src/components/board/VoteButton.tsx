@@ -8,6 +8,8 @@ interface VoteButtonProps {
 }
 
 export function VoteButton({ cardId, voteCount, hasVoted, onToggleVote }: VoteButtonProps) {
+  // Color tokens live in globals.css under .btn-vote so light-mode can darken
+  // the heart's pink without forking the inline-style branch here.
   return (
     <button
       type="button"
@@ -15,20 +17,7 @@ export function VoteButton({ cardId, voteCount, hasVoted, onToggleVote }: VoteBu
       title={hasVoted ? 'Remove vote' : 'Vote for this card'}
       aria-label={hasVoted ? 'Remove vote' : 'Vote for this card'}
       aria-pressed={hasVoted}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 3,
-        padding: '3px 8px',
-        borderRadius: 999,
-        fontSize: 11,
-        fontFamily: 'var(--font-mono)',
-        background: hasVoted ? 'oklch(0.82 0.12 350 / 0.25)' : 'var(--glass-highlight)',
-        color: hasVoted ? 'oklch(0.92 0.10 350)' : 'var(--fg-2)',
-        border: '1px solid ' + (hasVoted ? 'oklch(0.82 0.12 350 / 0.4)' : 'transparent'),
-        cursor: 'pointer',
-        transition: 'all .15s',
-      }}
+      className={'btn-vote' + (hasVoted ? ' is-voted' : '')}
     >
       <svg
         width="11"
