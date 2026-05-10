@@ -218,6 +218,18 @@ function DashboardInner() {
               }}
             />
           </GlassPanel>
+          <Link
+            href="/trends"
+            className="btn btn-ghost"
+            title="Sprint metrics across all past retros"
+            style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 12l4-4 3 3 5-6" />
+              <path d="M11 5h3v3" />
+            </svg>
+            Trends
+          </Link>
           <ThemeToggle />
         </header>
 

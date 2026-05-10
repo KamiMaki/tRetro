@@ -84,10 +84,6 @@ export default function HistoryPage() {
     window.open(`/api/rooms/${roomId}/export?format=html`, '_blank');
   }
 
-  function handleExportCsv() {
-    window.open(`/api/rooms/${roomId}/export?format=csv`, '_blank');
-  }
-
   const [aiCopied, setAiCopied] = useState(false);
   async function handleCopyAiPrompt() {
     try {
@@ -163,18 +159,29 @@ export default function HistoryPage() {
             type="button"
             className="btn"
             onClick={handleCopyAiPrompt}
-            title="複製整理好的 AI prompt + retro 內容到剪貼簿，貼到 ChatGPT / Claude / Gemini 即可取得主題摘要"
+            title="Copy a ready-to-paste summary prompt + retro content to your clipboard. Paste into ChatGPT / Claude / Gemini for theme synthesis."
             style={{
               background: aiCopied ? 'oklch(0.78 0.15 175 / 0.20)' : undefined,
               borderColor: aiCopied ? 'oklch(0.78 0.15 175 / 0.45)' : undefined,
               color: aiCopied ? 'oklch(0.92 0.12 175)' : undefined,
             }}
           >
-            {aiCopied ? '已複製 · 貼到 AI' : '複製 AI prompt'}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3 13.5 8.5 19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+              <path d="M19 4l.8 1.6L21.4 6.4 19.8 7.2 19 9l-.8-1.8L16.6 6.4 18.2 5.6z" />
+              <path d="M5.5 17l.6 1.2 1.2.6-1.2.6-.6 1.2-.6-1.2-1.2-.6 1.2-.6z" />
+            </svg>
+            {aiCopied ? 'Copied · paste into AI' : 'Summary Prompt'}
           </button>
-          <button type="button" className="btn" onClick={handleExportMd}>匯出 MD</button>
-          <button type="button" className="btn" onClick={handleExportHtml}>匯出 HTML</button>
-          <button type="button" className="btn" onClick={handleExportCsv}>匯出 CSV</button>
+          <button type="button" className="btn" onClick={handleExportMd} title="Export Markdown">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 11V2M5 5l3-3 3 3M3 11v3h10v-3" />
+            </svg>
+            MD
+          </button>
+          <button type="button" className="btn" onClick={handleExportHtml} title="Export HTML">
+            HTML
+          </button>
         </header>
 
         <div style={{ padding: 'clamp(20px, 3vw, 32px)', maxWidth: 1600, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
