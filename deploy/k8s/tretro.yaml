@@ -1,0 +1,151 @@
+# tRetro — Kubernetes manifests for AKS (or any K8s)
+#
+# Single-replica deployment. SQLite is a *file*, so two pods would each
+# hold their own write lock and corrupt the data. If you ever need to
+# scale horizontally, swap better-sqlite3 for Postgres first; until then
+# `replicas: 1` is non-negotiable, and we use Recreate strategy so the
+# old pod releases the volume before the new one starts.
+#
+# Storage class:
+#   - Default `managed-csi` on AKS gives you a ReadWriteOnce Azure Disk.
+#     RWO is fine for single-replica.
+#   - If you ever migrate to multiple replicas with Postgres later, you
+#     can drop the PVC entirely.
+#
+# Secrets: there are no Anthropic / DB / SMTP credentials to inject.
+# tRetro only reads:
+#     PORT             (defaults to 3000 in the image)
+#     DATABASE_PATH    (defaults to /data/retro.db in the image)
+#     NODE_ENV         (production — image already sets it)
+# So no Secret resource is needed today. If you add OAuth / SMTP later,
+# put it in a Secret and reference via envFrom.
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tretro
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tretro-data
+  namespace: tretro
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: managed-csi   # default AKS Azure Disk CSI driver
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tretro
+  namespace: tretro
+  labels:
+    app: tretro
+spec:
+  replicas: 1
+  strategy:
+    # Releasing the PVC lock before the new pod claims it.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: tretro
+  template:
+    metadata:
+      labels:
+        app: tretro
+    spec:
+      containers:
+        - name: tretro
+          image: penguin88428/tretro:latest    # GitOps bumps this to a SHA tag
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_PATH
+              value: /data/retro.db
+            - name: PORT
+              value: "3000"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: tretro-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tretro
+  namespace: tretro
+spec:
+  type: ClusterIP
+  selector:
+    app: tretro
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+
+# ─── Optional: Ingress for TLS termination ───────────────────────────
+# Uncomment if you have ingress-nginx + cert-manager installed and a
+# DNS A record pointing at the ingress controller's public IP.
+#
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: tretro
+#   namespace: tretro
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#     # Socket.IO needs longer timeouts than the default 60s.
+#     nginx.ingress.kubernetes.io/proxy-read-timeout:  "3600"
+#     nginx.ingress.kubernetes.io/proxy-send-timeout:  "3600"
+# spec:
+#   ingressClassName: nginx
+#   tls:
+#     - hosts: [retro.example.com]
+#       secretName: tretro-tls
+#   rules:
+#     - host: retro.example.com
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: tretro
+#                 port:
+#                   number: 80
