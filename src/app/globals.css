@@ -811,24 +811,63 @@ input[type="date"].field::-webkit-calendar-picker-indicator:hover {
   border-radius: 6px;
   font-size: 10px;
   font-family: var(--font-mono);
-  background: oklch(0.78 0.16 75 / 0.20);
-  color: oklch(0.92 0.12 75);
-  border: 1px solid oklch(0.78 0.16 75 / 0.40);
+  background: transparent;
+  color: var(--fg-3);
+  border: 1px solid var(--glass-border);
+  opacity: 0.65;
   cursor: pointer;
   white-space: nowrap;
-  transition: background .15s, color .15s, border-color .15s;
+  transition: background .15s, color .15s, border-color .15s, opacity .15s;
 }
 .btn-park:hover {
-  background: oklch(0.78 0.16 75 / 0.30);
+  opacity: 1;
+  color: var(--fg-1);
+  background: var(--glass-highlight);
+  border-color: oklch(0.78 0.16 75 / 0.35);
 }
 [data-theme="light"] .btn-park {
-  background: oklch(0.86 0.13 75 / 0.65);
-  color: oklch(0.36 0.13 60);
-  border-color: oklch(0.55 0.13 60 / 0.45);
+  color: var(--fg-2);
 }
 [data-theme="light"] .btn-park:hover {
-  background: oklch(0.82 0.14 75 / 0.85);
-  color: oklch(0.28 0.13 60);
+  color: oklch(0.36 0.13 60);
+  background: oklch(0.86 0.13 75 / 0.55);
+  border-color: oklch(0.55 0.13 60 / 0.40);
+}
+
+/* ─── Vote heart ──────────────────────────────────────
+   Resting state is muted; voted state takes a pink heart.
+   Light mode darkens both the fill and the pill background
+   so the heart still pops against the bright surface. */
+.btn-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  background: var(--glass-highlight);
+  color: var(--fg-2);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn-vote:hover {
+  color: var(--fg-1);
+}
+.btn-vote.is-voted {
+  background: oklch(0.82 0.12 350 / 0.25);
+  color: oklch(0.92 0.10 350);
+  border-color: oklch(0.82 0.12 350 / 0.4);
+}
+[data-theme="light"] .btn-vote.is-voted {
+  background: oklch(0.78 0.18 350 / 0.22);
+  color: oklch(0.48 0.22 0);
+  border-color: oklch(0.55 0.22 0 / 0.45);
+}
+[data-theme="light"] .btn-vote.is-voted:hover {
+  color: oklch(0.42 0.24 0);
+  border-color: oklch(0.50 0.24 0 / 0.55);
 }
 
 .btn-reveal {
