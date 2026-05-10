@@ -1,0 +1,109 @@
+# tRetro — Azure Pipelines (GitOps style)
+#
+# Stage 1 — build + push the Docker image to Docker Hub.
+# Stage 2 — bump the image tag in the K8s manifest folder of a separate
+#           "config repo" that ArgoCD / Flux watches. The cluster picks
+#           up the change automatically.
+#
+# If you don't have a separate config repo yet, comment out Stage 2 and
+# either:
+#   (a) keep this pipeline build-only and `kubectl apply` by hand, or
+#   (b) point GitOpsBumpManifest at a folder inside THIS repo (e.g.
+#       deploy/k8s/) — Argo can watch a path in the same repo too.
+#
+# Required Azure DevOps setup:
+#   - Service connection "dockerhub-penguin"  (Docker Hub registry,
+#     username = penguin88428, password = a Hub access token).
+#   - Variable group "tretro-deploy" with:
+#       GITOPS_REPO_URL   = https://github.com/penguin88428/tretro-config.git
+#       GITOPS_REPO_PAT   = (secret) PAT/Azure DevOps token with push rights
+#       GITOPS_MANIFEST   = clusters/prod/tretro/deployment.yaml
+#   - The agent pool default ubuntu-latest is fine.
+
+trigger:
+  branches:
+    include:
+      - master
+
+pr: none
+
+variables:
+  imageName: penguin88428/tretro
+  dockerHubServiceConnection: dockerhub-penguin
+
+stages:
+  # ─── Stage 1 ─────────────────────────────────────────────────────
+  - stage: BuildPush
+    displayName: Build & push image to Docker Hub
+    jobs:
+      - job: Build
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            displayName: Checkout app source
+
+          # buildx for multi-arch (linux/amd64 + linux/arm64) so the same
+          # image runs on both Intel AKS nodes and arm64 nodepools.
+          - task: Docker@2
+            displayName: Login to Docker Hub
+            inputs:
+              command: login
+              containerRegistry: $(dockerHubServiceConnection)
+
+          - script: |
+              docker buildx create --use --name tretro-builder || docker buildx use tretro-builder
+              docker buildx inspect --bootstrap
+            displayName: Set up buildx
+
+          - script: |
+              SHA=$(git rev-parse --short HEAD)
+              echo "##vso[task.setvariable variable=imageSha]$SHA"
+              echo "Building $(imageName):latest + :$SHA"
+              docker buildx build \
+                --platform linux/amd64,linux/arm64 \
+                -t $(imageName):latest \
+                -t $(imageName):$SHA \
+                --push \
+                .
+            displayName: buildx + push
+
+          - script: |
+              docker buildx imagetools inspect $(imageName):$(imageSha) | head -20
+            displayName: Verify manifest on Hub
+
+  # ─── Stage 2 — GitOps manifest bump ───────────────────────────────
+  - stage: GitOpsBumpManifest
+    displayName: Bump image tag in config repo
+    dependsOn: BuildPush
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    variables:
+      - group: tretro-deploy
+    jobs:
+      - job: Bump
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: none
+
+          - script: |
+              set -euo pipefail
+              SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
+              git config --global user.email "azure-pipelines@penguin88428.local"
+              git config --global user.name  "tretro CI"
+              CONFIG_REPO_URL=$(echo "$(GITOPS_REPO_URL)" | sed "s#https://#https://x-token:$(GITOPS_REPO_PAT)@#")
+              git clone --depth 1 "$CONFIG_REPO_URL" config-repo
+              cd config-repo
+
+              MANIFEST="$(GITOPS_MANIFEST)"
+              echo "Bumping $MANIFEST → image: $(imageName):$SHA"
+
+              # Replace the existing `image: penguin88428/tretro:...` line.
+              sed -ri "s#(image:\s*$(imageName)):.*#\\1:$SHA#" "$MANIFEST"
+              git add "$MANIFEST"
+              git diff --cached --exit-code && { echo "no change"; exit 0; }
+
+              git commit -m "chore(tretro): bump image to $SHA"
+              git push origin HEAD:master
+            displayName: git clone + bump tag + push
