@@ -8,10 +8,12 @@ export default defineConfig({
   retries: 1,
   workers: 1,
   reporter: 'list',
+  globalSetup: './src/__tests__/e2e/global-setup.ts',
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    storageState: 'playwright/.auth/user.json',
   },
   webServer: {
     command: 'npx tsx server.ts',
