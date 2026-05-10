@@ -95,18 +95,12 @@ function LoginForm() {
           </p>
 
           <form onSubmit={onSubmit}>
-            <label
-              className="text-mono fg-2"
-              htmlFor="password"
-              style={{ display: 'block', marginBottom: 6, fontSize: 11 }}
-            >
-              Daily password
-            </label>
             <input
               id="password"
               type="password"
               inputMode="numeric"
               autoComplete="off"
+              aria-label="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -143,13 +137,6 @@ function LoginForm() {
               {submitting ? 'Checking…' : 'Unlock →'}
             </button>
           </form>
-
-          <p
-            className="text-mono fg-3"
-            style={{ marginTop: 16, marginBottom: 0, fontSize: 11, lineHeight: 1.6, textAlign: 'center' }}
-          >
-            Password rotates daily at 00:00 Asia/Taipei.
-          </p>
         </GlassPanel>
       </div>
     </main>

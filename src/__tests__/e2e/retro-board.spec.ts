@@ -4,18 +4,15 @@ async function createAndJoinRoom(
   page: import('@playwright/test').Page,
   request: import('@playwright/test').APIRequestContext,
   roomName = 'Test Retro',
-  nickname = 'Tester'
+  _nickname = 'Tester' // kept for callsite compatibility; the board auto-joins as a guest
 ) {
   const res = await request.post('/api/rooms', {
     data: { name: roomName },
   });
   const body = await res.json();
-  // POST /api/rooms returns joinUrl=/room/{id} (direct to board, auto-joins
-  // as guest). Force the explicit /join page so we can pick a real nickname.
-  await page.goto(`/room/${body.roomId}/join`);
-  await page.getByPlaceholder('e.g. Aria').fill(nickname);
-  await page.getByRole('button', { name: /Enter retro/i }).click();
-  // Wait for the board to mount
+  // The board auto-creates a guest participant on first visit, so go straight
+  // there. The legacy /join nickname picker has been retired.
+  await page.goto(`/room/${body.roomId}`);
   await expect(page.getByRole('heading', { name: 'Went Well' }).or(page.getByText('Went Well'))).toBeVisible({ timeout: 15000 });
   return body.roomId as string;
 }
@@ -35,9 +32,9 @@ test.describe('tRetro E2E', () => {
       await expect(nameInput).toBeVisible({ timeout: 5000 });
       await nameInput.fill('Sprint 99 Retro');
       await page.getByRole('button', { name: 'Create board' }).click();
-      // Dashboard now sends the creator straight to /room/{id} (board auto-joins
-      // them as a guest). Match that without requiring the legacy /join hop.
-      await expect(page).toHaveURL(/\/room\/[\w-]+(?:\/join)?$/, { timeout: 15000 });
+      // Dashboard sends the creator straight to /room/{id} and the board
+      // auto-joins them as a guest.
+      await expect(page).toHaveURL(/\/room\/[\w-]+$/, { timeout: 15000 });
     });
 
     test('should toggle theme between dark and light', async ({ page }) => {
@@ -56,19 +53,15 @@ test.describe('tRetro E2E', () => {
   });
 
   test.describe('Room Join Flow', () => {
-    test('should join room with nickname', async ({ page, request }) => {
+    test('legacy /join URL redirects to the board and auto-joins', async ({ page, request }) => {
       const res = await request.post('/api/rooms', {
         data: { name: 'Join Flow Retro' },
       });
       const body = await res.json();
-      // Use the explicit /join page (the share-link entry point) so we can
-      // exercise the nickname picker. POST /api/rooms now returns the direct
-      // board URL, which auto-joins as a guest.
+      // /join is a server redirect now; old share links should still land
+      // the visitor on the board with a guest participant created on the fly.
       await page.goto(`/room/${body.roomId}/join`);
-      await expect(page.getByText('Join Flow Retro')).toBeVisible({ timeout: 10000 });
-      await page.getByPlaceholder('e.g. Aria').fill('TestUser');
-      await page.getByRole('button', { name: /Enter retro/i }).click();
-      await expect(page).toHaveURL(/\/room\/[\w-]+$/, { timeout: 10000 });
+      await expect(page).toHaveURL(new RegExp(`/room/${body.roomId}$`), { timeout: 10000 });
       await expect(page.getByText('Went Well')).toBeVisible({ timeout: 15000 });
       await expect(page.getByText("Didn't Go Well")).toBeVisible();
       await expect(page.getByText('Thanks')).toBeVisible();

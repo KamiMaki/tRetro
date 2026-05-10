@@ -56,7 +56,9 @@ export function RoomHeader({
   const isLive = connectionStatus === 'connected';
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/room/${roomId}/join`;
+    // Land guests directly on the board — the page auto-creates a guest
+    // participant. The legacy /join nickname picker has been retired.
+    const url = `${window.location.origin}/room/${roomId}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
