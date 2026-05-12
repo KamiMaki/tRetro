@@ -30,6 +30,7 @@ interface SectionFullscreenProps {
   onConvertToAction: (content: string) => void;
   shareMode: boolean;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
+  onUpdateCardContent?: (cardId: string, content: string) => void;
 }
 
 export function SectionFullscreen(props: SectionFullscreenProps) {
@@ -55,6 +56,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onConvertToAction,
     shareMode,
     onUpdateCardTags,
+    onUpdateCardContent,
   } = props;
 
   const tone = SECTION_TONES[section];
@@ -166,6 +168,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               onConvertToAction={onConvertToAction}
               onParkCard={(cardId) => onMoveCard(cardId, 'deep-dive')}
               onUpdateCardTags={onUpdateCardTags}
+              onUpdateCardContent={onUpdateCardContent}
             />
           ))
         )}

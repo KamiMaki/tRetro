@@ -32,6 +32,7 @@ interface SectionProps {
   onConvertToAction: (content: string) => void;
   shareMode: boolean;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
+  onUpdateCardContent?: (cardId: string, content: string) => void;
 }
 
 export function Section({
@@ -55,6 +56,7 @@ export function Section({
   onConvertToAction,
   shareMode,
   onUpdateCardTags,
+  onUpdateCardContent,
 }: SectionProps) {
   const tone = SECTION_TONES[section];
   const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
@@ -204,6 +206,7 @@ export function Section({
                   onConvertToAction={onConvertToAction}
                   onParkCard={(cardId) => onMoveCard(cardId, 'deep-dive')}
                   onUpdateCardTags={onUpdateCardTags}
+                  onUpdateCardContent={onUpdateCardContent}
                 />
               ))}
             </div>
@@ -244,6 +247,7 @@ export function Section({
           onConvertToAction={onConvertToAction}
           shareMode={shareMode}
           onUpdateCardTags={onUpdateCardTags}
+          onUpdateCardContent={onUpdateCardContent}
         />
       )}
     </div>

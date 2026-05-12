@@ -38,6 +38,9 @@ interface CardProps {
   onParkCard?: (cardId: string) => void;
   /** Update the card's tag set (author or SM). */
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
+  /** Update the card's content text. Server allows any participant to
+   *  edit; the UI just gates the affordance on `!shareMode`. */
+  onUpdateCardContent?: (cardId: string, content: string) => void;
 }
 
 export function Card({
@@ -58,6 +61,7 @@ export function Card({
   onConvertToAction,
   onParkCard,
   onUpdateCardTags,
+  onUpdateCardContent,
 }: CardProps) {
   const canDelete = (card.isOwnCard || isScrumMaster) && !shareMode;
   const canReveal = card.isOwnCard && !card.isRevealed && !shareMode;
@@ -67,11 +71,17 @@ export function Card({
   // conversation. Only useful when (a) the SM is actively presenting and
   // (b) the card isn't already in deep-discussion.
   const canPark = isScrumMaster && shareMode && card.section !== 'deep-dive' && !!onParkCard;
+  // Anyone in the room can edit any card's content — the team asked for
+  // collaborative editing. Server enforces the same rule.
+  const canEditContent = !shareMode && !!onUpdateCardContent;
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [revealNickname, setRevealNickname] = useState('');
   const [tagEditorOpen, setTagEditorOpen] = useState(false);
+  const [contentEditing, setContentEditing] = useState(false);
+  const [contentDraft, setContentDraft] = useState(card.content);
+  const contentInputRef = useRef<HTMLTextAreaElement>(null);
   const revealInputRef = useRef<HTMLInputElement>(null);
   const consensus = computeConsensus(card.voteCount, participantCount);
   const showConsensus = card.voteCount > 0 && participantCount > 0;
@@ -84,6 +94,40 @@ export function Card({
       requestAnimationFrame(() => revealInputRef.current?.focus());
     }
   }, [revealOpen]);
+
+  useEffect(() => {
+    if (contentEditing) {
+      requestAnimationFrame(() => {
+        const ta = contentInputRef.current;
+        if (!ta) return;
+        ta.focus();
+        // Place cursor at the end so the user can append without re-selecting.
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      });
+    }
+  }, [contentEditing]);
+
+  // If a peer edits the card while we're not actively editing, mirror
+  // the change into our draft so opening the editor next time starts
+  // from the latest text.
+  useEffect(() => {
+    if (!contentEditing) setContentDraft(card.content);
+  }, [card.content, contentEditing]);
+
+  function commitContentEdit() {
+    const next = contentDraft.trim();
+    if (!next || next === card.content) {
+      setContentEditing(false);
+      setContentDraft(card.content);
+      return;
+    }
+    onUpdateCardContent?.(card.id, next);
+    setContentEditing(false);
+  }
+  function cancelContentEdit() {
+    setContentDraft(card.content);
+    setContentEditing(false);
+  }
 
   // Reveal trumps share-mode anonymisation: once the author has chosen
   // to put their name on a card, share mode should keep showing it.
@@ -148,19 +192,76 @@ export function Card({
         onDragStart={handleDragStart}
         style={{ position: 'relative' }}
       >
-        {/* Card content */}
-        <div
-          style={{
-            fontSize: 13.5,
-            lineHeight: 1.55,
-            color: 'var(--fg-0)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            marginBottom: 10,
-          }}
-        >
-          {card.content}
-        </div>
+        {/* Card content — read-mode is plain text; edit-mode is an
+            inline textarea with Save / Cancel. Anyone in the room can
+            edit (server enforces). Esc cancels, ⌘/Ctrl+Enter saves. */}
+        {contentEditing ? (
+          <div style={{ marginBottom: 10 }}>
+            <textarea
+              ref={contentInputRef}
+              value={contentDraft}
+              onChange={(e) => setContentDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  cancelContentEdit();
+                } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  commitContentEdit();
+                }
+              }}
+              className="field"
+              rows={Math.min(8, Math.max(3, contentDraft.split('\n').length + 1))}
+              style={{
+                width: '100%',
+                resize: 'vertical',
+                fontSize: 13.5,
+                lineHeight: 1.55,
+                fontFamily: 'inherit',
+                marginBottom: 6,
+              }}
+              aria-label="Edit card content"
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+              <span className="text-mono fg-3" style={{ fontSize: 10, marginRight: 'auto' }}>
+                ⌘/Ctrl + Enter 儲存 · Esc 取消
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={cancelContentEdit}
+                style={{ padding: '3px 10px', fontSize: 11 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={commitContentEdit}
+                disabled={!contentDraft.trim() || contentDraft.trim() === card.content}
+                style={{ padding: '3px 12px', fontSize: 11, fontWeight: 600 }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onDoubleClick={canEditContent ? () => setContentEditing(true) : undefined}
+            title={canEditContent ? 'Double-click to edit' : undefined}
+            style={{
+              fontSize: 13.5,
+              lineHeight: 1.55,
+              color: 'var(--fg-0)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              marginBottom: 10,
+              cursor: canEditContent ? 'text' : 'default',
+            }}
+          >
+            {card.content}
+          </div>
+        )}
 
         {/* Tags */}
         {card.tags.length > 0 && (
@@ -283,6 +384,34 @@ export function Card({
             </svg>
             {card.comments.length}
           </button>
+
+          {canEditContent && (
+            <button
+              type="button"
+              onClick={() => setContentEditing(true)}
+              aria-label="Edit card content"
+              title="Edit card text"
+              style={{
+                padding: 4,
+                borderRadius: 6,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--fg-3)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                transition: 'color .15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--fg-0)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
+            >
+              {/* pencil icon */}
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11.5 1.5l3 3-9 9H2.5v-3z" />
+                <path d="M9.5 3.5l3 3" />
+              </svg>
+            </button>
+          )}
 
           <button
             type="button"

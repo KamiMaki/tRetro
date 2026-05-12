@@ -25,6 +25,7 @@ interface BoardProps {
   onDeleteDrawing: (drawingId: string) => void;
   onConvertToAction: (content: string) => void;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
+  onUpdateCardContent?: (cardId: string, content: string) => void;
 }
 
 export function Board({
@@ -47,6 +48,7 @@ export function Board({
   onDeleteDrawing,
   onConvertToAction,
   onUpdateCardTags,
+  onUpdateCardContent,
 }: BoardProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -77,6 +79,7 @@ export function Board({
             onDeleteDrawing={onDeleteDrawing}
             onConvertToAction={onConvertToAction}
             onUpdateCardTags={onUpdateCardTags}
+            onUpdateCardContent={onUpdateCardContent}
           />
         ))}
       </div>

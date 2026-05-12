@@ -42,19 +42,12 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
         socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });
         return;
       }
-      const isAuthor = card.authorId === data.participantId;
-      const isSM = data.isScrumMaster;
-      // Permission: author can edit anything; SM can re-tag any card.
-      if (!isAuthor && !isSM) {
-        socket.emit(SOCKET_EVENTS.ERROR, { message: 'No permission to update this card', code: 'FORBIDDEN' });
-        return;
-      }
-      if (!isAuthor && payload.content !== undefined) {
-        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can edit card text', code: 'FORBIDDEN' });
-        return;
-      }
+      // Permission: any participant in the room can edit any card —
+      // the team explicitly asked for collaborative editing because
+      // retro cards often need a co-author's clarification. Delete and
+      // reveal still gate to author/SM (see below).
       const updated = cardRepo.update(payload.cardId, {
-        content: isAuthor ? payload.content : undefined,
+        content: payload.content,
         tagIds: payload.tagIds,
       });
       if (!updated) return;

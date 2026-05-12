@@ -116,6 +116,13 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     [updateCard],
   );
 
+  const onUpdateCardContent = useCallback(
+    (cardId: string, content: string) => {
+      updateCard({ cardId, content });
+    },
+    [updateCard],
+  );
+
   const SHORTCUTS: KeyboardHelpItem[] = [
     { keys: 'b', description: 'Switch to Board tab', group: 'Tabs' },
     { keys: 'a', description: 'Switch to Action items tab', group: 'Tabs' },
@@ -369,6 +376,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onDeleteDrawing={deleteDrawing}
               onConvertToAction={handleConvertCardToAction}
               onUpdateCardTags={onUpdateCardTags}
+              onUpdateCardContent={onUpdateCardContent}
             />
           </div>
 
