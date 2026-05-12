@@ -124,6 +124,23 @@ function DashboardInner() {
     fetchRooms();
   }, []);
 
+  async function handleDeleteRoom(roomId: string) {
+    // Optimistically drop it from the list so the card disappears
+    // immediately. If the API call fails we re-fetch to restore truth.
+    const snapshot = rooms;
+    setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    try {
+      const res = await fetch(`/api/rooms/${roomId}`, { method: 'DELETE' });
+      if (!res.ok && res.status !== 404) {
+        throw new Error(`Delete failed: HTTP ${res.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setRooms(snapshot);
+      setError('Could not delete that retro. Refresh and try again.');
+    }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     const name = roomName.trim();
@@ -355,13 +372,13 @@ function DashboardInner() {
           {!loading && !error && activeRooms.length > 0 && (
             <>
               <SectionLabel>Active</SectionLabel>
-              <BoardGrid rooms={activeRooms} />
+              <BoardGrid rooms={activeRooms} onDelete={handleDeleteRoom} />
             </>
           )}
           {!loading && !error && closedRooms.length > 0 && (
             <>
               <SectionLabel>Closed</SectionLabel>
-              <BoardGrid rooms={closedRooms} />
+              <BoardGrid rooms={closedRooms} onDelete={handleDeleteRoom} />
             </>
           )}
         </div>
@@ -403,7 +420,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BoardGrid({ rooms }: { rooms: RoomSummary[] }) {
+function BoardGrid({ rooms, onDelete }: { rooms: RoomSummary[]; onDelete: (id: string) => Promise<void> }) {
   return (
     <div
       style={{
@@ -414,13 +431,13 @@ function BoardGrid({ rooms }: { rooms: RoomSummary[] }) {
       }}
     >
       {rooms.map((room, i) => (
-        <BoardCard key={room.id} room={room} delay={Math.min(i, 12) * 0.04} />
+        <BoardCard key={room.id} room={room} delay={Math.min(i, 12) * 0.04} onDelete={onDelete} />
       ))}
     </div>
   );
 }
 
-function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
+function BoardCard({ room, delay, onDelete }: { room: RoomSummary; delay: number; onDelete: (id: string) => Promise<void> }) {
   const isActive = room.status === 'active';
   const hue = hueFor(room.id);
   // Active room: go straight to the board (auto-creates guest participant).
@@ -428,18 +445,41 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
   const href = isActive ? `/room/${room.id}` : `/room/${room.id}/history`;
   const lastActive = relDate(room.lastActivityAt);
   const template = findTemplate(room.templateId);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(room.id);
+    } finally {
+      setDeleting(false);
+      setConfirming(false);
+    }
+  };
+
+  // Stop the Link from navigating when the user clicks the trash control.
+  const stop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   return (
-    <Link
-      href={href}
+    <article
       style={{
         position: 'relative',
-        display: 'block',
-        textDecoration: 'none',
-        color: 'inherit',
         animation: `drop-in 0.5s ${delay}s both cubic-bezier(0.34, 1.4, 0.5, 1)`,
       }}
     >
+      <Link
+        href={href}
+        style={{
+          position: 'relative',
+          display: 'block',
+          textDecoration: 'none',
+          color: 'inherit',
+        }}
+      >
       <GlassPanel
         strong
         style={{
@@ -537,7 +577,67 @@ function BoardCard({ room, delay }: { room: RoomSummary; delay: number }) {
           </div>
         </div>
       </GlassPanel>
-    </Link>
+      </Link>
+
+      {/* Delete affordance — sits above the Link via z-index. Clicks here
+          never reach the Link because stop() preventsDefault+stopsProp. */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          zIndex: 2,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+        }}
+      >
+        {confirming ? (
+          <>
+            <button
+              type="button"
+              className="btn btn-danger"
+              disabled={deleting}
+              onClick={(e) => { stop(e); handleDelete(); }}
+              style={{ padding: '3px 9px', fontSize: 11 }}
+              aria-label={`Confirm delete ${room.name}`}
+            >
+              {deleting ? '…' : 'Delete'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={deleting}
+              onClick={(e) => { stop(e); setConfirming(false); }}
+              style={{ padding: '3px 9px', fontSize: 11 }}
+              aria-label="Cancel delete"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={(e) => { stop(e); setConfirming(true); }}
+            title="Delete this retro"
+            aria-label={`Delete ${room.name}`}
+            style={{
+              padding: 5,
+              borderRadius: 8,
+              opacity: 0.65,
+              transition: 'opacity .15s, color .15s, background .15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.65'; }}
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2.5 4h11M6 4V2.8a.8.8 0 0 1 .8-.8h2.4a.8.8 0 0 1 .8.8V4M3.8 4l.6 8.2A1.5 1.5 0 0 0 5.9 13.5h4.2a1.5 1.5 0 0 0 1.5-1.3L12.2 4M6.5 7v3.5M9.5 7v3.5" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </article>
   );
 }
 

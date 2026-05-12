@@ -133,4 +133,20 @@ export const roomRepo = {
     ).run(url, id);
     return this.findById(id);
   },
+
+  /**
+   * Permanently delete a room and everything that hangs off it.
+   * All child tables (cards, tags, comments, reactions, votes, drawings,
+   * action_items, participants, metric_scores, …) are wired with
+   * `ON DELETE CASCADE` on `room_id`, and `foreign_keys = ON` is set in
+   * connection.ts, so a single statement drops the entire subtree.
+   *
+   * Returns true if a row was actually deleted, false if the id was
+   * unknown (idempotent for repeat-clicks from the dashboard).
+   */
+  delete(id: string): boolean {
+    const db = getDb();
+    const info = db.prepare('DELETE FROM rooms WHERE id = ?').run(id);
+    return info.changes > 0;
+  },
 };

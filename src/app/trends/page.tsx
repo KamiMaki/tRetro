@@ -13,34 +13,23 @@ import {
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
-function toneToColor(tone: 'mint' | 'cyan' | 'violet' | 'pink' | 'amber'): string {
+type Tone = 'mint' | 'cyan' | 'violet' | 'pink' | 'amber';
+
+function toneToColor(tone: Tone): string {
   switch (tone) {
-    case 'mint':
-      return 'oklch(0.78 0.15 175)';
-    case 'cyan':
-      return 'oklch(0.72 0.13 210)';
-    case 'violet':
-      return 'oklch(0.62 0.20 285)';
-    case 'pink':
-      return 'oklch(0.72 0.14 350)';
-    case 'amber':
-      return 'oklch(0.78 0.14 75)';
+    case 'mint':   return 'oklch(0.82 0.16 175)';
+    case 'cyan':   return 'oklch(0.78 0.14 210)';
+    case 'violet': return 'oklch(0.68 0.20 285)';
+    case 'pink':   return 'oklch(0.82 0.12 350)';
+    case 'amber':  return 'oklch(0.85 0.14 75)';
   }
 }
 
 function shortDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
 function fullDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export default function TrendsPage() {
@@ -109,7 +98,17 @@ export default function TrendsPage() {
           <ThemeToggle />
         </header>
 
-        <div style={{ padding: 'clamp(20px, 3vw, 32px)', maxWidth: 1400, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div
+          style={{
+            padding: 'clamp(20px, 3vw, 32px)',
+            maxWidth: 1400,
+            width: '100%',
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 24,
+          }}
+        >
           <div>
             <div className="text-mono fg-3" style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
               Sprint metrics
@@ -130,29 +129,44 @@ export default function TrendsPage() {
 
           {!loading && !error && ordered.length > 0 && (
             <>
+              {/* Summary cards — one per metric, latest avg + sparkline + delta */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: 12,
+                }}
+              >
+                {METRIC_DEFS.map((def) => (
+                  <MetricSummaryCard key={def.key} def={def} entries={ordered} />
+                ))}
+              </div>
+
+              {/* Big per-metric trend panel — gradient bar + glow sparkline */}
               <GlassPanel style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)' }}>
                   <div className="text-display" style={{ fontSize: 16, fontWeight: 600 }}>
                     Per-metric trend
                   </div>
                   <div className="text-mono fg-3" style={{ fontSize: 11, marginTop: 2 }}>
-                    Anonymous team average per retro. Empty dots = no submissions for that metric in that retro.
+                    Anonymous team average per retro. Hollow dots mean nobody submitted that metric in that retro.
                   </div>
                 </div>
-                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
                   {METRIC_DEFS.map((def) => (
                     <MetricTrendRow key={def.key} def={def} entries={ordered} />
                   ))}
                 </div>
               </GlassPanel>
 
+              {/* Retro log table */}
               <GlassPanel style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)' }}>
                   <div className="text-display" style={{ fontSize: 16, fontWeight: 600 }}>
                     Retro log
                   </div>
                   <div className="text-mono fg-3" style={{ fontSize: 11, marginTop: 2 }}>
-                    Most recent first. Click a row to open the retro.
+                    Most recent first. Click a row to open the retro&apos;s read-only history view.
                   </div>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
@@ -243,6 +257,97 @@ function RetroRow({ entry }: { entry: MetricsHistoryEntry }) {
   );
 }
 
+function MetricSummaryCard({
+  def,
+  entries,
+}: {
+  def: (typeof METRIC_DEFS)[number];
+  entries: MetricsHistoryEntry[];
+}) {
+  const tint = toneToColor(def.tone as Tone);
+  const valid = entries
+    .map((e) => e.metrics.find((m) => m.metricKey === def.key)?.average ?? null)
+    .filter((v): v is number => v != null);
+
+  const latest = valid.length > 0 ? valid[valid.length - 1] : null;
+  const prev = valid.length > 1 ? valid[valid.length - 2] : null;
+  const delta = latest != null && prev != null ? latest - prev : null;
+  const pct = latest != null ? Math.max(4, Math.min(100, ((latest - METRIC_SCORE_MIN) / (METRIC_SCORE_MAX - METRIC_SCORE_MIN)) * 100)) : 0;
+
+  const deltaTone =
+    delta == null ? 'var(--fg-3)' :
+    delta > 0.1 ? 'oklch(0.82 0.16 175)' :
+    delta < -0.1 ? 'oklch(0.78 0.18 25)' :
+    'var(--fg-2)';
+
+  return (
+    <GlassPanel style={{ padding: 14, position: 'relative', overflow: 'hidden' }}>
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${tint} 0%, transparent 65%)`,
+          filter: 'blur(18px)',
+          opacity: 0.55,
+          pointerEvents: 'none',
+        }}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, position: 'relative' }}>
+        <span style={{ fontSize: 18 }} aria-hidden="true">{def.emoji}</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{def.label}</div>
+          <div className="text-mono fg-3" style={{ fontSize: 10 }}>{def.shortLabel}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8, position: 'relative' }}>
+        <span className="text-display" style={{ fontSize: 26, fontWeight: 700, lineHeight: 1, color: 'var(--fg-0)' }}>
+          {latest == null ? '—' : latest.toFixed(1)}
+        </span>
+        <span className="text-mono fg-3" style={{ fontSize: 10 }}>/ {METRIC_SCORE_MAX}</span>
+        <div style={{ flex: 1 }} />
+        {delta != null && (
+          <span
+            className="text-mono"
+            style={{ fontSize: 11, color: deltaTone, display: 'inline-flex', alignItems: 'center', gap: 2 }}
+            title={`Change vs previous retro: ${delta >= 0 ? '+' : ''}${delta.toFixed(2)}`}
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+              {delta > 0.1 ? (
+                <path d="M4 1l3 4H1z" />
+              ) : delta < -0.1 ? (
+                <path d="M4 7L1 3h6z" />
+              ) : (
+                <rect x="1" y="3.4" width="6" height="1.2" rx="0.6" />
+              )}
+            </svg>
+            {delta > 0 ? '+' : ''}{delta.toFixed(1)}
+          </span>
+        )}
+      </div>
+
+      {/* Gradient bar */}
+      <div className="bar-track" style={{ height: 8, borderRadius: 4, position: 'relative' }}>
+        <div
+          style={{
+            width: `${pct}%`,
+            height: '100%',
+            borderRadius: 4,
+            background: `linear-gradient(90deg, ${tint}, color-mix(in oklch, ${tint} 60%, var(--aurora-violet)))`,
+            boxShadow: `0 0 12px ${tint}`,
+            transition: 'width .6s cubic-bezier(0.2, 0.7, 0.3, 1)',
+          }}
+        />
+      </div>
+    </GlassPanel>
+  );
+}
+
 function MetricTrendRow({
   def,
   entries,
@@ -250,7 +355,7 @@ function MetricTrendRow({
   def: (typeof METRIC_DEFS)[number];
   entries: MetricsHistoryEntry[];
 }) {
-  const tint = toneToColor(def.tone);
+  const tint = toneToColor(def.tone as Tone);
   const points = entries.map((e) => {
     const m = e.metrics.find((x) => x.metricKey === def.key);
     return { date: e.createdAt, roomName: e.roomName, value: m?.average ?? null };
@@ -262,24 +367,43 @@ function MetricTrendRow({
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(160px, 220px) 1fr',
+        gridTemplateColumns: 'minmax(160px, 220px) 1fr 64px',
         gap: 14,
         alignItems: 'center',
       }}
     >
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 18 }} aria-hidden="true">{def.emoji}</span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, color: 'var(--fg-0)' }}>{def.label}</div>
-            <div className="text-mono fg-3" style={{ fontSize: 10 }}>
-              {def.shortLabel} · {valid.length === 0 ? 'no data' : `latest ${latest!.value.toFixed(1)}`}
-            </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: tint,
+            opacity: 0.9,
+            color: 'oklch(0.18 0.04 270)',
+            fontSize: 14,
+            boxShadow: `0 0 16px ${tint}`,
+          }}
+        >
+          {def.emoji}
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, color: 'var(--fg-0)' }}>{def.label}</div>
+          <div className="text-mono fg-3" style={{ fontSize: 10 }}>
+            {def.shortLabel} · {valid.length} sample{valid.length === 1 ? '' : 's'}
           </div>
         </div>
       </div>
 
       <SparklineChart points={points} color={tint} />
+
+      <div className="text-mono text-display" style={{ fontSize: 18, textAlign: 'right', color: latest ? 'var(--fg-0)' : 'var(--fg-3)' }}>
+        {latest ? latest.value.toFixed(1) : '—'}
+      </div>
     </div>
   );
 }
@@ -307,29 +431,43 @@ function SparklineChart({
   const innerH = H - PAD_Y * 2;
   const range = METRIC_SCORE_MAX - METRIC_SCORE_MIN;
 
-  const xFor = (i: number) => {
-    if (points.length === 1) return W / 2;
-    return PAD_X + (innerW * i) / (points.length - 1);
-  };
-  const yFor = (v: number) => {
-    const t = (v - METRIC_SCORE_MIN) / range;
-    return H - PAD_Y - innerH * t;
-  };
+  const xFor = (i: number) => (points.length === 1 ? W / 2 : PAD_X + (innerW * i) / (points.length - 1));
+  const yFor = (v: number) => H - PAD_Y - innerH * ((v - METRIC_SCORE_MIN) / range);
 
-  // Build path through valid points only — gaps for nulls.
+  // Stroke segments through valid points (gaps allow nulls).
   const segments: string[] = [];
-  let current: string[] = [];
+  let cur: string[] = [];
   for (let i = 0; i < points.length; i++) {
     const p = points[i];
     if (p.value == null) {
-      if (current.length > 1) segments.push(current.join(' '));
-      current = [];
+      if (cur.length > 1) segments.push(cur.join(' '));
+      cur = [];
       continue;
     }
-    const cmd = current.length === 0 ? 'M' : 'L';
-    current.push(`${cmd} ${xFor(i).toFixed(1)} ${yFor(p.value).toFixed(1)}`);
+    const cmd = cur.length === 0 ? 'M' : 'L';
+    cur.push(`${cmd} ${xFor(i).toFixed(1)} ${yFor(p.value).toFixed(1)}`);
   }
-  if (current.length > 1) segments.push(current.join(' '));
+  if (cur.length > 1) segments.push(cur.join(' '));
+
+  // Build an area path under the line for a subtle fill.
+  let areaPath = '';
+  for (let i = 0; i < points.length; i++) {
+    const v = points[i].value;
+    if (v == null) continue;
+    areaPath += `${areaPath ? 'L' : 'M'} ${xFor(i).toFixed(1)} ${yFor(v).toFixed(1)} `;
+  }
+  if (areaPath) {
+    // close to baseline at right then back left
+    const validIdx = points
+      .map((p, i) => (p.value == null ? -1 : i))
+      .filter((i) => i >= 0);
+    const lastIdx = validIdx[validIdx.length - 1];
+    const firstIdx = validIdx[0];
+    areaPath += `L ${xFor(lastIdx).toFixed(1)} ${(H - PAD_Y).toFixed(1)} L ${xFor(firstIdx).toFixed(1)} ${(H - PAD_Y).toFixed(1)} Z`;
+  }
+
+  const gradId = `sp-grad-${color.replace(/[^a-z0-9]/gi, '')}`;
+  const fillGradId = `sp-fill-${color.replace(/[^a-z0-9]/gi, '')}`;
 
   return (
     <svg
@@ -339,16 +477,17 @@ function SparklineChart({
       role="img"
       aria-label="metric trend sparkline"
     >
-      {/* baseline */}
-      <line
-        x1={PAD_X}
-        x2={W - PAD_X}
-        y1={H - PAD_Y}
-        y2={H - PAD_Y}
-        stroke="var(--glass-border)"
-        strokeWidth={1}
-      />
-      {/* mid-score reference */}
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={color} stopOpacity="0.7" />
+          <stop offset="100%" stopColor={color} stopOpacity="1" />
+        </linearGradient>
+        <linearGradient id={fillGradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.40" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* mid-score reference line */}
       <line
         x1={PAD_X}
         x2={W - PAD_X}
@@ -359,20 +498,28 @@ function SparklineChart({
         strokeDasharray="3 4"
         opacity={0.4}
       />
-      {/* line segments */}
+      {areaPath && <path d={areaPath} fill={`url(#${fillGradId})`} />}
       {segments.map((d, i) => (
-        <path key={i} d={d} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        <path
+          key={i}
+          d={d}
+          fill="none"
+          stroke={`url(#${gradId})`}
+          strokeWidth={2.2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          style={{ filter: `drop-shadow(0 0 6px ${color})` }}
+        />
       ))}
-      {/* dots */}
       {points.map((p, i) => (
         <circle
           key={p.date + i}
           cx={xFor(i)}
           cy={p.value == null ? H - PAD_Y : yFor(p.value)}
-          r={p.value == null ? 2.4 : 3}
+          r={p.value == null ? 2.6 : 3.4}
           fill={p.value == null ? 'transparent' : color}
-          stroke={p.value == null ? 'var(--glass-border)' : 'transparent'}
-          strokeWidth={1}
+          stroke={p.value == null ? 'var(--glass-border)' : 'oklch(1 0 0 / 0.85)'}
+          strokeWidth={p.value == null ? 1 : 1.4}
         >
           <title>{`${p.roomName} · ${shortDate(p.date)} · ${p.value == null ? 'no data' : p.value.toFixed(1)}`}</title>
         </circle>
