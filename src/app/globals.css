@@ -12,9 +12,10 @@
   --aurora-pink:   oklch(0.82 0.12 350);
   --aurora-amber:  oklch(0.85 0.14 75);
 
-  /* Liquid glass tunables */
-  --glass-blur: 28px;
-  --glass-saturation: 180%;
+  /* Liquid glass tunables — see .glass / .glass::before / .glass::after */
+  --glass-blur: 32px;
+  --glass-saturation: 190%;
+  --glass-rim: oklch(1 0 0 / 0.18);     /* top-edge specular highlight */
 
   /* Dark mode (default) */
   --bg-0: oklch(0.13 0.03 270);
@@ -29,7 +30,10 @@
   --glass-bg-strong: oklch(0.28 0.05 270 / 0.62);
   --glass-border: oklch(0.95 0.02 270 / 0.14);
   --glass-highlight: oklch(1 0 0 / 0.08);
-  --glass-shadow: 0 8px 32px oklch(0 0 0 / 0.35), 0 1px 0 oklch(1 0 0 / 0.08) inset;
+  --glass-shadow:
+    0 10px 36px oklch(0 0 0 / 0.42),
+    0 1px 0 oklch(1 0 0 / 0.10) inset,
+    0 -1px 0 oklch(0 0 0 / 0.28) inset;
 
   /* Sticky note tints */
   --post-yellow: oklch(0.88 0.13 95);
@@ -86,7 +90,11 @@
   --glass-bg-strong: oklch(1 0 0 / 0.85);
   --glass-border: oklch(0.4 0.04 270 / 0.18);
   --glass-highlight: oklch(1 0 0 / 0.7);
-  --glass-shadow: 0 8px 32px oklch(0.3 0.05 270 / 0.14), 0 1px 0 oklch(1 0 0 / 0.95) inset;
+  --glass-shadow:
+    0 10px 36px oklch(0.30 0.05 270 / 0.20),
+    0 1px 0 oklch(1 0 0 / 0.95) inset,
+    0 -1px 0 oklch(0.4 0.04 270 / 0.18) inset;
+  --glass-rim: oklch(1 0 0 / 0.70);
 
   --status-live-fg:  oklch(0.32 0.12 175);
   --status-warn-fg:  oklch(0.45 0.13 75);
@@ -181,13 +189,29 @@ body {
   position: relative;
 }
 .glass::before {
+  /* Diagonal sheen — top-left bright corner that hints at refraction. */
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, var(--glass-highlight), transparent 50%);
+  background:
+    linear-gradient(135deg, var(--glass-highlight) 0%, transparent 45%),
+    radial-gradient(120% 80% at 0% 0%, var(--glass-highlight), transparent 55%);
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.85;
+}
+.glass::after {
+  /* Thin specular highlight along the top edge — the wet/glass rim. */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-rim), transparent);
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.9;
 }
 .glass-strong {
   background: var(--glass-bg-strong);
@@ -376,16 +400,20 @@ body {
 .chip[data-tone="cyan"]   { background: oklch(0.78 0.14 210 / 0.22); color: oklch(0.92 0.10 210); border-color: oklch(0.78 0.14 210 / 0.3); }
 .chip[data-tone="amber"]  { background: oklch(0.85 0.14 75 / 0.22); color: oklch(0.94 0.12 85); border-color: oklch(0.85 0.14 75 / 0.3); }
 
-[data-theme="light"] .chip[data-tone="mint"]   { color: oklch(0.35 0.12 175); }
-[data-theme="light"] .chip[data-tone="violet"] { color: oklch(0.38 0.18 285); }
-[data-theme="light"] .chip[data-tone="pink"]   { color: oklch(0.42 0.14 350); }
-[data-theme="light"] .chip[data-tone="cyan"]   { color: oklch(0.38 0.13 210); }
-[data-theme="light"] .chip[data-tone="amber"]  { color: oklch(0.45 0.13 75); }
+/* Light-mode tone chips — push tint alpha way up so the chip reads as a
+   real tinted pill against the bright glass surfaces, and darken the
+   text further so 4.5:1 contrast is comfortable. */
+[data-theme="light"] .chip[data-tone="mint"]   { background: oklch(0.82 0.16 175 / 0.45); color: oklch(0.28 0.14 175); border-color: oklch(0.55 0.16 175 / 0.55); }
+[data-theme="light"] .chip[data-tone="violet"] { background: oklch(0.68 0.20 285 / 0.40); color: oklch(0.30 0.20 285); border-color: oklch(0.48 0.20 285 / 0.55); }
+[data-theme="light"] .chip[data-tone="pink"]   { background: oklch(0.82 0.12 350 / 0.42); color: oklch(0.32 0.18 0);   border-color: oklch(0.52 0.18 0   / 0.55); }
+[data-theme="light"] .chip[data-tone="cyan"]   { background: oklch(0.78 0.14 210 / 0.45); color: oklch(0.30 0.14 230); border-color: oklch(0.50 0.14 230 / 0.55); }
+[data-theme="light"] .chip[data-tone="amber"]  { background: oklch(0.85 0.14 75 / 0.55);  color: oklch(0.34 0.13 60);  border-color: oklch(0.55 0.13 60  / 0.55); }
 [data-theme="light"] .chip {
+  font-weight: 600;
   box-shadow:
-    0 1px 0 oklch(1 0 0 / 0.6) inset,
+    0 1px 0 oklch(1 0 0 / 0.7) inset,
     0 1px 2px oklch(0.30 0.05 270 / 0.18),
-    0 2px 6px oklch(0.30 0.05 270 / 0.10);
+    0 2px 6px oklch(0.30 0.05 270 / 0.12);
 }
 
 /* ───── Status pills (live / closed) ───── */
