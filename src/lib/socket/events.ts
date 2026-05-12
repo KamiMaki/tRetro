@@ -55,6 +55,8 @@ export const SOCKET_EVENTS = {
   // Drawings
   DRAWING_CREATE: 'drawing:create',
   DRAWING_CREATED: 'drawing:created',
+  DRAWING_DELETE: 'drawing:delete',
+  DRAWING_DELETED: 'drawing:deleted',
 
   // Sprint metrics (anonymous, team-aggregate only)
   METRICS_SUBMIT: 'metrics:submit',

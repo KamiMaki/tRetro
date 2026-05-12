@@ -7,12 +7,28 @@ import { GlassPanel } from '@/components/ui/Aurora';
 
 interface DrawingThumbnailProps {
   drawing: Drawing;
+  /** When supplied, the lightbox shows a Delete button. The caller is
+   *  responsible for gating who sees it (drawing author / SM); the
+   *  server enforces the same rule on the socket side. */
+  onDelete?: () => void;
 }
 
-export function DrawingThumbnail({ drawing }: DrawingThumbnailProps) {
+export function DrawingThumbnail({ drawing, onDelete }: DrawingThumbnailProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+
+  // Reset the confirm step every time the lightbox closes — otherwise
+  // re-opening the same drawing remembers the destructive intent.
+  useEffect(() => {
+    if (!lightboxOpen) setConfirming(false);
+  }, [lightboxOpen]);
+
+  const handleDelete = () => {
+    onDelete?.();
+    setLightboxOpen(false);
+  };
 
   return (
     <>
@@ -73,9 +89,63 @@ export function DrawingThumbnail({ drawing }: DrawingThumbnailProps) {
                 alt="Drawing (full size)"
                 style={{ width: '100%', borderRadius: 8, border: '1px solid var(--glass-border)', background: '#fff', display: 'block' }}
               />
-              <div className="text-mono fg-3" style={{ fontSize: 11, marginTop: 8, textAlign: 'right' }}>
-                {new Date(drawing.createdAt).toLocaleString()}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: 10,
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span className="text-mono fg-3" style={{ fontSize: 11 }}>
+                  {new Date(drawing.createdAt).toLocaleString()}
+                </span>
+                {onDelete && (
+                  <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                    {confirming ? (
+                      <>
+                        <span className="text-mono fg-2" style={{ fontSize: 11 }}>Delete this drawing?</span>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          onClick={handleDelete}
+                          style={{ padding: '3px 10px', fontSize: 11 }}
+                        >
+                          Delete
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => setConfirming(false)}
+                          style={{ padding: '3px 10px', fontSize: 11 }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setConfirming(true)}
+                        title="Delete drawing (replace by drawing a new one)"
+                        style={{ padding: '4px 10px', fontSize: 11 }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M2.5 4h11M6 4V2.8a.8.8 0 0 1 .8-.8h2.4a.8.8 0 0 1 .8.8V4M3.8 4l.6 8.2A1.5 1.5 0 0 0 5.9 13.5h4.2a1.5 1.5 0 0 0 1.5-1.3L12.2 4M6.5 7v3.5M9.5 7v3.5" />
+                        </svg>
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
+              {onDelete && !confirming && (
+                <p className="text-mono fg-3" style={{ fontSize: 10.5, marginTop: 10, marginBottom: 0, lineHeight: 1.5 }}>
+                  Edit = delete + draw again. We don&apos;t keep an edit history, so a tweaked drawing is a new one.
+                </p>
+              )}
             </GlassPanel>
           </div>
         </div>,

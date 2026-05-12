@@ -26,13 +26,20 @@ export async function GET(
   const actionItems = actionItemRepo.findByRoomId(roomId);
   const participants = participantRepo.findByRoomId(roomId);
 
-  // Build cards with tags and author info for export
+  // Build cards with tags and author info for export. Reveal-name
+  // resolution mirrors src/lib/socket/dto.ts: prefer the author's chosen
+  // reveal name; only fall back to the default participant nickname
+  // (`Guest-XXXX`) when they revealed without supplying one. Without
+  // this fallback order the export attributes every revealed card to
+  // "Guest-XXXX" even when the author typed a real name.
   const cardsWithMeta = cards.map(card => {
     const cardTags = cardRepo.getTagsForCard(card.id);
     let authorNickname: string | null = null;
     if (card.isRevealed) {
-      const author = participantRepo.findById(card.authorId);
-      authorNickname = author?.nickname ?? null;
+      authorNickname =
+        card.revealedNickname ??
+        participantRepo.findById(card.authorId)?.nickname ??
+        null;
     }
     return { ...card, tags: cardTags, authorNickname };
   });

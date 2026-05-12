@@ -1,5 +1,5 @@
 import type { Room, CardDB, Tag, ActionItem } from '../types';
-import { SECTION_LABELS, SECTIONS } from '../types';
+import { SECTION_EMOJIS, SECTION_LABELS, SECTIONS } from '../types';
 import type { SectionType } from '../types';
 
 interface CardWithMeta extends CardDB {
@@ -78,7 +78,7 @@ export function buildAiSummaryMarkdown(
 
   for (const section of SECTIONS) {
     const sectionCards = cards.filter((c) => c.section === section);
-    lines.push(`## ${SECTION_LABELS[section]}（${sectionCards.length}）`);
+    lines.push(`## ${SECTION_EMOJIS[section]} ${SECTION_LABELS[section]}（${sectionCards.length}）`);
     lines.push('');
     if (sectionCards.length === 0) {
       lines.push('_（本區塊無卡片）_');

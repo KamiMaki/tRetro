@@ -1,16 +1,18 @@
 import type { Room, CardDB, Tag, ActionItem } from '../types';
-import { SECTION_LABELS, SECTIONS } from '../types';
-import type { SectionType } from '../types';
+import { SECTION_EMOJIS, SECTION_LABELS, SECTIONS } from '../types';
 
 interface CardWithMeta extends CardDB {
   tags: Tag[];
+  /** Display name to show next to a revealed card. The export route
+   *  resolves `card.revealedNickname ?? participant.nickname` upstream
+   *  so this field already holds the right value. */
   authorNickname: string | null;
 }
 
 export function exportToMarkdown(
   room: Room,
   cards: CardWithMeta[],
-  tags: Tag[],
+  _tags: Tag[],
   actionItems: ActionItem[],
   participantCount: number
 ): string {
@@ -24,7 +26,8 @@ export function exportToMarkdown(
 
   for (const section of SECTIONS) {
     const sectionCards = cards.filter(c => c.section === section);
-    lines.push(`## ${SECTION_LABELS[section]} (${sectionCards.length} cards)`);
+    // Emoji prefix per section, e.g. `## 😆 Went Well (3 cards)`.
+    lines.push(`## ${SECTION_EMOJIS[section]} ${SECTION_LABELS[section]} (${sectionCards.length} cards)`);
     lines.push('');
     if (sectionCards.length === 0) {
       lines.push('_No cards_');
@@ -38,24 +41,8 @@ export function exportToMarkdown(
     lines.push('');
   }
 
-  // Tag statistics
-  lines.push('## Tag Statistics');
-  lines.push('');
-  if (tags.length === 0) {
-    lines.push('_No tags used_');
-  } else {
-    lines.push('| Tag | Count | Sections |');
-    lines.push('|-----|-------|----------|');
-    for (const tag of tags) {
-      const tagCards = cards.filter(c => c.tags.some(t => t.id === tag.id));
-      const sections = [...new Set(tagCards.map(c => SECTION_LABELS[c.section as SectionType]))];
-      lines.push(`| ${tag.name} | ${tagCards.length} | ${sections.join(', ')} |`);
-    }
-  }
-  lines.push('');
-
   // Action items
-  lines.push('## Action Items');
+  lines.push('## ✅ Action Items');
   lines.push('');
   if (actionItems.length === 0) {
     lines.push('_No action items_');
@@ -88,11 +75,6 @@ export function exportToHtml(
     .replace(/^- \[x\] (.+)$/gm, '<li class="done">&#9745; $1</li>')
     .replace(/^- \[ \] (.+)$/gm, '<li>&#9744; $1</li>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/\|(.+)\|/g, (match) => {
-      if (match.includes('---')) return '';
-      const cells = match.split('|').filter(Boolean).map(c => c.trim());
-      return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
-    })
     .replace(/_([^_]+)_/g, '<em>$1</em>')
     .replace(/\n\n/g, '\n');
 
@@ -109,9 +91,6 @@ export function exportToHtml(
     blockquote { background: #f3f4f6; padding: 0.75rem 1rem; border-left: 4px solid #3b82f6; margin: 1rem 0; }
     li { margin: 0.5rem 0; list-style: none; padding: 0.5rem; background: #fafafa; border-radius: 4px; }
     li.done { text-decoration: line-through; opacity: 0.7; }
-    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-    td { border: 1px solid #e5e7eb; padding: 0.5rem; }
-    tr:first-child td { font-weight: bold; background: #f3f4f6; }
   </style>
 </head>
 <body>

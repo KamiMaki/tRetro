@@ -579,12 +579,14 @@ function BoardCard({ room, delay, onDelete }: { room: RoomSummary; delay: number
       </GlassPanel>
       </Link>
 
-      {/* Delete affordance — sits above the Link via z-index. Clicks here
-          never reach the Link because stop() preventsDefault+stopsProp. */}
+      {/* Delete affordance — bottom-right so it doesn't fight the live
+          status pill in the top-right. Sits above the Link via z-index;
+          clicks never reach the Link because stop() preventsDefault +
+          stopsProp. */}
       <div
         style={{
           position: 'absolute',
-          top: 10,
+          bottom: 10,
           right: 10,
           zIndex: 2,
           display: 'inline-flex',
