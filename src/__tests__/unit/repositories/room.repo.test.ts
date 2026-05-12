@@ -85,4 +85,50 @@ describe('roomRepo', () => {
       expect(fetched!.status).toBe('closed');
     });
   });
+
+  describe('delete', () => {
+    it('returns true and removes the room when it exists', () => {
+      const room = roomRepo.create('Doomed Room');
+      const removed = roomRepo.delete(room.id);
+      expect(removed).toBe(true);
+      expect(roomRepo.findById(room.id)).toBeNull();
+    });
+
+    it('returns false for an unknown id (idempotent)', () => {
+      const removed = roomRepo.delete('never-existed');
+      expect(removed).toBe(false);
+    });
+
+    it('cascades through child rows (cards, action_items, participants)', () => {
+      const room = roomRepo.create('Cascade Test');
+
+      testDb
+        .prepare("INSERT INTO participants (id, room_id, nickname, session_token) VALUES (?, ?, ?, ?)")
+        .run('p1', room.id, 'Tester', 'tok-1');
+      testDb
+        .prepare("INSERT INTO cards (id, room_id, author_id, section, content) VALUES (?, ?, ?, ?, ?)")
+        .run('c1', room.id, 'p1', 'went-well', 'great sprint');
+      // action_items has no FK to participants — description is enough.
+      testDb
+        .prepare("INSERT INTO action_items (id, room_id, description) VALUES (?, ?, ?)")
+        .run('a1', room.id, 'follow up');
+
+      roomRepo.delete(room.id);
+
+      const partLeft = testDb.prepare('SELECT COUNT(*) as n FROM participants WHERE room_id = ?').get(room.id) as { n: number };
+      const cardsLeft = testDb.prepare('SELECT COUNT(*) as n FROM cards WHERE room_id = ?').get(room.id) as { n: number };
+      const actionsLeft = testDb.prepare('SELECT COUNT(*) as n FROM action_items WHERE room_id = ?').get(room.id) as { n: number };
+      expect(partLeft.n).toBe(0);
+      expect(cardsLeft.n).toBe(0);
+      expect(actionsLeft.n).toBe(0);
+    });
+
+    it('does not affect sibling rooms', () => {
+      const keep = roomRepo.create('Keep me');
+      const drop = roomRepo.create('Drop me');
+      roomRepo.delete(drop.id);
+      expect(roomRepo.findById(keep.id)).not.toBeNull();
+      expect(roomRepo.findById(drop.id)).toBeNull();
+    });
+  });
 });
