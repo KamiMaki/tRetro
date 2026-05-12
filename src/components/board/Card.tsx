@@ -29,6 +29,9 @@ interface CardProps {
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
+  /** Remove a drawing from a card. Allowed for the drawing author or SM
+   *  (server enforces; we just hide the affordance otherwise). */
+  onDeleteDrawing?: (drawingId: string) => void;
   onConvertToAction?: (content: string) => void;
   /** SM-only "park" — moves the card to the deep-discussion column for a
    *  later deeper conversation. No-op when the card is already there. */
@@ -51,6 +54,7 @@ export function Card({
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
+  onDeleteDrawing,
   onConvertToAction,
   onParkCard,
   onUpdateCardTags,
@@ -81,18 +85,25 @@ export function Card({
     }
   }, [revealOpen]);
 
-  const authorLabel = shareMode
-    ? 'Anonymous'
-    : card.isRevealed && card.authorNickname
-      ? card.authorNickname
+  // Reveal trumps share-mode anonymisation: once the author has chosen
+  // to put their name on a card, share mode should keep showing it.
+  // Share-mode still anonymises everything else (un-revealed cards,
+  // the "You" marker on the SM's own un-revealed cards).
+  const revealed = card.isRevealed && !!card.authorNickname;
+  const authorLabel = revealed
+    ? card.authorNickname!
+    : shareMode
+      ? 'Anonymous'
       : card.isOwnCard
         ? 'You'
         : 'Anonymous';
-  const showAnonAvatar = shareMode || (!card.isRevealed && !card.isOwnCard);
-  const authorColor = shareMode
-    ? 'var(--fg-3)'
-    : card.isRevealed
-      ? 'var(--fg-1)'
+  const showAnonAvatar = revealed
+    ? false
+    : shareMode || !card.isOwnCard;
+  const authorColor = revealed
+    ? 'var(--fg-1)'
+    : shareMode
+      ? 'var(--fg-3)'
       : card.isOwnCard
         ? 'var(--aurora-violet)'
         : 'var(--fg-3)';
@@ -164,7 +175,18 @@ export function Card({
         {card.drawings.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {card.drawings.map((drawing) => (
-              <DrawingThumbnail key={drawing.id} drawing={drawing} />
+              <DrawingThumbnail
+                key={drawing.id}
+                drawing={drawing}
+                onDelete={
+                  // Author or SM can ask for delete; server is the
+                  // authoritative check. Share mode hides the affordance
+                  // so the SM's broadcast view stays clean.
+                  !shareMode && (card.isOwnCard || isScrumMaster) && onDeleteDrawing
+                    ? () => onDeleteDrawing(drawing.id)
+                    : undefined
+                }
+              />
             ))}
           </div>
         )}
@@ -192,7 +214,7 @@ export function Card({
           }}
         >
           <Avatar
-            name={shareMode ? null : card.authorNickname}
+            name={showAnonAvatar ? null : card.authorNickname}
             anon={showAnonAvatar}
             size={20}
           />
@@ -466,11 +488,11 @@ export function Card({
             <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
               <button
                 type="button"
-                className="btn btn-ghost"
+                className="btn"
                 onClick={() => setTagEditorOpen(false)}
-                style={{ padding: '4px 10px', fontSize: 11 }}
+                style={{ padding: '4px 12px', fontSize: 11, fontWeight: 600 }}
               >
-                done
+                Done
               </button>
             </div>
           </div>

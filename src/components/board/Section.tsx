@@ -28,6 +28,7 @@ interface SectionProps {
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
+  onDeleteDrawing: (drawingId: string) => void;
   onConvertToAction: (content: string) => void;
   shareMode: boolean;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
@@ -50,6 +51,7 @@ export function Section({
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
+  onDeleteDrawing,
   onConvertToAction,
   shareMode,
   onUpdateCardTags,
@@ -198,6 +200,7 @@ export function Section({
                   onToggleReaction={onToggleReaction}
                   onToggleVote={onToggleVote}
                   onAddDrawing={onAddDrawing}
+                  onDeleteDrawing={onDeleteDrawing}
                   onConvertToAction={onConvertToAction}
                   onParkCard={(cardId) => onMoveCard(cardId, 'deep-dive')}
                   onUpdateCardTags={onUpdateCardTags}
@@ -237,6 +240,7 @@ export function Section({
           onToggleReaction={onToggleReaction}
           onToggleVote={onToggleVote}
           onAddDrawing={onAddDrawing}
+          onDeleteDrawing={onDeleteDrawing}
           onConvertToAction={onConvertToAction}
           shareMode={shareMode}
           onUpdateCardTags={onUpdateCardTags}

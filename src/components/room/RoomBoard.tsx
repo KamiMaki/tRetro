@@ -55,6 +55,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     toggleReaction,
     toggleVote,
     addDrawing,
+    deleteDrawing,
     metricsAggregate,
     ownMetricScores,
     submitMetrics,
@@ -365,6 +366,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onToggleReaction={toggleReaction}
               onToggleVote={toggleVote}
               onAddDrawing={addDrawing}
+              onDeleteDrawing={deleteDrawing}
               onConvertToAction={handleConvertCardToAction}
               onUpdateCardTags={onUpdateCardTags}
             />

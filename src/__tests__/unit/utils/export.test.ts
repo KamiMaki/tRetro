@@ -60,14 +60,14 @@ describe('exportToMarkdown', () => {
     expect(md).toContain('Status: active');
   });
 
-  it('renders all four section headings', () => {
+  it('renders all four section headings with their emoji prefix', () => {
     const md = exportToMarkdown(makeRoom(), [], [], [], 0);
-    // Match the labels in SECTION_LABELS — Went Well / Didn't Go Well /
-    // Thanks / Deep Discussion.
-    expect(md).toContain('## Went Well');
-    expect(md).toContain("## Didn't Go Well");
-    expect(md).toContain('## Thanks');
-    expect(md).toContain('## Deep Discussion');
+    // Match the labels in SECTION_LABELS — emoji + label, mirroring the
+    // active-room UI so the export reads as familiar.
+    expect(md).toContain('## 😆 Went Well');
+    expect(md).toContain("## 🥲 Didn't Go Well");
+    expect(md).toContain('## 😍 Thanks');
+    expect(md).toContain('## 🧐 Deep Discussion');
   });
 
   it('shows _No cards_ for empty sections', () => {
@@ -112,17 +112,14 @@ describe('exportToMarkdown', () => {
     expect(md).toContain('[Process]');
   });
 
-  it('includes tag statistics section', () => {
+  it('does NOT include a Tag Statistics section — feedback removed it', () => {
     const tag: Tag = { id: 't1', roomId: 'room-1', name: 'Bug', color: '#ef4444' };
     const card = makeCard({ section: 'went-well', tags: [tag] });
     const md = exportToMarkdown(makeRoom(), [card], [tag], [], 1);
-    expect(md).toContain('## Tag Statistics');
-    expect(md).toContain('Bug');
-  });
-
-  it('shows _No tags used_ when no tags exist', () => {
-    const md = exportToMarkdown(makeRoom(), [], [], [], 0);
-    expect(md).toContain('_No tags used_');
+    expect(md).not.toContain('## Tag Statistics');
+    expect(md).not.toContain('_No tags used_');
+    // Tags still render inline next to each card so the data isn't lost.
+    expect(md).toContain('[Bug]');
   });
 
   it('renders incomplete action items with empty checkbox', () => {

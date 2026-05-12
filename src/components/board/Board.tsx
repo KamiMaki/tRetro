@@ -22,6 +22,7 @@ interface BoardProps {
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
+  onDeleteDrawing: (drawingId: string) => void;
   onConvertToAction: (content: string) => void;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
 }
@@ -43,6 +44,7 @@ export function Board({
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
+  onDeleteDrawing,
   onConvertToAction,
   onUpdateCardTags,
 }: BoardProps) {
@@ -72,6 +74,7 @@ export function Board({
             onToggleReaction={onToggleReaction}
             onToggleVote={onToggleVote}
             onAddDrawing={onAddDrawing}
+            onDeleteDrawing={onDeleteDrawing}
             onConvertToAction={onConvertToAction}
             onUpdateCardTags={onUpdateCardTags}
           />

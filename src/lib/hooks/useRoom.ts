@@ -63,6 +63,7 @@ interface UseRoomReturn {
   toggleReaction: (cardId: string, emoji: string) => void;
   toggleVote: (cardId: string) => void;
   addDrawing: (cardId: string, data: string) => void;
+  deleteDrawing: (drawingId: string) => void;
   metricsAggregate: MetricAggregate[];
   ownMetricScores: OwnMetricScores;
   submitMetrics: (scores: OwnMetricScores) => void;
@@ -288,6 +289,15 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       );
     });
 
+    socket.on(SOCKET_EVENTS.DRAWING_DELETED, (payload: { drawingId: string }) => {
+      setCards((prev) =>
+        prev.map((c) => ({
+          ...c,
+          drawings: c.drawings.filter((d) => d.id !== payload.drawingId),
+        }))
+      );
+    });
+
     // V2: Sprint metrics — anonymous team aggregate broadcast
     socket.on(
       SOCKET_EVENTS.METRICS_AGGREGATE_UPDATED,
@@ -397,6 +407,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.DRAWING_CREATE, { cardId, data });
   }, []);
 
+  const deleteDrawing = useCallback((drawingId: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.DRAWING_DELETE, { drawingId });
+  }, []);
+
   const submitMetrics = useCallback((scores: OwnMetricScores) => {
     socketRef.current?.emit(SOCKET_EVENTS.METRICS_SUBMIT, { scores });
   }, []);
@@ -429,6 +443,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     toggleReaction,
     toggleVote,
     addDrawing,
+    deleteDrawing,
     metricsAggregate,
     ownMetricScores,
     submitMetrics,

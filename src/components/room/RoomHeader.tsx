@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Room } from '@/lib/types';
 import { Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { getDailyPassword, PASSWORD_QUERY_PARAM } from '@/lib/utils/dailyPassword';
 
 interface ParticipantSummary {
   id: string;
@@ -58,7 +59,11 @@ export function RoomHeader({
   const handleCopyLink = () => {
     // Land guests directly on the board — the page auto-creates a guest
     // participant. The legacy /join nickname picker has been retired.
-    const url = `${window.location.origin}/room/${roomId}`;
+    //
+    // We bake today's password into the URL so a fresh visitor doesn't
+    // also need to know the gate password. The middleware strips the
+    // param after the cookie is set, so it never lingers in history.
+    const url = `${window.location.origin}/room/${roomId}?${PASSWORD_QUERY_PARAM}=${getDailyPassword()}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
