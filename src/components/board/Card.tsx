@@ -432,8 +432,12 @@ export function Card({
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--fg-0)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M11 2l3 3-9 9H2v-3z" />
+            {/* Palette — clearly distinct from the pencil "Edit" icon next to it. */}
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 1.5C4.4 1.5 1.5 4.1 1.5 7.5c0 2.7 1.85 4.4 4.05 4.4.7 0 1.3-.2 1.55-.65.2-.4.1-.9-.1-1.25-.3-.4-.3-.9 0-1.3.3-.3.7-.4 1.1-.3 1.7.4 3.8.1 4.9-1.2.8-1 1-2.4.7-3.6C13.2 2.9 11.1 1.5 8 1.5z" />
+              <circle cx="5" cy="6.5" r="0.85" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="4.5" r="0.85" fill="currentColor" stroke="none" />
+              <circle cx="11" cy="6" r="0.85" fill="currentColor" stroke="none" />
             </svg>
           </button>
 
