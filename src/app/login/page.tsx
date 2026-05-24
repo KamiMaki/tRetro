@@ -90,7 +90,7 @@ function LoginForm() {
 
         <GlassPanel strong style={{ padding: 28 }}>
           <p className="fg-2" style={{ fontSize: 13, marginTop: 0, marginBottom: 18, lineHeight: 1.55 }}>
-            tRetro is gated. Ask your facilitator for today&apos;s code, or open the
+            RetroXpert is gated. Ask your facilitator for today&apos;s code, or open the
             shared room link directly — it can carry the password for you.
           </p>
 

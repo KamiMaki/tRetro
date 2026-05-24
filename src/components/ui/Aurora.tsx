@@ -31,25 +31,35 @@ export function GlassPanel({ children, className = '', strong = false, style, on
   );
 }
 
-/* ───── Logo wordmark ───── */
-export function Logo({ size = 22 }: { size?: number }) {
+/* ───── Logo wordmark — RetroXpert ───── */
+const LOGO_GRADIENT =
+  'linear-gradient(135deg, oklch(0.82 0.16 175), oklch(0.68 0.20 285) 55%, oklch(0.82 0.12 350))';
+
+const LOGO_LETTER_STYLE: CSSProperties = {
+  background: LOGO_GRADIENT,
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  color: 'transparent',
+  fontWeight: 800,
+};
+
+export function Logo({ size = 22, wordmark = true }: { size?: number; wordmark?: boolean }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-        <defs>
-          <linearGradient id="tretro-logo-grad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="oklch(0.82 0.16 175)" />
-            <stop offset="50%" stopColor="oklch(0.68 0.20 285)" />
-            <stop offset="100%" stopColor="oklch(0.82 0.12 350)" />
-          </linearGradient>
-        </defs>
-        <rect x="2" y="2" width="28" height="28" rx="9" fill="url(#tretro-logo-grad)" opacity="0.9" />
-        <rect x="2" y="2" width="28" height="28" rx="9" fill="none" stroke="oklch(1 0 0 / 0.3)" strokeWidth="1" />
-        <path d="M10 11h12M16 11v11" stroke="oklch(0.15 0.04 270)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      </svg>
-      <span className="text-display" style={{ fontWeight: 700, fontSize: size * 0.85, letterSpacing: '-0.02em' }}>
-        tRetro
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element -- small static asset, no need for next/image */}
+      <img
+        src="/icon.png"
+        alt="RetroXpert"
+        width={size}
+        height={size}
+        style={{ display: 'block', width: size, height: size }}
+      />
+      {wordmark && (
+        <span className="text-display" style={{ fontWeight: 700, fontSize: size * 0.85, letterSpacing: '-0.02em' }}>
+          <span style={LOGO_LETTER_STYLE}>R</span>etro
+          <span style={LOGO_LETTER_STYLE}>X</span>pert
+        </span>
+      )}
     </span>
   );
 }
