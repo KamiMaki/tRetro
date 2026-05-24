@@ -1176,11 +1176,18 @@ function NewRoomModal({
                 </label>
               </div>
             </div>
-            {isAnonymous && (
+            {isAnonymous ? (
               <div className="fg-2" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.5 }}>
                 Nicknames are hidden in the participant sidebar and on cards
                 (the reveal toggle is disabled in anonymous rooms). A positive
                 participant count is required so vote ratios are accurate.
+              </div>
+            ) : (
+              <div className="fg-2" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.5 }}>
+                Participants will be prompted for a nickname when they first
+                join, and that name is shown on every card and comment they
+                post. No reveal toggle needed — named mode is identified by
+                default.
               </div>
             )}
 

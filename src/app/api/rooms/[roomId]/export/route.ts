@@ -53,7 +53,13 @@ export async function GET(
   const cardsWithMeta = cards.map(card => {
     const cardTags = cardRepo.getTagsForCard(card.id);
     let authorNickname: string | null = null;
-    if (card.isRevealed) {
+    if (room.isAnonymous) {
+      // Anonymous export: author name suppressed regardless of reveal.
+      authorNickname = null;
+    } else {
+      // Named room: always attribute (chosen reveal name → falls back
+      // to the author's current nickname). Mirrors toCardDTO so the
+      // socket payload and the exported file match.
       authorNickname =
         card.revealedNickname ??
         participantRepo.findById(card.authorId)?.nickname ??

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { RoomBoard } from '@/components/room/RoomBoard';
 import { AuroraBg, Logo } from '@/components/ui/Aurora';
+import { NicknamePromptModal } from '@/components/room/NicknamePromptModal';
 
 /** Generate a short anonymous guest nickname like "Guest-A8K3X". */
 function generateGuestNickname(): string {
@@ -15,27 +16,91 @@ function generateGuestNickname(): string {
   return `Guest-${s}`;
 }
 
+const GUEST_NICK_RE = /^Guest-[A-Z0-9]+$/;
+
+/** Decide whether a stored nickname is a generated guest name (so we
+ *  should re-prompt in a NAMED room) or a real one the user picked. */
+function isGuestPlaceholder(nick: string | null | undefined): boolean {
+  if (!nick) return true;
+  return GUEST_NICK_RE.test(nick);
+}
+
+interface RoomMeta {
+  id: string;
+  name: string;
+  status: 'active' | 'closed';
+  isAnonymous: boolean;
+  teamId: string | null;
+}
+
 export default function RoomPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
 
+  const [room, setRoom] = useState<RoomMeta | null>(null);
+  const [needsNickname, setNeedsNickname] = useState(false);
+  const [pendingReuseToken, setPendingReuseToken] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const joiningRef = useRef(false);
+  const joinedRef = useRef(false);
 
+  // Stage 1: fetch room metadata so we know isAnonymous before we
+  // decide whether to prompt for a nickname.
   useEffect(() => {
-    // Always round-trip the server so a stale sessionToken (e.g. from a
-    // wiped DB) silently re-joins instead of stranding the user on a board
-    // whose socket connection fails with "Invalid session token".
-    if (joiningRef.current) return;
-    joiningRef.current = true;
+    let cancelled = false;
+    fetch(`/api/rooms/${roomId}`)
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg =
+            res.status === 403
+              ? 'This retro belongs to a different team.'
+              : res.status === 404
+                ? 'Retro not found.'
+                : body.error ?? 'Could not load the retro.';
+          setError(msg);
+          return;
+        }
+        const data: RoomMeta = await res.json();
+        setRoom(data);
 
-    const existingToken = sessionStorage.getItem('sessionToken');
-    const storedRoomId = sessionStorage.getItem('roomId');
-    const reuseToken = existingToken && storedRoomId === roomId ? existingToken : null;
-    const nickname = sessionStorage.getItem('nickname') || generateGuestNickname();
+        const existingToken = sessionStorage.getItem('sessionToken');
+        const storedRoomId = sessionStorage.getItem('roomId');
+        const reuse = existingToken && storedRoomId === roomId ? existingToken : null;
+        setPendingReuseToken(reuse);
+
+        // Anonymous rooms: skip prompt entirely; auto-Guest preserves
+        // the "no identity" property. Named rooms: prompt only if we
+        // do not already have a real (non-Guest) nickname saved.
+        const storedNick = sessionStorage.getItem('nickname');
+        if (data.isAnonymous) {
+          // Fire join immediately with auto-Guest or stored Guest.
+          runJoin(reuse, storedNick && storedNick.length > 0 ? storedNick : generateGuestNickname());
+        } else if (isGuestPlaceholder(storedNick)) {
+          setNeedsNickname(true);
+        } else {
+          // Real saved nickname — reuse silently.
+          runJoin(reuse, storedNick!);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError('Could not load the retro.');
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
+
+  // Stage 2: actually POST to /participants. Idempotent — guarded by
+  // joinedRef so the modal submit + the prompt-bypass path can't
+  // both race.
+  function runJoin(reuseToken: string | null, nickname: string) {
+    if (joinedRef.current) return;
+    joinedRef.current = true;
 
     fetch(`/api/rooms/${roomId}/participants`, {
       method: 'POST',
@@ -57,13 +122,14 @@ export default function RoomPage() {
         sessionStorage.setItem('isScrumMaster', String(data.isScrumMaster ?? false));
         setSessionToken(data.sessionToken);
         setReady(true);
+        setNeedsNickname(false);
       })
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : 'Could not join the retro';
         setError(message);
-        joiningRef.current = false;
+        joinedRef.current = false;
       });
-  }, [roomId]);
+  }
 
   if (error) {
     return (
@@ -102,6 +168,32 @@ export default function RoomPage() {
     );
   }
 
+  // Show nickname prompt when needed — sits above the spinner.
+  if (needsNickname) {
+    return (
+      <main
+        style={{
+          position: 'relative',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          isolation: 'isolate',
+        }}
+      >
+        <AuroraBg />
+        <NicknamePromptModal
+          initial={(() => {
+            const s = sessionStorage.getItem('nickname');
+            return s && !isGuestPlaceholder(s) ? s : '';
+          })()}
+          onSubmit={(nick) => runJoin(pendingReuseToken, nick)}
+          onUseGuest={() => runJoin(pendingReuseToken, generateGuestNickname())}
+        />
+      </main>
+    );
+  }
+
   if (!ready || !sessionToken) {
     return (
       <main
@@ -119,7 +211,7 @@ export default function RoomPage() {
           <Logo size={28} />
           <div className="text-mono fg-2" style={{ fontSize: 12, marginTop: 14 }}>
             <span className="live-dot" style={{ marginRight: 8 }} />
-            Joining retro…
+            {room ? `Joining ${room.name}…` : 'Loading retro…'}
           </div>
         </div>
       </main>

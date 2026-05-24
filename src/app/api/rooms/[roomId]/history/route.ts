@@ -33,13 +33,16 @@ export async function GET(
   const actionItems = actionItemRepo.findByRoomId(roomId);
   const participants = participantRepo.findByRoomId(roomId);
 
-  // Build enriched cards with all v2 data
+  // Build enriched cards with all v2 data. Author resolution mirrors
+  // socket dto.ts: anonymous rooms suppress; named rooms always show.
   const enrichedCards = cards.map((card) => {
     const cardTags = cardRepo.getTagsForCard(card.id);
     let authorNickname: string | null = null;
-    if (card.isRevealed) {
-      const author = participantRepo.findById(card.authorId);
-      authorNickname = author?.nickname ?? null;
+    if (!room.isAnonymous) {
+      authorNickname =
+        card.revealedNickname ??
+        participantRepo.findById(card.authorId)?.nickname ??
+        null;
     }
 
     const comments = commentRepo.findByCardId(card.id);

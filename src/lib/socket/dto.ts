@@ -14,17 +14,20 @@ export function toCardDTO(
   const tags: Tag[] = cardRepo.getTagsForCard(card.id);
   let authorNickname: string | null = null;
 
-  // In anonymous rooms the author name is suppressed even after the
-  // author hits "Reveal" — the toggle stays a server-side bit, but
-  // viewers never see the real nickname or the chosen reveal name.
-  if (card.isRevealed && !isAnonymousRoom) {
-    if (card.revealedNickname) {
-      // Author chose a custom name at reveal time.
-      authorNickname = card.revealedNickname;
-    } else {
-      const author = participantRepo.findById(card.authorId);
-      authorNickname = author?.nickname ?? null;
-    }
+  if (isAnonymousRoom) {
+    // Anonymous rooms: author name is always null — even revealed
+    // cards and the author's chosen reveal name are suppressed.
+    authorNickname = null;
+  } else if (card.revealedNickname) {
+    // Author chose a custom reveal name. Honour it.
+    authorNickname = card.revealedNickname;
+  } else {
+    // Named room default: resolve to the author's current nickname.
+    // This bypasses the legacy `card.isRevealed` toggle — in named
+    // rooms every card is attributed automatically; identity is the
+    // point of named mode.
+    const author = participantRepo.findById(card.authorId);
+    authorNickname = author?.nickname ?? null;
   }
 
   return {

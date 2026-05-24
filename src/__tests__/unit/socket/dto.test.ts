@@ -82,34 +82,61 @@ describe('toCardDTO', () => {
   });
 
   describe('authorNickname', () => {
-    it('is null when card is NOT revealed', () => {
+    it('NAMED room: resolves author nickname even when card is NOT revealed (default named-mode behavior)', () => {
       const card = makeCard({ isRevealed: false, authorId: 'author-id' });
-      mockFindById.mockReturnValue(makeParticipant());
-
-      const dto = toCardDTO(card, 'viewer-id');
-
-      expect(dto.authorNickname).toBeNull();
-      // participantRepo should NOT be called for unrevealed cards
-      expect(mockFindById).not.toHaveBeenCalled();
-    });
-
-    it('is set to the author nickname when card IS revealed', () => {
-      const card = makeCard({ isRevealed: true, authorId: 'author-id' });
       mockFindById.mockReturnValue(makeParticipant({ id: 'author-id', nickname: 'Alice' }));
 
-      const dto = toCardDTO(card, 'viewer-id');
+      const dto = toCardDTO(card, 'viewer-id', false);
 
       expect(dto.authorNickname).toBe('Alice');
       expect(mockFindById).toHaveBeenCalledWith('author-id');
     });
 
-    it('is null when card is revealed but author participant not found', () => {
-      const card = makeCard({ isRevealed: true, authorId: 'deleted-author' });
+    it('NAMED room: prefers revealedNickname over the live participant nickname', () => {
+      const card = makeCard({ isRevealed: true, revealedNickname: 'Custom Name', authorId: 'author-id' });
+      mockFindById.mockReturnValue(makeParticipant({ id: 'author-id', nickname: 'Alice' }));
+
+      const dto = toCardDTO(card, 'viewer-id', false);
+
+      // Falls back to revealedNickname before hitting the repo
+      expect(dto.authorNickname).toBe('Custom Name');
+    });
+
+    it('NAMED room: returns null when the author participant is missing (deleted account)', () => {
+      const card = makeCard({ isRevealed: false, authorId: 'deleted-author' });
       mockFindById.mockReturnValue(null);
+
+      const dto = toCardDTO(card, 'viewer-id', false);
+
+      expect(dto.authorNickname).toBeNull();
+    });
+
+    it('ANONYMOUS room: forces authorNickname=null even on revealed cards', () => {
+      const card = makeCard({ isRevealed: true, revealedNickname: 'Custom', authorId: 'author-id' });
+      mockFindById.mockReturnValue(makeParticipant({ id: 'author-id', nickname: 'Alice' }));
+
+      const dto = toCardDTO(card, 'viewer-id', true);
+
+      expect(dto.authorNickname).toBeNull();
+      // Should not even look up the participant in anonymous rooms
+      expect(mockFindById).not.toHaveBeenCalled();
+    });
+
+    it('ANONYMOUS room: also null on unrevealed cards', () => {
+      const card = makeCard({ isRevealed: false, authorId: 'author-id' });
+
+      const dto = toCardDTO(card, 'viewer-id', true);
+
+      expect(dto.authorNickname).toBeNull();
+    });
+
+    it('default isAnonymousRoom (omitted): treated as NAMED room — resolves author', () => {
+      const card = makeCard({ isRevealed: false, authorId: 'author-id' });
+      mockFindById.mockReturnValue(makeParticipant({ id: 'author-id', nickname: 'Alice' }));
 
       const dto = toCardDTO(card, 'viewer-id');
 
-      expect(dto.authorNickname).toBeNull();
+      expect(dto.authorNickname).toBe('Alice');
     });
   });
 
@@ -149,9 +176,19 @@ describe('toCardDTO', () => {
       expect(dto.isRevealed).toBe(true);
     });
 
-    it('other person unrevealed card: isOwnCard=false, authorNickname=null', () => {
+    it('NAMED room: other person unrevealed card — isOwnCard=false, authorNickname set from author', () => {
       const card = makeCard({ authorId: 'someone-else', isRevealed: false });
-      const dto = toCardDTO(card, 'me');
+      mockFindById.mockReturnValue(makeParticipant({ id: 'someone-else', nickname: 'Bob' }));
+      const dto = toCardDTO(card, 'me', false);
+
+      expect(dto.isOwnCard).toBe(false);
+      expect(dto.authorNickname).toBe('Bob');
+    });
+
+    it('ANONYMOUS room: other person revealed card — authorNickname stays null', () => {
+      const card = makeCard({ authorId: 'someone-else', isRevealed: true });
+      mockFindById.mockReturnValue(makeParticipant({ id: 'someone-else', nickname: 'Bob' }));
+      const dto = toCardDTO(card, 'me', true);
 
       expect(dto.isOwnCard).toBe(false);
       expect(dto.authorNickname).toBeNull();
