@@ -1,7 +1,10 @@
 import type { Socket } from 'socket.io';
 import { participantRepo } from '../db/repositories/participant.repo';
 import { roomRepo } from '../db/repositories/room.repo';
-import { parseTeamIdFromCookieHeader } from '../utils/teamAuth';
+// IMPORTANT: import from teamCookie (pure module), NOT teamAuth.
+// teamAuth pulls in `next/server`, which crashes Node 22 + Next.js 16
+// when loaded outside a request context (server startup).
+import { parseTeamIdFromCookieHeader } from '../utils/teamCookie';
 
 export interface SocketData {
   participantId: string;

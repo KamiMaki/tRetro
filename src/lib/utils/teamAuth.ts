@@ -1,31 +1,13 @@
 import { NextResponse } from 'next/server';
 import { teamRepo } from '@/lib/db/repositories/team.repo';
+import {
+  TEAM_COOKIE_NAME,
+  TEAM_COOKIE_MAX_AGE,
+  parseTeamIdFromCookieHeader,
+} from '@/lib/utils/teamCookie';
 
-export const TEAM_COOKIE_NAME = 'tretro-team';
-export const TEAM_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
-
-/**
- * Parse `tretro-team` cookie value out of a raw `Cookie` header string.
- * Returns the team ID, or null when the cookie is absent or empty.
- *
- * Defensive percent-decode so a value like `abc%2Bdef` round-trips.
- * Shared between the Fetch Request API helper below and the Socket.io
- * handshake middleware, which only sees the raw header.
- */
-export function parseTeamIdFromCookieHeader(cookieHeader: string | null | undefined): string | null {
-  if (!cookieHeader) return null;
-  const pattern = new RegExp(`(?:^|; )${TEAM_COOKIE_NAME}=([^;]*)`);
-  const match = cookieHeader.match(pattern);
-  if (!match) return null;
-  const raw = match[1];
-  if (!raw) return null;
-  try {
-    const decoded = decodeURIComponent(raw);
-    return decoded.length > 0 ? decoded : null;
-  } catch {
-    return raw;
-  }
-}
+// Re-export so existing call sites keep working without a path change.
+export { TEAM_COOKIE_NAME, TEAM_COOKIE_MAX_AGE, parseTeamIdFromCookieHeader };
 
 /**
  * Parse `tretro-team` cookie value from a Fetch Request. Returns the team
@@ -59,8 +41,6 @@ export function requireTeamId(request: Request): RequireTeamResult {
   const team = teamRepo.findById(teamId);
   if (!team) {
     const res = NextResponse.json({ error: 'Team not found' }, { status: 403 });
-    // Clearing on the response signals the browser to drop the stale
-    // cookie immediately, regardless of its remaining maxAge.
     res.cookies.set({
       name: TEAM_COOKIE_NAME,
       value: '',
