@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-const MIN_PASSWORD_LEN = 4;
+const MIN_PASSWORD_LEN = 8;
 const MAX_NAME_LEN = 40;
 
 interface CreatedTeam {

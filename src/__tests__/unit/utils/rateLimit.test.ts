@@ -67,8 +67,15 @@ describe('getClientIp', () => {
   const make = (headers: Record<string, string>): Request =>
     new Request('http://localhost/', { headers });
 
-  it('returns first x-forwarded-for entry', () => {
-    expect(getClientIp(make({ 'x-forwarded-for': '203.0.113.5, 10.0.0.1' }))).toBe('203.0.113.5');
+  it('returns LAST x-forwarded-for entry (closest trusted proxy)', () => {
+    // Anti-spoof: the attacker-controlled portion of the header is at
+    // the front; each trusted hop appends to the end. The last entry
+    // is the only one the closest proxy set.
+    expect(getClientIp(make({ 'x-forwarded-for': '203.0.113.5, 10.0.0.1' }))).toBe('10.0.0.1');
+  });
+
+  it('returns the single entry when only one IP is present', () => {
+    expect(getClientIp(make({ 'x-forwarded-for': '198.51.100.7' }))).toBe('198.51.100.7');
   });
 
   it('falls back to x-real-ip', () => {

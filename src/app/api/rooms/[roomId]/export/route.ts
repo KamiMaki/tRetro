@@ -10,6 +10,17 @@ import { buildRetroCsv } from '@/lib/utils/csvExport';
 import { requireTeamId } from '@/lib/utils/teamAuth';
 import { resolveVoteDenominator } from '@/lib/utils/voteDenominator';
 
+/**
+ * Strip characters that could break out of the `filename=""` parameter
+ * in a Content-Disposition header (CRLF for header injection, quotes
+ * for filename escape, NUL/control chars, path separators). Cap length
+ * so a deliberately-long name can't blow up download UI.
+ */
+function safeFilename(name: string): string {
+  // eslint-disable-next-line no-control-regex
+  return name.replace(/["\\\r\n/\\\\\x00-\x1f]/g, '_').slice(0, 100) || 'retro';
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ roomId: string }> }
@@ -61,7 +72,7 @@ export async function GET(
     return new Response(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${room.name}-retro.html"`,
+        'Content-Disposition': `attachment; filename="${safeFilename(room.name)}-retro.html"`,
       },
     });
   }
@@ -71,7 +82,7 @@ export async function GET(
     return new Response(aiMd, {
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${room.name}-retro-ai-summary.md"`,
+        'Content-Disposition': `attachment; filename="${safeFilename(room.name)}-retro-ai-summary.md"`,
       },
     });
   }
@@ -83,7 +94,7 @@ export async function GET(
     return new Response(body, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${room.name}-retro.csv"`,
+        'Content-Disposition': `attachment; filename="${safeFilename(room.name)}-retro.csv"`,
       },
     });
   }
@@ -92,7 +103,7 @@ export async function GET(
   return new Response(md, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${room.name}-retro.md"`,
+      'Content-Disposition': `attachment; filename="${safeFilename(room.name)}-retro.md"`,
     },
   });
 }

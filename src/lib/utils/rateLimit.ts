@@ -89,16 +89,40 @@ export const teamAuthLimiter = new RateLimiter({
 });
 
 /**
- * Best-effort client IP. Behind a reverse proxy (Vercel, Cloudflare,
- * nginx) `x-forwarded-for` is set; in raw-Node deployments fall back to
- * `x-real-ip`; in test/dev with no proxy, return a constant so dev never
- * accidentally locks itself out.
+ * Module-level singleton used by `POST /api/teams`. Each create is a
+ * scrypt computation (~50-100ms), so unbounded creation by an insider
+ * burns the single Node thread. Ten teams per hour per IP is plenty
+ * for legitimate use.
+ */
+export const teamCreateLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxAttempts: 10,
+  blockMs: 60 * 60 * 1000,
+});
+
+/**
+ * Best-effort client IP. Defends against an `X-Forwarded-For` spoof
+ * by reading the *last* entry — the one the closest trusted proxy
+ * appended — rather than the first (attacker-controlled) entry. Behind
+ * a chain of trusted proxies (Vercel, Cloudflare, nginx) this is the
+ * proxy-set value; in raw-Node deployments with no proxy it falls back
+ * to `x-real-ip` then a constant so dev never accidentally locks
+ * itself out.
+ *
+ * Threat model: a single attacker hammering team-auth from one IP
+ * should not be able to bypass the limiter by rotating an
+ * `X-Forwarded-For` value per request. Picking the trailing entry
+ * mirrors the standard reverse-proxy convention (each hop appends),
+ * so the client-controlled portion of the header is ignored.
  */
 export function getClientIp(request: Request): string {
   const xff = request.headers.get('x-forwarded-for');
   if (xff) {
-    const first = xff.split(',')[0]?.trim();
-    if (first) return first;
+    const parts = xff
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
   }
   const real = request.headers.get('x-real-ip');
   if (real) return real;

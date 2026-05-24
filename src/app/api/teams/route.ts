@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { teamRepo } from '@/lib/db/repositories/team.repo';
+import { teamCreateLimiter, getClientIp } from '@/lib/utils/rateLimit';
 
 const MAX_NAME_LEN = 40;
-const MIN_PASSWORD_LEN = 4;
+// scrypt is CPU-bound (~50-100ms) and runs on every team-auth too —
+// any one-word dictionary password remains brute-forceable in seconds
+// without a network round-trip. Eight characters raises the search
+// space high enough that the rate limiter actually matters.
+const MIN_PASSWORD_LEN = 8;
 
 /**
  * List teams (id + name + createdAt only — never password material).
@@ -25,6 +30,18 @@ export async function GET() {
  * recoverable (no password-reset flow — see plan section 1, Scenario 4).
  */
 export async function POST(request: Request) {
+  // Rate-limit team creation: each create is a scrypt computation that
+  // blocks the single Node thread. An insider running a tight loop
+  // could otherwise saturate the server.
+  const ip = getClientIp(request);
+  const gate = teamCreateLimiter.check(ip);
+  if (!gate.ok) {
+    return NextResponse.json(
+      { error: 'Too many teams created. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(gate.retryAfterSec) } },
+    );
+  }
+
   let body: { name?: unknown; password?: unknown };
   try {
     body = await request.json();
@@ -58,6 +75,9 @@ export async function POST(request: Request) {
 
   try {
     const team = await teamRepo.create(name, password);
+    // Count the create against the limiter only on success — duplicate
+    // and validation failures already returned above.
+    teamCreateLimiter.recordFailure(ip);
     return NextResponse.json(team, { status: 201 });
   } catch (err) {
     // Race: another concurrent POST won the UNIQUE constraint between

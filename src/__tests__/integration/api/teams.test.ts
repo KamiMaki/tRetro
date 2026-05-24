@@ -61,7 +61,7 @@ describe('POST /api/teams', () => {
     const res = await createTeam(
       jsonRequest('http://localhost/api/teams', {
         method: 'POST',
-        body: { name: 'Alpha', password: 'pw1234' },
+        body: { name: 'Alpha', password: 'pw12345678' },
       }),
     );
     expect(res.status).toBe(201);
@@ -77,7 +77,7 @@ describe('POST /api/teams', () => {
     const res = await createTeam(
       jsonRequest('http://localhost/api/teams', {
         method: 'POST',
-        body: { password: 'pw1234' },
+        body: { password: 'pw12345678' },
       }),
     );
     expect(res.status).toBe(400);
@@ -87,7 +87,7 @@ describe('POST /api/teams', () => {
     const res = await createTeam(
       jsonRequest('http://localhost/api/teams', {
         method: 'POST',
-        body: { name: '   ', password: 'pw1234' },
+        body: { name: '   ', password: 'pw12345678' },
       }),
     );
     expect(res.status).toBe(400);
@@ -97,7 +97,7 @@ describe('POST /api/teams', () => {
     const res = await createTeam(
       jsonRequest('http://localhost/api/teams', {
         method: 'POST',
-        body: { name: 'Alpha', password: 'pw' },
+        body: { name: 'Alpha', password: 'short' },
       }),
     );
     expect(res.status).toBe(400);
@@ -118,7 +118,7 @@ describe('POST /api/teams', () => {
     const res = await createTeam(
       jsonRequest('http://localhost/api/teams', {
         method: 'POST',
-        body: { name: 'x'.repeat(41), password: 'pw1234' },
+        body: { name: 'x'.repeat(41), password: 'pw12345678' },
       }),
     );
     expect(res.status).toBe(400);
@@ -127,8 +127,8 @@ describe('POST /api/teams', () => {
 
 describe('GET /api/teams', () => {
   it('returns names + ids only — never password fields', async () => {
-    await teamRepo.create('Alpha', 'pw1234');
-    await teamRepo.create('Bravo', 'pw1234');
+    await teamRepo.create('Alpha', 'pw12345678');
+    await teamRepo.create('Bravo', 'pw12345678');
     const res = await listTeams();
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -234,7 +234,7 @@ describe('GET /api/teams/me', () => {
   });
 
   it('returns team metadata when cookie is valid', async () => {
-    const team = await teamRepo.create('Findable', 'pw1234');
+    const team = await teamRepo.create('Findable', 'pw12345678');
     const res = await currentTeam(reqWithCookie(`${TEAM_COOKIE_NAME}=${team.id}`));
     expect(res.status).toBe(200);
     const body = await res.json();
