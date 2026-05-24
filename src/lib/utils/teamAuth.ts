@@ -5,14 +5,14 @@ export const TEAM_COOKIE_NAME = 'tretro-team';
 export const TEAM_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
 /**
- * Parse `tretro-team` cookie value from a Fetch Request. Returns the team
- * ID string, or null when the cookie is absent or empty.
+ * Parse `tretro-team` cookie value out of a raw `Cookie` header string.
+ * Returns the team ID, or null when the cookie is absent or empty.
  *
- * Browser cookies are URL-encoded by some libraries; we decode defensively
- * so a value like `abc%2Bdef` is normalised before lookup.
+ * Defensive percent-decode so a value like `abc%2Bdef` round-trips.
+ * Shared between the Fetch Request API helper below and the Socket.io
+ * handshake middleware, which only sees the raw header.
  */
-export function getTeamIdFromRequest(request: Request): string | null {
-  const cookieHeader = request.headers.get('cookie');
+export function parseTeamIdFromCookieHeader(cookieHeader: string | null | undefined): string | null {
   if (!cookieHeader) return null;
   const pattern = new RegExp(`(?:^|; )${TEAM_COOKIE_NAME}=([^;]*)`);
   const match = cookieHeader.match(pattern);
@@ -25,6 +25,14 @@ export function getTeamIdFromRequest(request: Request): string | null {
   } catch {
     return raw;
   }
+}
+
+/**
+ * Parse `tretro-team` cookie value from a Fetch Request. Returns the team
+ * ID string, or null when the cookie is absent or empty.
+ */
+export function getTeamIdFromRequest(request: Request): string | null {
+  return parseTeamIdFromCookieHeader(request.headers.get('cookie'));
 }
 
 export type RequireTeamResult =
