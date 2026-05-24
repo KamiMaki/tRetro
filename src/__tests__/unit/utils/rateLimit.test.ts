@@ -2,7 +2,7 @@ import { RateLimiter, getClientIp } from '@/lib/utils/rateLimit';
 
 describe('RateLimiter', () => {
   it('allows attempts within the budget', () => {
-    let now = 1_000_000;
+    const now = 1_000_000;
     const limiter = new RateLimiter({ windowMs: 60_000, maxAttempts: 3, blockMs: 300_000 }, () => now);
     expect(limiter.check('a').ok).toBe(true);
     limiter.recordFailure('a');
@@ -12,7 +12,7 @@ describe('RateLimiter', () => {
   });
 
   it('blocks once maxAttempts reached within the window', () => {
-    let now = 1_000_000;
+    const now = 1_000_000;
     const limiter = new RateLimiter({ windowMs: 60_000, maxAttempts: 3, blockMs: 300_000 }, () => now);
     limiter.recordFailure('a');
     limiter.recordFailure('a');
@@ -36,7 +36,7 @@ describe('RateLimiter', () => {
   });
 
   it('clears state on successful attempt', () => {
-    let now = 1_000_000;
+    const now = 1_000_000;
     const limiter = new RateLimiter({ windowMs: 60_000, maxAttempts: 2, blockMs: 300_000 }, () => now);
     limiter.recordFailure('a');
     limiter.recordSuccess('a');
