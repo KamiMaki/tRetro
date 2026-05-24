@@ -1,7 +1,7 @@
-# tRetro
+# RetroXpert
 
 > Real-time, anonymous Sprint retrospective board with consensus heatmaps,
-> sprint metrics, action items, and AI summary export.
+> sprint metrics, action items, discussion + review modes, and AI summary export.
 
 [![status](https://img.shields.io/badge/status-active-brightgreen)]() [![next](https://img.shields.io/badge/next.js-16-black)]() [![react](https://img.shields.io/badge/react-19-blue)]() [![socket.io](https://img.shields.io/badge/socket.io-4-010101)]() [![sqlite](https://img.shields.io/badge/storage-sqlite-003b57)]()
 
@@ -112,6 +112,8 @@ explanations and design rationale.
 - **Consensus heatmap** — votes show up as a percentage badge on each card and a tonal accent (mint/amber/neutral) at strong/mixed/weak consensus.
 - **Sprint metrics** — anonymous 1-10 scores per indicator, only team aggregates exposed (average + 10-bucket histogram + submission count).
 - **Action items** — track pending work with assignee, due date, completion. Convert any card into an action item in one click.
+- **Discussion mode** — Focus walkthrough: step through cards one tag-group at a time with a queue, focused card, live-notes pad, and per-card Action / Park / Discussed decisions.
+- **Review mode** — Overview: every card across the 4 sections expanded at once, with one-click expand/collapse of all comment threads and a tag filter.
 - **Phase bar with timer** — gather → vote → discuss → action; SM can set per-phase countdowns.
 - **Templates** — Aurora classic, Mad/Sad/Glad, Start/Stop/Continue, 4Ls.
 - **Reveal / un-reveal** — author chooses whether to put their name on a card.
@@ -122,7 +124,7 @@ explanations and design rationale.
 - **Webhook** — POST a Markdown action-item digest when a room closes (Slack/Teams).
 - **Dashboard** — list active and closed retros with section-preview, last-activity, participant/card/action counts.
 - **Theme toggle** — animated dark / light with smooth icon morph; SSR-safe hydration.
-- **Keyboard shortcuts** — `b` board, `a` actions, `m` metrics, `n` new card, `g h` past retros, `?` help.
+- **Keyboard shortcuts** — `b` board, `d` discussion, `r` review, `a` actions, `m` metrics, `n` new card, `g h` past retros, `?` help.
 
 ---
 
