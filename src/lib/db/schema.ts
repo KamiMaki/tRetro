@@ -70,7 +70,10 @@ CREATE TABLE IF NOT EXISTS action_items (
   updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_rooms_team ON rooms(team_id);
+-- idx_rooms_team is created in migrations.ts AFTER the team_id column is
+-- added via ALTER TABLE. Keeping it here would break startup on existing
+-- DBs whose rooms table predates the team_id column (CREATE TABLE IF NOT
+-- EXISTS leaves the old table in place, then the index creation fails).
 CREATE INDEX IF NOT EXISTS idx_participants_room ON participants(room_id);
 CREATE INDEX IF NOT EXISTS idx_participants_token ON participants(session_token);
 CREATE INDEX IF NOT EXISTS idx_cards_room ON cards(room_id);

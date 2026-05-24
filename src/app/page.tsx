@@ -10,6 +10,15 @@ import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
+import { TeamPicker } from '@/components/team/TeamPicker';
+import { CreateTeamModal } from '@/components/team/CreateTeamModal';
+
+interface TeamInfo {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+type TeamState = 'loading' | 'no-team' | TeamInfo;
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -68,8 +77,43 @@ function DashboardInner() {
   const [showCreate, setShowCreate] = useState(false);
   const [roomName, setRoomName] = useState(`Retro · ${todayIso}`);
   const [templateId, setTemplateId] = useState<string>('classic');
+  const [participantCountInput, setParticipantCountInput] = useState<string>('');
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Ring-2 team auth state. 'loading' before the first /api/teams/me
+  // round-trip; 'no-team' when the user has no valid team cookie (renders
+  // the picker); otherwise the team metadata.
+  const [team, setTeam] = useState<TeamState>('loading');
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/teams/me')
+      .then(async (res) => {
+        if (cancelled) return;
+        if (res.ok) {
+          setTeam(await res.json());
+        } else {
+          setTeam('no-team');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTeam('no-team');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleSwitchTeam() {
+    try {
+      await fetch('/api/teams/auth', { method: 'DELETE' });
+    } finally {
+      window.location.reload();
+    }
+  }
 
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
@@ -145,13 +189,29 @@ function DashboardInner() {
     e.preventDefault();
     const name = roomName.trim();
     if (!name) return;
+    const parsedCount = participantCountInput.trim().length > 0
+      ? Number.parseInt(participantCountInput, 10)
+      : null;
+    // Client-side guard mirrors the server-side rule in PR-4: anonymous
+    // rooms cannot use the session-fallback denominator because every
+    // session row is a fresh Guest-XXX. Block the submit before we even
+    // round-trip.
+    if (isAnonymous && (!parsedCount || parsedCount <= 0)) {
+      setCreateError('Anonymous rooms require a positive participant count.');
+      return;
+    }
     setCreating(true);
     setCreateError(null);
     try {
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, templateId }),
+        body: JSON.stringify({
+          name,
+          templateId,
+          participantCount: parsedCount,
+          isAnonymous,
+        }),
       });
       if (!res.ok) {
         const body = await res.json();
@@ -186,6 +246,37 @@ function DashboardInner() {
   const activeRooms = filteredRooms.filter((r) => r.status === 'active');
   const closedRooms = filteredRooms.filter((r) => r.status === 'closed');
 
+  // Ring-2 gate. Render team picker (or create-team modal) before we ever
+  // render the rooms grid so a user without a team cookie never sees
+  // other teams' room metadata.
+  if (team === 'loading') {
+    return (
+      <main style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
+        <AuroraBg />
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <Logo size={28} />
+          <div className="text-mono fg-2" style={{ fontSize: 12, marginTop: 14 }}>
+            <span className="live-dot" style={{ marginRight: 8 }} />
+            Loading team…
+          </div>
+        </div>
+      </main>
+    );
+  }
+  if (team === 'no-team') {
+    return (
+      <>
+        <TeamPicker onAuthed={() => window.location.reload()} />
+        {showCreateTeam && (
+          <CreateTeamModal
+            onClose={() => setShowCreateTeam(false)}
+            onCreated={() => window.location.reload()}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <main style={{ position: 'relative', minHeight: '100vh', isolation: 'isolate' }}>
       <AuroraBg />
@@ -202,6 +293,7 @@ function DashboardInner() {
           }}
         >
           <Logo />
+          <TeamChip name={team.name} onSwitch={handleSwitchTeam} />
           <div style={{ flex: 1, minWidth: 16 }} />
           <GlassPanel
             style={{
@@ -390,6 +482,10 @@ function DashboardInner() {
           setName={setRoomName}
           templateId={templateId}
           setTemplateId={setTemplateId}
+          participantCountInput={participantCountInput}
+          setParticipantCountInput={setParticipantCountInput}
+          isAnonymous={isAnonymous}
+          setIsAnonymous={setIsAnonymous}
           onClose={() => setShowCreate(false)}
           onSubmit={handleCreate}
           creating={creating}
@@ -702,11 +798,50 @@ function Stat({ icon, value, label }: { icon: 'users' | 'cards' | 'check'; value
   );
 }
 
+function TeamChip({ name, onSwitch }: { name: string; onSwitch: () => void }) {
+  return (
+    <GlassPanel
+      style={{
+        borderRadius: 999,
+        padding: '5px 6px 5px 12px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        flexShrink: 0,
+      }}
+    >
+      <span
+        className="text-mono fg-3"
+        style={{ fontSize: 10, letterSpacing: '0.10em', textTransform: 'uppercase' }}
+      >
+        team
+      </span>
+      <span style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {name}
+      </span>
+      <button
+        type="button"
+        onClick={onSwitch}
+        title="Switch team"
+        aria-label="Switch team"
+        className="btn btn-ghost"
+        style={{ padding: '2px 8px', fontSize: 11 }}
+      >
+        switch
+      </button>
+    </GlassPanel>
+  );
+}
+
 function NewRoomModal({
   name,
   setName,
   templateId,
   setTemplateId,
+  participantCountInput,
+  setParticipantCountInput,
+  isAnonymous,
+  setIsAnonymous,
   onClose,
   onSubmit,
   creating,
@@ -716,11 +851,19 @@ function NewRoomModal({
   setName: (s: string) => void;
   templateId: string;
   setTemplateId: (id: string) => void;
+  participantCountInput: string;
+  setParticipantCountInput: (s: string) => void;
+  isAnonymous: boolean;
+  setIsAnonymous: (b: boolean) => void;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   creating: boolean;
   error: string | null;
 }) {
+  const parsedCount = participantCountInput.trim().length > 0
+    ? Number.parseInt(participantCountInput, 10)
+    : null;
+  const anonymousNeedsCount = isAnonymous && (parsedCount == null || parsedCount <= 0);
   return (
     <div onClick={onClose} className="modal-backdrop">
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 100%)', position: 'relative', zIndex: 81 }}>
@@ -829,6 +972,57 @@ function NewRoomModal({
               })}
             </div>
 
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                <label
+                  className="text-mono fg-2"
+                  style={{ display: 'block', marginBottom: 6, fontSize: 11 }}
+                  htmlFor="participantCount"
+                >
+                  Participant count{isAnonymous ? ' (required)' : ' (optional)'}
+                </label>
+                <input
+                  id="participantCount"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={participantCountInput}
+                  onChange={(e) => setParticipantCountInput(e.target.value)}
+                  placeholder="e.g. 8"
+                  className="field"
+                />
+              </div>
+              <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 12px',
+                    border: '1px solid ' + (isAnonymous ? 'var(--aurora-violet)' : 'var(--glass-border)'),
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    width: '100%',
+                    background: isAnonymous ? 'oklch(0.68 0.20 285 / 0.10)' : 'transparent',
+                    transition: 'background 0.15s, border-color 0.15s',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                  />
+                  <span style={{ fontSize: 13, color: 'var(--fg-0)' }}>Anonymous mode</span>
+                </label>
+              </div>
+            </div>
+            {isAnonymous && (
+              <div className="fg-2" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.5 }}>
+                Nicknames are hidden in the sidebar, on cards, and in exports. A
+                positive participant count is required so vote ratios are accurate.
+              </div>
+            )}
+
             {error && (
               <div
                 style={{
@@ -852,7 +1046,7 @@ function NewRoomModal({
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={!name.trim() || creating}
+                disabled={!name.trim() || creating || anonymousNeedsCount}
               >
                 {creating ? 'Creating…' : 'Create board'}
               </button>

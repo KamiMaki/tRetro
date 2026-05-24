@@ -36,6 +36,7 @@ export default function TrendsPage() {
   const [history, setHistory] = useState<MetricsHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/metrics/history?limit=50')
@@ -49,6 +50,21 @@ export default function TrendsPage() {
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Could not load trends'))
       .finally(() => setLoading(false));
+  }, []);
+
+  // Resolve the active team name for the header title. We do this
+  // independently of the metrics fetch so the title shows up even when
+  // there is no metric history yet.
+  useEffect(() => {
+    fetch('/api/teams/me')
+      .then(async (res) => {
+        if (!res.ok) return;
+        const body = await res.json();
+        if (body && typeof body.name === 'string') setTeamName(body.name);
+      })
+      .catch(() => {
+        // Silently fall back to the generic title — trends still work.
+      });
   }, []);
 
   // Order oldest → newest so the trend reads left-to-right.
@@ -114,7 +130,7 @@ export default function TrendsPage() {
               Sprint metrics
             </div>
             <h1 className="text-display aurora-text" style={{ fontSize: 'clamp(28px, 4vw, 40px)', margin: 0, lineHeight: 1.1, fontWeight: 600 }}>
-              Trends across all retros
+              {teamName ? `Trends for ${teamName}` : 'Trends across all retros'}
             </h1>
             <div className="text-mono fg-2" style={{ marginTop: 8, fontSize: 12 }}>
               {loading
