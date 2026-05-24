@@ -29,6 +29,8 @@ interface SectionFullscreenProps {
   onDeleteDrawing: (drawingId: string) => void;
   onConvertToAction: (content: string) => void;
   shareMode: boolean;
+  /** Forwarded to Card — hides the reveal/unreveal toggle in named rooms. */
+  isAnonymousRoom: boolean;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
   onUpdateCardContent?: (cardId: string, content: string) => void;
 }
@@ -55,6 +57,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onDeleteDrawing,
     onConvertToAction,
     shareMode,
+    isAnonymousRoom,
     onUpdateCardTags,
     onUpdateCardContent,
   } = props;
@@ -157,6 +160,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               participantCount={participantCount}
               roomTags={tags}
               shareMode={shareMode}
+              isAnonymousRoom={isAnonymousRoom}
               onDelete={onDeleteCard}
               onReveal={onRevealCard}
               onUnreveal={onUnrevealCard}

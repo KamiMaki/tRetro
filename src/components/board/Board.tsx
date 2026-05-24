@@ -12,6 +12,8 @@ interface BoardProps {
   participantCount: number;
   template?: RetroTemplate;
   shareMode: boolean;
+  /** Forwarded to Card so reveal/unreveal toggles hide in named rooms. */
+  isAnonymousRoom: boolean;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string, nickname?: string) => void;
@@ -35,6 +37,7 @@ export function Board({
   participantCount,
   template,
   shareMode,
+  isAnonymousRoom,
   onAddCard,
   onDeleteCard,
   onRevealCard,
@@ -66,6 +69,7 @@ export function Board({
             participantCount={participantCount}
             template={template}
             shareMode={shareMode}
+            isAnonymousRoom={isAnonymousRoom}
             onAddCard={onAddCard}
             onDeleteCard={onDeleteCard}
             onRevealCard={onRevealCard}

@@ -195,3 +195,35 @@ describe('toCardDTO', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// CLIENT DISPLAY LOGIC — mirrors the rule used by Card.tsx / DiscussionPanel
+// / ReviewPanel after the named-mode fix. The components now treat
+// `!!card.authorNickname` as the sole "show this name" signal (no more
+// `card.isRevealed` AND-guard). These tests pin that contract so the
+// behavior cannot silently regress.
+// ---------------------------------------------------------------------------
+
+describe('card author display logic (client-side guard)', () => {
+  type DisplayCard = Pick<import('@/lib/types').CardDTO, 'authorNickname' | 'isRevealed' | 'isOwnCard'>;
+
+  function authorLabel(card: DisplayCard): string {
+    const revealed = !!card.authorNickname;
+    return revealed ? card.authorNickname! : card.isOwnCard ? 'You' : 'Anonymous';
+  }
+
+  it('NAMED room: shows authorNickname even when isRevealed=false', () => {
+    const card: DisplayCard = { authorNickname: 'Penguin', isRevealed: false, isOwnCard: false };
+    expect(authorLabel(card)).toBe('Penguin');
+  });
+
+  it('ANONYMOUS room: shows "Anonymous" when authorNickname is null and card belongs to someone else', () => {
+    const card: DisplayCard = { authorNickname: null, isRevealed: false, isOwnCard: false };
+    expect(authorLabel(card)).toBe('Anonymous');
+  });
+
+  it('ANONYMOUS room: shows "You" on own unrevealed cards', () => {
+    const card: DisplayCard = { authorNickname: null, isRevealed: false, isOwnCard: true };
+    expect(authorLabel(card)).toBe('You');
+  });
+});

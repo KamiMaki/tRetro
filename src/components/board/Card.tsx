@@ -22,6 +22,11 @@ interface CardProps {
    *  reveal/un-reveal/delete affordances so the audience can't tell which card
    *  belongs to whom. SM-only park button is also gated on this flag. */
   shareMode: boolean;
+  /** True when the room was created with isAnonymous=true. Used to hide the
+   *  reveal/un-reveal toggles in named rooms (where identity is always shown
+   *  automatically — the toggle is a no-op there). Defaults to true (safe)
+   *  so the loading state never accidentally exposes affordances. */
+  isAnonymousRoom: boolean;
   onDelete: (cardId: string) => void;
   onReveal: (cardId: string, nickname?: string) => void;
   onUnreveal: (cardId: string) => void;
@@ -50,6 +55,7 @@ export function Card({
   participantCount,
   roomTags,
   shareMode,
+  isAnonymousRoom,
   onDelete,
   onReveal,
   onUnreveal,
@@ -64,8 +70,11 @@ export function Card({
   onUpdateCardContent,
 }: CardProps) {
   const canDelete = (card.isOwnCard || isScrumMaster) && !shareMode;
-  const canReveal = card.isOwnCard && !card.isRevealed && !shareMode;
-  const canUnreveal = card.isOwnCard && card.isRevealed && !shareMode;
+  // Reveal / un-reveal are only meaningful in anonymous rooms. In named
+  // rooms every card already shows the author's nickname (server-driven
+  // via toCardDTO), so the toggle would be a confusing no-op.
+  const canReveal = isAnonymousRoom && card.isOwnCard && !card.isRevealed && !shareMode;
+  const canUnreveal = isAnonymousRoom && card.isOwnCard && card.isRevealed && !shareMode;
   const canEditTags = (card.isOwnCard || isScrumMaster) && !!onUpdateCardTags;
   // Park = move the card to the deep-discussion column for a later deeper
   // conversation. Only useful when (a) the SM is actively presenting and
@@ -133,7 +142,11 @@ export function Card({
   // to put their name on a card, share mode should keep showing it.
   // Share-mode still anonymises everything else (un-revealed cards,
   // the "You" marker on the SM's own un-revealed cards).
-  const revealed = card.isRevealed && !!card.authorNickname;
+  // Server is the source of truth: a non-null authorNickname means "show
+  // this name". Named rooms always populate it; anonymous rooms force
+  // null. The legacy `card.isRevealed` bit is intentionally NOT consulted
+  // here — see plan section 3A.
+  const revealed = !!card.authorNickname;
   const authorLabel = revealed
     ? card.authorNickname!
     : shareMode

@@ -288,12 +288,12 @@ export function DiscussionPanel({ cards, onAddComment, onCreateActionItem }: Dis
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
                   <Avatar
-                    name={focused.isRevealed ? focused.authorNickname : null}
-                    anon={!(focused.isRevealed && focused.authorNickname)}
+                    name={focused.authorNickname ?? null}
+                    anon={!focused.authorNickname}
                     size={22}
                   />
                   <span className="text-mono fg-2">
-                    {focused.isRevealed && focused.authorNickname ? focused.authorNickname : 'anon'}
+                    {focused.authorNickname ?? 'anon'}
                   </span>
                   <div style={{ flex: 1 }} />
                   {focused.reactions

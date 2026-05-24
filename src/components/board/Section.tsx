@@ -31,6 +31,8 @@ interface SectionProps {
   onDeleteDrawing: (drawingId: string) => void;
   onConvertToAction: (content: string) => void;
   shareMode: boolean;
+  /** Forwarded to Card so reveal/unreveal toggles hide in named rooms. */
+  isAnonymousRoom: boolean;
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
   onUpdateCardContent?: (cardId: string, content: string) => void;
 }
@@ -55,6 +57,7 @@ export function Section({
   onDeleteDrawing,
   onConvertToAction,
   shareMode,
+  isAnonymousRoom,
   onUpdateCardTags,
   onUpdateCardContent,
 }: SectionProps) {
@@ -195,6 +198,7 @@ export function Section({
                   participantCount={participantCount}
                   roomTags={tags}
                   shareMode={shareMode}
+                  isAnonymousRoom={isAnonymousRoom}
                   onDelete={onDeleteCard}
                   onReveal={onRevealCard}
                   onUnreveal={onUnrevealCard}
@@ -232,6 +236,7 @@ export function Section({
           isScrumMaster={isScrumMaster}
           participantCount={participantCount}
           template={template}
+          isAnonymousRoom={isAnonymousRoom}
           onClose={() => setFullscreen(false)}
           onAddCard={onAddCard}
           onDeleteCard={onDeleteCard}

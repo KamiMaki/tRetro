@@ -316,7 +316,9 @@ function ReviewCard({
   onToggle: () => void;
   onAddComment: (cardId: string, content: string) => void;
 }) {
-  const revealed = card.isRevealed && !!card.authorNickname;
+  // Server-driven: a non-null authorNickname means "show this name".
+  // Named rooms always populate it; anonymous rooms force null.
+  const revealed = !!card.authorNickname;
   const authorLabel = revealed ? card.authorNickname! : card.isOwnCard ? 'You' : 'Anonymous';
   const topReactions = card.reactions.filter((r) => r.count > 0).slice(0, 3);
 

@@ -400,6 +400,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               participantCount={resolveVoteDenominator(room ?? {}, participants.length)}
               template={template}
               shareMode={shareMode}
+              isAnonymousRoom={room?.isAnonymous ?? true}
               onAddCard={addCard}
               onDeleteCard={deleteCard}
               onRevealCard={revealCard}
