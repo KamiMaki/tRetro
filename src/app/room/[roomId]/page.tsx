@@ -26,25 +26,21 @@ export default function RoomPage() {
   const joiningRef = useRef(false);
 
   useEffect(() => {
-    const existingToken = sessionStorage.getItem('sessionToken');
-    const storedRoomId = sessionStorage.getItem('roomId');
-
-    if (existingToken && storedRoomId === roomId) {
-      setSessionToken(existingToken);
-      setReady(true);
-      return;
-    }
-
-    // No (or stale) session — auto-join with a guest nickname.
+    // Always round-trip the server so a stale sessionToken (e.g. from a
+    // wiped DB) silently re-joins instead of stranding the user on a board
+    // whose socket connection fails with "Invalid session token".
     if (joiningRef.current) return;
     joiningRef.current = true;
 
+    const existingToken = sessionStorage.getItem('sessionToken');
+    const storedRoomId = sessionStorage.getItem('roomId');
+    const reuseToken = existingToken && storedRoomId === roomId ? existingToken : null;
     const nickname = sessionStorage.getItem('nickname') || generateGuestNickname();
 
     fetch(`/api/rooms/${roomId}/participants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname }),
+      body: JSON.stringify({ nickname, sessionToken: reuseToken }),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -57,7 +53,7 @@ export default function RoomPage() {
         sessionStorage.setItem('sessionToken', data.sessionToken);
         sessionStorage.setItem('participantId', data.participantId);
         sessionStorage.setItem('roomId', roomId);
-        sessionStorage.setItem('nickname', nickname);
+        sessionStorage.setItem('nickname', data.nickname ?? nickname);
         sessionStorage.setItem('isScrumMaster', String(data.isScrumMaster ?? false));
         setSessionToken(data.sessionToken);
         setReady(true);

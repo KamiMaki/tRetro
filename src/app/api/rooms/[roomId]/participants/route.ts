@@ -1,36 +1,41 @@
 import { NextResponse } from 'next/server';
-import { roomRepo } from '@/lib/db/repositories/room.repo';
-import { participantRepo } from '@/lib/db/repositories/participant.repo';
+import { joinOrCreateParticipant } from '@/lib/services/joinOrCreateParticipant';
 
+/**
+ * Idempotent join. Always called by the board page on mount. If the request
+ * carries a still-valid `sessionToken` for this room, the same participant
+ * is returned (200); otherwise a fresh one is minted (201). Stale tokens
+ * from a wiped DB silently recover by minting a new participant — that's
+ * the whole point of routing this through the server every visit.
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ roomId: string }> }
 ) {
   try {
     const { roomId } = await params;
-    const { nickname } = await request.json();
+    const body = await request.json().catch(() => ({} as Record<string, unknown>));
+    const nickname = typeof body?.nickname === 'string' ? body.nickname : undefined;
+    const sessionToken =
+      typeof body?.sessionToken === 'string' && body.sessionToken.length > 0
+        ? body.sessionToken
+        : null;
 
-    if (!nickname || typeof nickname !== 'string' || nickname.trim().length === 0) {
-      return NextResponse.json({ error: 'Nickname is required' }, { status: 400 });
+    const result = joinOrCreateParticipant(roomId, nickname, sessionToken);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    const room = roomRepo.findById(roomId);
-    if (!room) {
-      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-    }
-
-    if (room.status === 'closed') {
-      return NextResponse.json({ error: 'Room is closed' }, { status: 410 });
-    }
-
-    const participant = participantRepo.create(roomId, nickname.trim());
-
-    return NextResponse.json({
-      participantId: participant.id,
-      sessionToken: participant.sessionToken,
-      isScrumMaster: participant.isScrumMaster,
-      nickname: participant.nickname,
-    }, { status: 201 });
+    const p = result.participant;
+    return NextResponse.json(
+      {
+        participantId: p.id,
+        sessionToken: p.sessionToken,
+        isScrumMaster: p.isScrumMaster,
+        nickname: p.nickname,
+      },
+      { status: result.reused ? 200 : 201 },
+    );
   } catch {
     return NextResponse.json({ error: 'Failed to join room' }, { status: 500 });
   }
