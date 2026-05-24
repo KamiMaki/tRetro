@@ -64,6 +64,8 @@ function DashboardInner() {
     return s === 'active' || s === 'closed' ? s : 'all';
   })();
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
+  const [unclaimedRooms, setUnclaimedRooms] = useState<RoomSummary[]>([]);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -153,10 +155,18 @@ function DashboardInner() {
 
   async function fetchRooms() {
     try {
-      const res = await fetch('/api/rooms');
-      if (!res.ok) throw new Error('Failed to load rooms');
-      const data = await res.json();
-      setRooms(data);
+      const [roomsRes, unclaimedRes] = await Promise.all([
+        fetch('/api/rooms'),
+        fetch('/api/rooms/unclaimed'),
+      ]);
+      if (!roomsRes.ok) throw new Error('Failed to load rooms');
+      setRooms(await roomsRes.json());
+      // Unclaimed list is optional — if it 4xxs we just hide that section.
+      if (unclaimedRes.ok) {
+        setUnclaimedRooms(await unclaimedRes.json());
+      } else {
+        setUnclaimedRooms([]);
+      }
     } catch {
       setError('Could not load rooms. Please refresh.');
     } finally {
@@ -165,8 +175,30 @@ function DashboardInner() {
   }
 
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    // Only fetch rooms once Ring-2 is satisfied; otherwise we'd get 403s.
+    if (team !== 'loading' && team !== 'no-team') {
+      fetchRooms();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team]);
+
+  async function handleClaimRoom(roomId: string) {
+    setClaimingId(roomId);
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/claim`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Could not claim this retro.');
+      }
+      // Refresh both lists so the room hops from "Unclaimed" into the
+      // team's grid in one render.
+      await fetchRooms();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not claim this retro.');
+    } finally {
+      setClaimingId(null);
+    }
+  }
 
   async function handleDeleteRoom(roomId: string) {
     // Optimistically drop it from the list so the card disappears
@@ -473,6 +505,23 @@ function DashboardInner() {
               <BoardGrid rooms={closedRooms} onDelete={handleDeleteRoom} />
             </>
           )}
+          {!loading && !error && unclaimedRooms.length > 0 && (
+            <>
+              <SectionLabel>Unclaimed legacy rooms</SectionLabel>
+              <div className="fg-2" style={{ fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
+                These rooms were created before team spaces existed. Claim a
+                room to add it to <strong>{team.name}</strong> — anyone in
+                another team can claim it instead, so move quickly if it
+                belongs to you.
+              </div>
+              <UnclaimedGrid
+                rooms={unclaimedRooms}
+                claimingId={claimingId}
+                teamName={team.name}
+                onClaim={handleClaimRoom}
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -512,6 +561,117 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
         {children}
       </span>
       <span style={{ flex: 1, height: 1, background: 'var(--glass-border)' }} />
+    </div>
+  );
+}
+
+function UnclaimedGrid({
+  rooms,
+  claimingId,
+  teamName,
+  onClaim,
+}: {
+  rooms: RoomSummary[];
+  claimingId: string | null;
+  teamName: string;
+  onClaim: (id: string) => Promise<void>;
+}) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+        gap: 16,
+        marginBottom: 24,
+      }}
+    >
+      {rooms.map((room) => {
+        const hue = hueFor(room.id);
+        const isClaiming = claimingId === room.id;
+        return (
+          <article key={room.id} style={{ position: 'relative' }}>
+            <GlassPanel
+              strong
+              style={{
+                padding: 18,
+                minHeight: 200,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  top: -40,
+                  right: -40,
+                  width: 140,
+                  height: 140,
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, oklch(0.7 0.2 ${hue} / 0.35), transparent 65%)`,
+                  filter: 'blur(20px)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 10,
+                  position: 'relative',
+                }}
+              >
+                <span className="text-mono fg-2" style={{ fontSize: 11 }}>
+                  {formatDate(room.createdAt)}
+                </span>
+                <span
+                  className="text-mono"
+                  style={{
+                    fontSize: 10,
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    background: 'oklch(0.65 0.18 75 / 0.18)',
+                    color: 'oklch(0.85 0.16 75)',
+                    border: '1px solid oklch(0.65 0.18 75 / 0.30)',
+                  }}
+                >
+                  unclaimed
+                </span>
+              </div>
+              <h3
+                className="text-display"
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--fg-0)',
+                }}
+              >
+                {room.name}
+              </h3>
+              <div
+                className="fg-2"
+                style={{ fontSize: 12, marginTop: 8, lineHeight: 1.5 }}
+              >
+                {room.cardCount} card{room.cardCount === 1 ? '' : 's'} · {room.actionItemCount} action{room.actionItemCount === 1 ? '' : 's'}
+              </div>
+              <div style={{ flex: 1 }} />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={isClaiming}
+                onClick={() => onClaim(room.id)}
+                style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
+              >
+                {isClaiming ? 'Claiming…' : `Claim to ${teamName}`}
+              </button>
+            </GlassPanel>
+          </article>
+        );
+      })}
     </div>
   );
 }

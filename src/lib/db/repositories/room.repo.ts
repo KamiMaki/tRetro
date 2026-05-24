@@ -166,6 +166,25 @@ export const roomRepo = {
     return rows.map(toSummary);
   },
 
+  /**
+   * Move an unclaimed room (team_id IS NULL) into a team. The
+   * `AND team_id IS NULL` guard makes this atomic — two concurrent
+   * claims on the same room give exactly one winner; the loser sees
+   * `changes === 0`.
+   *
+   * Returns `true` if the row was actually updated (winning claim),
+   * `false` if the room is missing OR already belongs to a team.
+   */
+  claim(roomId: string, teamId: string): boolean {
+    const db = getDb();
+    const info = db
+      .prepare(
+        "UPDATE rooms SET team_id = ?, updated_at = datetime('now') WHERE id = ? AND team_id IS NULL",
+      )
+      .run(teamId, roomId);
+    return info.changes > 0;
+  },
+
   close(id: string): Room | null {
     const db = getDb();
     db.prepare(
