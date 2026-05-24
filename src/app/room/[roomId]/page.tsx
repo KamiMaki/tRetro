@@ -63,7 +63,7 @@ export default function RoomPage() {
         setError(message);
         joiningRef.current = false;
       });
-  }, [roomId, router]);
+  }, [roomId]);
 
   if (error) {
     return (
