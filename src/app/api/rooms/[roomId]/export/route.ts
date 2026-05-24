@@ -8,6 +8,7 @@ import { exportToMarkdown, exportToHtml } from '@/lib/utils/export';
 import { buildAiSummaryMarkdown } from '@/lib/utils/aiExportTemplate';
 import { buildRetroCsv } from '@/lib/utils/csvExport';
 import { requireTeamId } from '@/lib/utils/teamAuth';
+import { resolveVoteDenominator } from '@/lib/utils/voteDenominator';
 
 export async function GET(
   request: Request,
@@ -50,8 +51,13 @@ export async function GET(
     return { ...card, tags: cardTags, authorNickname };
   });
 
+  // For anonymous / configured rooms the live session count over-reports
+  // (one row per browser tab, plus Guest-XXX rejoins). Use the
+  // facilitator-configured headcount when available.
+  const denom = resolveVoteDenominator(room, participants.length);
+
   if (format === 'html') {
-    const html = exportToHtml(room, cardsWithMeta, tags, actionItems, participants.length);
+    const html = exportToHtml(room, cardsWithMeta, tags, actionItems, denom);
     return new Response(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
@@ -61,7 +67,7 @@ export async function GET(
   }
 
   if (format === 'ai') {
-    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, participants.length);
+    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, denom);
     return new Response(aiMd, {
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
@@ -82,7 +88,7 @@ export async function GET(
     });
   }
 
-  const md = exportToMarkdown(room, cardsWithMeta, tags, actionItems, participants.length);
+  const md = exportToMarkdown(room, cardsWithMeta, tags, actionItems, denom);
   return new Response(md, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',

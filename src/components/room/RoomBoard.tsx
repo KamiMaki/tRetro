@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useRoom } from '@/lib/hooks/useRoom';
 import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { RoomHeader } from '@/components/room/RoomHeader';
+import { resolveVoteDenominator } from '@/lib/utils/voteDenominator';
 import { Board } from '@/components/board/Board';
 import { ActionItemList } from '@/components/action-items/ActionItemList';
 import { MetricsPanel } from '@/components/metrics/MetricsPanel';
@@ -396,7 +397,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               cards={cards}
               tags={tags}
               isScrumMaster={isScrumMaster}
-              participantCount={participants.length}
+              participantCount={resolveVoteDenominator(room ?? {}, participants.length)}
               template={template}
               shareMode={shareMode}
               onAddCard={addCard}

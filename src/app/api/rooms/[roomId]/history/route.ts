@@ -10,6 +10,7 @@ import { voteRepo } from '@/lib/db/repositories/vote.repo';
 import { drawingRepo } from '@/lib/db/repositories/drawing.repo';
 import { metricRepo } from '@/lib/db/repositories/metric.repo';
 import { requireTeamId } from '@/lib/utils/teamAuth';
+import { resolveVoteDenominator } from '@/lib/utils/voteDenominator';
 
 export async function GET(
   request: Request,
@@ -76,7 +77,7 @@ export async function GET(
     cards: enrichedCards,
     tags,
     actionItems,
-    participantCount: participants.length,
+    participantCount: resolveVoteDenominator(room, participants.length),
     metricsAggregate,
   });
 }
