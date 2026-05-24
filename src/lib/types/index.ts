@@ -182,7 +182,16 @@ export interface RoomSummary {
   status: RoomStatus;
   createdAt: string;
   closedAt: string | null;
+  /**
+   * Compatibility alias — equals `sessionParticipantCount`. Older UI
+   * (dashboard card "people" stat) reads this field directly. Will be
+   * removed after every consumer migrates to the explicit names.
+   */
   participantCount: number;
+  /** Number of session-bound participant rows for the room. */
+  sessionParticipantCount: number;
+  /** Configured meeting headcount from room.participant_count, or null. */
+  configuredParticipantCount: number | null;
   cardCount: number;
   actionItemCount: number;
   /** ISO timestamp of last activity (newest of cards / comments / action_items / createdAt). */
@@ -191,6 +200,10 @@ export interface RoomSummary {
   sectionCounts: Record<SectionType, number>;
   /** Retro template id (classic / mad-sad-glad / etc.). */
   templateId: string;
+  /** Team this room belongs to. NULL = unclaimed legacy room. */
+  teamId: string | null;
+  /** Whether the room hides participant nicknames. */
+  isAnonymous: boolean;
 }
 
 // Socket event payloads

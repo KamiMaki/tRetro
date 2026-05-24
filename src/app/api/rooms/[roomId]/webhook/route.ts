@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server';
 import { roomRepo } from '@/lib/db/repositories/room.repo';
 import { participantRepo } from '@/lib/db/repositories/participant.repo';
 import { isAllowedWebhookUrl } from '@/lib/integrations/digest';
+import { requireTeamId } from '@/lib/utils/teamAuth';
 
 /**
  * Read or update the per-room webhook URL.
  *
- * Anyone in the room (everyone is SM by default) can update it. We
- * authenticate with sessionToken from a header so the URL never leaks
- * into a query string.
+ * Defence in depth: we check both the team cookie (Ring 2) AND the
+ * participant session token. Team check rejects users from other teams;
+ * session token check ensures the caller is actually a participant in
+ * the room. Either fails → reject.
  */
 function authParticipantForRoom(req: Request, roomId: string) {
   const token = req.headers.get('x-session-token') ?? '';
@@ -22,6 +24,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ roomId: string }> },
 ) {
+  const gate = requireTeamId(request);
+  if ('error' in gate) return gate.error;
   const { roomId } = await params;
   const participant = authParticipantForRoom(request, roomId);
   if (!participant) {
@@ -29,6 +33,9 @@ export async function GET(
   }
   const room = roomRepo.findById(roomId);
   if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+  if (room.teamId !== null && room.teamId !== gate.teamId) {
+    return NextResponse.json({ error: 'Room belongs to a different team' }, { status: 403 });
+  }
   return NextResponse.json({
     webhookUrl: room.webhookUrl,
     masked: room.webhookUrl ? maskUrl(room.webhookUrl) : null,
@@ -39,6 +46,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ roomId: string }> },
 ) {
+  const gate = requireTeamId(request);
+  if ('error' in gate) return gate.error;
   const { roomId } = await params;
   const participant = authParticipantForRoom(request, roomId);
   if (!participant) {
@@ -46,6 +55,9 @@ export async function PUT(
   }
   const room = roomRepo.findById(roomId);
   if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+  if (room.teamId !== null && room.teamId !== gate.teamId) {
+    return NextResponse.json({ error: 'Room belongs to a different team' }, { status: 403 });
+  }
 
   let body: unknown;
   try {

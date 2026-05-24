@@ -9,16 +9,22 @@ import { reactionRepo } from '@/lib/db/repositories/reaction.repo';
 import { voteRepo } from '@/lib/db/repositories/vote.repo';
 import { drawingRepo } from '@/lib/db/repositories/drawing.repo';
 import { metricRepo } from '@/lib/db/repositories/metric.repo';
+import { requireTeamId } from '@/lib/utils/teamAuth';
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ roomId: string }> }
 ) {
+  const gate = requireTeamId(request);
+  if ('error' in gate) return gate.error;
   const { roomId } = await params;
 
   const room = roomRepo.findById(roomId);
   if (!room) {
     return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+  }
+  if (room.teamId !== null && room.teamId !== gate.teamId) {
+    return NextResponse.json({ error: 'Room belongs to a different team' }, { status: 403 });
   }
 
   const cards = cardRepo.findByRoomId(roomId);

@@ -7,11 +7,14 @@ import { participantRepo } from '@/lib/db/repositories/participant.repo';
 import { exportToMarkdown, exportToHtml } from '@/lib/utils/export';
 import { buildAiSummaryMarkdown } from '@/lib/utils/aiExportTemplate';
 import { buildRetroCsv } from '@/lib/utils/csvExport';
+import { requireTeamId } from '@/lib/utils/teamAuth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ roomId: string }> }
 ) {
+  const gate = requireTeamId(request);
+  if ('error' in gate) return gate.error;
   const { roomId } = await params;
   const url = new URL(request.url);
   const format = url.searchParams.get('format') || 'md';
@@ -19,6 +22,9 @@ export async function GET(
   const room = roomRepo.findById(roomId);
   if (!room) {
     return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+  }
+  if (room.teamId !== null && room.teamId !== gate.teamId) {
+    return NextResponse.json({ error: 'Room belongs to a different team' }, { status: 403 });
   }
 
   const cards = cardRepo.findByRoomId(roomId);
