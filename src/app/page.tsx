@@ -264,7 +264,7 @@ function DashboardInner() {
             className="text-display"
             style={{ fontSize: 'clamp(32px, 5vw, 48px)', margin: 0, lineHeight: 1.05, fontWeight: 600 }}
           >
-            Welcome back to <span className="aurora-text">tRetro</span>
+            Welcome back to <span className="aurora-text">RetroXpert</span>
           </h1>
         </div>
 

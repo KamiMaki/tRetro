@@ -13,13 +13,15 @@ import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
 import { PhaseBar } from '@/components/room/PhaseBar';
+import { DiscussionPanel } from '@/components/discussion/DiscussionPanel';
+import { ReviewPanel } from '@/components/discussion/ReviewPanel';
 import { findTemplate } from '@/lib/templates';
 
 interface RoomBoardProps {
   roomId: string;
 }
 
-type MainTab = 'board' | 'actions' | 'metrics';
+type MainTab = 'board' | 'discussion' | 'review' | 'actions' | 'metrics';
 
 const SHARE_MODE_KEY = 'tretro-share-mode';
 const TOOLS_OPEN_KEY = 'tretro-tools-open';
@@ -125,6 +127,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
 
   const SHORTCUTS: KeyboardHelpItem[] = [
     { keys: 'b', description: 'Switch to Board tab', group: 'Tabs' },
+    { keys: 'd', description: 'Switch to Discussion tab', group: 'Tabs' },
+    { keys: 'r', description: 'Switch to Review tab', group: 'Tabs' },
     { keys: 'a', description: 'Switch to Action items tab', group: 'Tabs' },
     { keys: 'm', description: 'Switch to Sprint metrics tab', group: 'Tabs' },
     { keys: 't', description: 'Toggle Tools drawer (timer + filter + sort)', group: 'Tabs' },
@@ -143,6 +147,16 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
       keys: 'b',
       description: 'Switch to board',
       handler: () => setActiveTab('board'),
+    },
+    {
+      keys: 'd',
+      description: 'Switch to discussion',
+      handler: () => setActiveTab('discussion'),
+    },
+    {
+      keys: 'r',
+      description: 'Switch to review',
+      handler: () => setActiveTab('review'),
     },
     {
       keys: 'a',
@@ -222,6 +236,28 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="2" y="2" width="5" height="12" rx="1" />
           <rect x="9" y="2" width="5" height="12" rx="1" />
+        </svg>
+      ),
+    },
+    {
+      key: 'discussion',
+      label: 'Discussion',
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" />
+          <path d="M8 1v2M8 13v2M1 8h2M13 8h2" />
+        </svg>
+      ),
+    },
+    {
+      key: 'review',
+      label: 'Review',
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="2" y="2" width="5" height="5" rx="1" />
+          <rect x="9" y="2" width="5" height="5" rx="1" />
+          <rect x="2" y="9" width="5" height="5" rx="1" />
+          <rect x="9" y="9" width="5" height="5" rx="1" />
         </svg>
       ),
     },
@@ -378,6 +414,28 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onUpdateCardTags={onUpdateCardTags}
               onUpdateCardContent={onUpdateCardContent}
             />
+          </div>
+
+          <div
+            id="main-panel-discussion"
+            role="tabpanel"
+            hidden={activeTab !== 'discussion'}
+            style={{ display: activeTab === 'discussion' ? 'block' : 'none' }}
+          >
+            <DiscussionPanel
+              cards={cards}
+              onAddComment={addComment}
+              onCreateActionItem={(description) => addActionItem({ description })}
+            />
+          </div>
+
+          <div
+            id="main-panel-review"
+            role="tabpanel"
+            hidden={activeTab !== 'review'}
+            style={{ display: activeTab === 'review' ? 'block' : 'none' }}
+          >
+            <ReviewPanel cards={cards} template={template} onAddComment={addComment} />
           </div>
 
           <div
