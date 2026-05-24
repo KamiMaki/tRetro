@@ -170,15 +170,18 @@ export const metricRepo = {
   },
 
   /**
-   * Anonymous team-aggregate history across the most recent rooms.
-   * Returns one entry per room (newest first), each with the full metric set.
+   * Anonymous team-aggregate history scoped to a team's rooms (newest
+   * first). The `WHERE r.team_id = ?` inside the CTE keeps team B's
+   * metrics off team A's trends page (Principle 1). Returns one entry
+   * per room, each with the full metric set.
    */
-  getTeamHistory(limit = 12): MetricsHistoryEntry[] {
+  getTeamHistory(limit: number, teamId: string): MetricsHistoryEntry[] {
     const db = getDb();
     const rows = db
       .prepare(
         `WITH recent AS (
            SELECT id, name, created_at, closed_at FROM rooms
+           WHERE team_id = ?
            ORDER BY created_at DESC
            LIMIT ?
          )
@@ -195,7 +198,7 @@ export const metricRepo = {
          GROUP BY r.id, ms.metric_key
          ORDER BY r.created_at DESC`,
       )
-      .all(limit) as HistoryAggregateRow[];
+      .all(teamId, limit) as HistoryAggregateRow[];
 
     const byRoom = new Map<string, MetricsHistoryEntry>();
     for (const row of rows) {
