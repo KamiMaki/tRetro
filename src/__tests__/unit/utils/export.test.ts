@@ -11,6 +11,9 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     closedAt: null,
     webhookUrl: null,
     templateId: 'classic',
+    teamId: null,
+    participantCount: null,
+    isAnonymous: false,
     ...overrides,
   };
 }

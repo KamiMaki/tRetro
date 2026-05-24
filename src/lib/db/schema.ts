@@ -1,13 +1,24 @@
 export const CREATE_TABLES_SQL = `
+CREATE TABLE IF NOT EXISTS teams (
+  id              TEXT PRIMARY KEY,
+  name            TEXT NOT NULL UNIQUE,
+  password_hash   TEXT NOT NULL,
+  password_salt   TEXT NOT NULL,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS rooms (
-  id            TEXT PRIMARY KEY,
-  name          TEXT NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','closed')),
-  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  closed_at     TEXT,
-  webhook_url   TEXT,
-  template_id   TEXT NOT NULL DEFAULT 'classic'
+  id                TEXT PRIMARY KEY,
+  name              TEXT NOT NULL,
+  status            TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','closed')),
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  closed_at         TEXT,
+  webhook_url       TEXT,
+  template_id       TEXT NOT NULL DEFAULT 'classic',
+  team_id           TEXT REFERENCES teams(id) ON DELETE CASCADE,
+  participant_count INTEGER,
+  is_anonymous      INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS participants (
@@ -59,6 +70,7 @@ CREATE TABLE IF NOT EXISTS action_items (
   updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE INDEX IF NOT EXISTS idx_rooms_team ON rooms(team_id);
 CREATE INDEX IF NOT EXISTS idx_participants_room ON participants(room_id);
 CREATE INDEX IF NOT EXISTS idx_participants_token ON participants(session_token);
 CREATE INDEX IF NOT EXISTS idx_cards_room ON cards(room_id);

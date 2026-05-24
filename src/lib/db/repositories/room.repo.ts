@@ -11,6 +11,9 @@ interface RoomRow {
   closed_at: string | null;
   webhook_url: string | null;
   template_id: string | null;
+  team_id: string | null;
+  participant_count: number | null;
+  is_anonymous: number | null;
 }
 
 function toRoom(row: RoomRow): Room {
@@ -23,6 +26,9 @@ function toRoom(row: RoomRow): Room {
     closedAt: row.closed_at,
     webhookUrl: row.webhook_url ?? null,
     templateId: row.template_id ?? 'classic',
+    teamId: row.team_id ?? null,
+    participantCount: row.participant_count ?? null,
+    isAnonymous: row.is_anonymous === 1,
   };
 }
 

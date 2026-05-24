@@ -69,6 +69,20 @@ export interface Room {
   webhookUrl: string | null;
   /** Retro template id (classic / mad-sad-glad / start-stop-continue / 4ls). */
   templateId: string;
+  /** Team this room belongs to. NULL = unclaimed legacy room. */
+  teamId: string | null;
+  /** Configured meeting headcount used as the authoritative vote denominator.
+   *  NULL = no configured count; vote denominator falls back to session count. */
+  participantCount: number | null;
+  /** Whether the room hides participant nicknames in cards, sidebar, exports. */
+  isAnonymous: boolean;
+}
+
+/** Public team metadata. NEVER includes password_hash / password_salt. */
+export interface Team {
+  id: string;
+  name: string;
+  createdAt: string;
 }
 
 export interface Participant {

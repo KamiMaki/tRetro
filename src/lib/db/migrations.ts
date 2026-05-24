@@ -51,4 +51,21 @@ export function runMigrations(): void {
   if (!cardCols.some((c) => c.name === 'is_parked')) {
     db.exec(`ALTER TABLE cards ADD COLUMN is_parked INTEGER NOT NULL DEFAULT 0`);
   }
+
+  // 2026-05-24: team-spaces multi-tenancy.
+  // Re-read rooms columns after earlier ALTERs so the guard reflects
+  // current schema state.
+  const roomCols = db.prepare(`PRAGMA table_info(rooms)`).all() as Array<{ name: string }>;
+  if (!roomCols.some((c) => c.name === 'team_id')) {
+    // Nullable FK — existing rows become "unclaimed" legacy rooms.
+    db.exec(`ALTER TABLE rooms ADD COLUMN team_id TEXT REFERENCES teams(id) ON DELETE CASCADE`);
+  }
+  if (!roomCols.some((c) => c.name === 'participant_count')) {
+    // Configured headcount for vote-denominator math. NULL = use session fallback.
+    db.exec(`ALTER TABLE rooms ADD COLUMN participant_count INTEGER`);
+  }
+  if (!roomCols.some((c) => c.name === 'is_anonymous')) {
+    db.exec(`ALTER TABLE rooms ADD COLUMN is_anonymous INTEGER NOT NULL DEFAULT 0`);
+  }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_rooms_team ON rooms(team_id)`);
 }
