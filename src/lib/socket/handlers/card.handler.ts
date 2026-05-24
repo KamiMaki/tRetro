@@ -2,11 +2,17 @@ import type { Server, Socket } from 'socket.io';
 import { SOCKET_EVENTS } from '../events';
 import { cardRepo } from '../../db/repositories/card.repo';
 import { participantRepo } from '../../db/repositories/participant.repo';
+import { roomRepo } from '../../db/repositories/room.repo';
 import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 import type { CreateCardPayload, UpdateCardPayload } from '../../types';
 
-function broadcastCard(io: Server, roomId: string, card: ReturnType<typeof cardRepo.findById>) {
+function broadcastCard(
+  io: Server,
+  roomId: string,
+  card: ReturnType<typeof cardRepo.findById>,
+  isAnonymousRoom: boolean,
+) {
   if (!card) return;
   // Send per-socket to preserve isOwnCard
   const sockets = io.sockets.adapter.rooms.get(roomId);
@@ -16,7 +22,7 @@ function broadcastCard(io: Server, roomId: string, card: ReturnType<typeof cardR
     const targetSocket = io.sockets.sockets.get(socketId);
     if (!targetSocket) continue;
     const targetData = targetSocket.data as SocketData;
-    const dto = toCardDTOv2(card, targetData.participantId);
+    const dto = toCardDTOv2(card, targetData.participantId, isAnonymousRoom);
     targetSocket.emit(SOCKET_EVENTS.CARD_CREATED, dto);
   }
 }
@@ -29,7 +35,8 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
       const card = cardRepo.create(
         data.roomId, payload.section, payload.content, data.participantId, payload.tagIds
       );
-      broadcastCard(io, data.roomId, card);
+      const room = roomRepo.findById(data.roomId);
+      broadcastCard(io, data.roomId, card, room?.isAnonymous ?? false);
     } catch (err) {
       socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to create card', code: 'CREATE_FAILED' });
     }
@@ -53,13 +60,15 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
       if (!updated) return;
 
       // Broadcast updated card to all
+      const room = roomRepo.findById(data.roomId);
+      const anon = room?.isAnonymous ?? false;
       const sockets = io.sockets.adapter.rooms.get(data.roomId);
       if (!sockets) return;
       for (const socketId of sockets) {
         const targetSocket = io.sockets.sockets.get(socketId);
         if (!targetSocket) continue;
         const targetData = targetSocket.data as SocketData;
-        targetSocket.emit(SOCKET_EVENTS.CARD_UPDATED, toCardDTOv2(updated, targetData.participantId));
+        targetSocket.emit(SOCKET_EVENTS.CARD_UPDATED, toCardDTOv2(updated, targetData.participantId, anon));
       }
     } catch (err) {
       socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to update card', code: 'UPDATE_FAILED' });
@@ -96,6 +105,14 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
         }
         if (card.authorId !== data.participantId) {
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can reveal identity', code: 'FORBIDDEN' });
+          return;
+        }
+        // Anonymous rooms forbid reveal at all — defence in depth.
+        // The UI should hide the toggle, but a hand-crafted client
+        // call still must be rejected.
+        const room = roomRepo.findById(data.roomId);
+        if (room?.isAnonymous) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot reveal identity in an anonymous room', code: 'FORBIDDEN' });
           return;
         }
         const fallback = participantRepo.findById(card.authorId)?.nickname ?? 'Unknown';
@@ -152,13 +169,15 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
         if (card.section === section) return;
         const updated = cardRepo.update(cardId, { section });
         if (!updated) return;
+        const room = roomRepo.findById(data.roomId);
+        const anon = room?.isAnonymous ?? false;
         const sockets = io.sockets.adapter.rooms.get(data.roomId);
         if (!sockets) return;
         for (const socketId of sockets) {
           const targetSocket = io.sockets.sockets.get(socketId);
           if (!targetSocket) continue;
           const targetData = targetSocket.data as SocketData;
-          targetSocket.emit(SOCKET_EVENTS.CARD_UPDATED, toCardDTOv2(updated, targetData.participantId));
+          targetSocket.emit(SOCKET_EVENTS.CARD_UPDATED, toCardDTOv2(updated, targetData.participantId, anon));
         }
       } catch {
         socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to move card', code: 'MOVE_FAILED' });

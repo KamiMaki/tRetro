@@ -6,11 +6,18 @@ import { reactionRepo } from '../db/repositories/reaction.repo';
 import { voteRepo } from '../db/repositories/vote.repo';
 import { drawingRepo } from '../db/repositories/drawing.repo';
 
-export function toCardDTO(card: CardDB, viewerParticipantId: string): CardDTO {
+export function toCardDTO(
+  card: CardDB,
+  viewerParticipantId: string,
+  isAnonymousRoom: boolean = false,
+): CardDTO {
   const tags: Tag[] = cardRepo.getTagsForCard(card.id);
   let authorNickname: string | null = null;
 
-  if (card.isRevealed) {
+  // In anonymous rooms the author name is suppressed even after the
+  // author hits "Reveal" — the toggle stays a server-side bit, but
+  // viewers never see the real nickname or the chosen reveal name.
+  if (card.isRevealed && !isAnonymousRoom) {
     if (card.revealedNickname) {
       // Author chose a custom name at reveal time.
       authorNickname = card.revealedNickname;
@@ -33,8 +40,12 @@ export function toCardDTO(card: CardDB, viewerParticipantId: string): CardDTO {
   };
 }
 
-export function toCardDTOv2(card: CardDB, viewerParticipantId: string): CardDTOv2 {
-  const base = toCardDTO(card, viewerParticipantId);
+export function toCardDTOv2(
+  card: CardDB,
+  viewerParticipantId: string,
+  isAnonymousRoom: boolean = false,
+): CardDTOv2 {
+  const base = toCardDTO(card, viewerParticipantId, isAnonymousRoom);
   const comments = commentRepo.findByCardId(card.id);
   const reactionSummaries = reactionRepo.getByCardId(card.id);
   const voteCount = voteRepo.getCountByCardId(card.id);

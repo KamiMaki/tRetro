@@ -24,14 +24,20 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
     const room = roomRepo.findById(roomId);
     const participant = participantRepo.findById(participantId);
-    const participants = participantRepo.findByRoomId(roomId).map(p => ({
+    const anon = room?.isAnonymous ?? false;
+    // In anonymous rooms, replace real nicknames with stable Guest-N
+    // labels keyed off the participant's position in join order
+    // (findByRoomId is ordered by joined_at). The label is stable
+    // across reloads so cards/votes still pair to the right person
+    // visually, just without identity.
+    const participants = participantRepo.findByRoomId(roomId).map((p, i) => ({
       id: p.id,
-      nickname: p.nickname,
+      nickname: anon ? `Guest-${i + 1}` : p.nickname,
       isScrumMaster: p.isScrumMaster,
       isOnline: p.isOnline,
     }));
     const cardsDB = cardRepo.findByRoomId(roomId);
-    const cards = cardsDB.map(c => toCardDTOv2(c, participantId));
+    const cards = cardsDB.map(c => toCardDTOv2(c, participantId, anon));
     const tags = tagRepo.findByRoomId(roomId);
     const actionItems = actionItemRepo.findByRoomId(roomId);
     const metricsAggregate = metricRepo.getAggregateByRoomId(roomId);
@@ -50,10 +56,12 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       phaseState,
     });
 
-    // Notify others
+    // Notify others. In anonymous rooms, broadcast a Guest-N label
+    // based on the joiner's current index. Existing viewers will pick
+    // it up; their stable index list grows by one.
     socket.to(roomId).emit(SOCKET_EVENTS.ROOM_PARTICIPANT_JOINED, {
       id: participant!.id,
-      nickname: participant!.nickname,
+      nickname: anon ? `Guest-${participants.length}` : participant!.nickname,
       isScrumMaster: participant!.isScrumMaster,
       isOnline: true,
     });

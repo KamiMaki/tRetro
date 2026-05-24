@@ -1178,8 +1178,9 @@ function NewRoomModal({
             </div>
             {isAnonymous && (
               <div className="fg-2" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.5 }}>
-                Nicknames are hidden in the sidebar, on cards, and in exports. A
-                positive participant count is required so vote ratios are accurate.
+                Nicknames are hidden in the participant sidebar and on cards
+                (the reveal toggle is disabled in anonymous rooms). A positive
+                participant count is required so vote ratios are accurate.
               </div>
             )}
 
