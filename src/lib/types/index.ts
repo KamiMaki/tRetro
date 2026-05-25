@@ -147,7 +147,10 @@ export interface Comment {
   cardId: string;
   roomId: string;
   authorId: string;
-  authorNickname: string;
+  // null when the room is anonymous (server suppresses identity on the
+  // wire) or when the author participant row was deleted. Named rooms
+  // always carry the author's current nickname here.
+  authorNickname: string | null;
   content: string;
   createdAt: string;
 }

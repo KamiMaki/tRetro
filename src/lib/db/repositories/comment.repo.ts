@@ -13,13 +13,17 @@ interface CommentRow {
 }
 
 function toComment(row: CommentRow): Comment {
+  // Always populate the current nickname here. Anonymous-room suppression
+  // happens at the DTO layer (toCommentDTO in src/lib/socket/dto.ts) so
+  // the DB layer can stay storage-shaped and not room-aware. Null when
+  // the author participant row was deleted.
   const author = participantRepo.findById(row.author_id);
   return {
     id: row.id,
     cardId: row.card_id,
     roomId: row.room_id,
     authorId: row.author_id,
-    authorNickname: author?.nickname ?? 'Unknown',
+    authorNickname: author?.nickname ?? null,
     content: row.content,
     createdAt: row.created_at,
   };

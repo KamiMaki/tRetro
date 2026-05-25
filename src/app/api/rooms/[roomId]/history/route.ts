@@ -5,6 +5,7 @@ import { tagRepo } from '@/lib/db/repositories/tag.repo';
 import { actionItemRepo } from '@/lib/db/repositories/action-item.repo';
 import { participantRepo } from '@/lib/db/repositories/participant.repo';
 import { commentRepo } from '@/lib/db/repositories/comment.repo';
+import { toCommentDTO } from '@/lib/socket/dto';
 import { reactionRepo } from '@/lib/db/repositories/reaction.repo';
 import { voteRepo } from '@/lib/db/repositories/vote.repo';
 import { drawingRepo } from '@/lib/db/repositories/drawing.repo';
@@ -45,7 +46,13 @@ export async function GET(
         null;
     }
 
-    const comments = commentRepo.findByCardId(card.id);
+    // Comments inherit the room's identity policy: anonymous rooms
+    // strip the author nickname (defence-in-depth); named rooms carry
+    // it automatically (matches the always-show-author pattern used for
+    // cards via toCardDTO above).
+    const comments = commentRepo
+      .findByCardId(card.id)
+      .map((c) => toCommentDTO(c, room.isAnonymous));
     const reactionSummaries = reactionRepo.getByCardId(card.id);
     const reactions = reactionSummaries.map((r) => ({
       emoji: r.emoji,

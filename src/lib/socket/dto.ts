@@ -1,10 +1,25 @@
-import type { CardDB, CardDTO, CardDTOv2, Tag } from '../types';
+import type { CardDB, CardDTO, CardDTOv2, Comment, Tag } from '../types';
 import { cardRepo } from '../db/repositories/card.repo';
 import { participantRepo } from '../db/repositories/participant.repo';
 import { commentRepo } from '../db/repositories/comment.repo';
 import { reactionRepo } from '../db/repositories/reaction.repo';
 import { voteRepo } from '../db/repositories/vote.repo';
 import { drawingRepo } from '../db/repositories/drawing.repo';
+
+/**
+ * Strip identity from a comment when the room is anonymous. Named rooms
+ * always carry the author nickname (matches the always-show-author
+ * pattern introduced for cards in 9d8ab12). The repo layer already
+ * populates authorNickname with the participant's current nickname (or
+ * null if the participant was deleted), so all we do here is force null
+ * for anonymous rooms.
+ */
+export function toCommentDTO(comment: Comment, isAnonymousRoom: boolean): Comment {
+  if (isAnonymousRoom) {
+    return { ...comment, authorNickname: null };
+  }
+  return comment;
+}
 
 export function toCardDTO(
   card: CardDB,
@@ -49,7 +64,12 @@ export function toCardDTOv2(
   isAnonymousRoom: boolean = false,
 ): CardDTOv2 {
   const base = toCardDTO(card, viewerParticipantId, isAnonymousRoom);
-  const comments = commentRepo.findByCardId(card.id);
+  // Comments inherit the room's identity policy: anonymous rooms strip
+  // the author nickname (defence-in-depth); named rooms carry it
+  // automatically (matches always-show-author for cards).
+  const comments = commentRepo
+    .findByCardId(card.id)
+    .map((c) => toCommentDTO(c, isAnonymousRoom));
   const reactionSummaries = reactionRepo.getByCardId(card.id);
   const voteCount = voteRepo.getCountByCardId(card.id);
   const hasVoted = voteRepo.hasVoted(card.id, viewerParticipantId);
