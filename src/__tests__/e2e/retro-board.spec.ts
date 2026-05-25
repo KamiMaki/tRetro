@@ -117,18 +117,7 @@ test.describe('tRetro E2E', () => {
       await expect(page.getByText('You').first()).toBeVisible({ timeout: 5000 });
     });
 
-    // Skipped: there is a pre-existing UI/server contradiction in the
-    // reveal flow that is unrelated to the CVE fix in this PR.
-    //   - Card.tsx::canReveal requires `isAnonymousRoom === true` to
-    //     even render the reveal button.
-    //   - card.handler.ts::CARD_REVEAL rejects reveals from anonymous
-    //     rooms with FORBIDDEN ("Cannot reveal identity in an
-    //     anonymous room").
-    // Net effect: the only path the UI exposes the button on is also
-    // the path the server refuses. Either the UI gating or the server
-    // check needs to flip. Tracked as a separate follow-up; do not
-    // unskip until that contradiction is resolved.
-    test.skip('should reveal card author identity', async ({ page, request }) => {
+    test('should reveal card author identity', async ({ page, request }) => {
       await createAndJoinRoom(page, request, 'Author Reveal Retro', 'Alice', { isAnonymous: true });
       const board = page.locator('#main-panel-board');
       const textarea = page.getByPlaceholder(/Drop a thought/).first();

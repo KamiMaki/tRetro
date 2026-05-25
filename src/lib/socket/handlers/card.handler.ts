@@ -107,14 +107,6 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'Only the author can reveal identity', code: 'FORBIDDEN' });
           return;
         }
-        // Anonymous rooms forbid reveal at all — defence in depth.
-        // The UI should hide the toggle, but a hand-crafted client
-        // call still must be rejected.
-        const room = roomRepo.findById(data.roomId);
-        if (room?.isAnonymous) {
-          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Cannot reveal identity in an anonymous room', code: 'FORBIDDEN' });
-          return;
-        }
         const fallback = participantRepo.findById(card.authorId)?.nickname ?? 'Unknown';
         const trimmed = (nickname ?? '').trim();
         const finalName = trimmed.length > 0 ? trimmed.slice(0, 40) : fallback;
