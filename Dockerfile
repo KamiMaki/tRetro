@@ -34,6 +34,18 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 
+# Pull in any Debian security patches that have shipped since the base
+# image was published. As of 2026-05-26 this covers DSA-6281-1 which
+# patches libgnutls30 against CVE-2026-33845 (DTLS handshake integer
+# underflow) and CVE-2026-42010 (RSA-PSK NUL-byte auth bypass). The
+# Next.js runtime doesn't actually USE GnuTLS (Node 20 statically links
+# OpenSSL; we have no DTLS / RSA-PSK code path), but image scanners flag
+# the library regardless, and the upgrade is cheap.
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
