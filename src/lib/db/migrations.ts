@@ -52,6 +52,13 @@ export function runMigrations(): void {
     db.exec(`ALTER TABLE cards ADD COLUMN is_parked INTEGER NOT NULL DEFAULT 0`);
   }
 
+  // 2026-05-30: comments.image_data — optional base64 image attachment so a
+  // comment can carry a pasted/attached picture alongside (or instead of) text.
+  const commentCols = db.prepare(`PRAGMA table_info(comments)`).all() as Array<{ name: string }>;
+  if (!commentCols.some((c) => c.name === 'image_data')) {
+    db.exec(`ALTER TABLE comments ADD COLUMN image_data TEXT`);
+  }
+
   // 2026-05-24: team-spaces multi-tenancy.
   // Re-read rooms columns after earlier ALTERs so the guard reflects
   // current schema state.

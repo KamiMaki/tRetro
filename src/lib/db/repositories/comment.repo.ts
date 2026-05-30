@@ -9,6 +9,7 @@ interface CommentRow {
   room_id: string;
   author_id: string;
   content: string;
+  image_data: string | null;
   created_at: string;
 }
 
@@ -25,17 +26,24 @@ function toComment(row: CommentRow): Comment {
     authorId: row.author_id,
     authorNickname: author?.nickname ?? null,
     content: row.content,
+    imageData: row.image_data ?? null,
     createdAt: row.created_at,
   };
 }
 
 export const commentRepo = {
-  create(cardId: string, roomId: string, authorId: string, content: string): Comment {
+  create(
+    cardId: string,
+    roomId: string,
+    authorId: string,
+    content: string,
+    imageData: string | null = null,
+  ): Comment {
     const db = getDb();
     const id = generateId();
     db.prepare(
-      'INSERT INTO comments (id, card_id, room_id, author_id, content) VALUES (?, ?, ?, ?, ?)'
-    ).run(id, cardId, roomId, authorId, content);
+      'INSERT INTO comments (id, card_id, room_id, author_id, content, image_data) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, cardId, roomId, authorId, content, imageData);
     return this.findById(id)!;
   },
 
@@ -49,5 +57,12 @@ export const commentRepo = {
     const db = getDb();
     const rows = db.prepare('SELECT * FROM comments WHERE card_id = ? ORDER BY created_at').all(cardId) as CommentRow[];
     return rows.map(toComment);
+  },
+
+  /** Delete by id. Returns true if a row was removed. */
+  delete(id: string): boolean {
+    const db = getDb();
+    const info = db.prepare('DELETE FROM comments WHERE id = ?').run(id);
+    return info.changes > 0;
   },
 };

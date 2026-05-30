@@ -14,11 +14,18 @@ import { drawingRepo } from '../db/repositories/drawing.repo';
  * null if the participant was deleted), so all we do here is force null
  * for anonymous rooms.
  */
-export function toCommentDTO(comment: Comment, isAnonymousRoom: boolean): Comment {
+export function toCommentDTO(
+  comment: Comment,
+  isAnonymousRoom: boolean,
+  viewerParticipantId: string,
+): Comment {
+  // Mirror card.isOwnCard so the client can gate the delete affordance on
+  // "your own comment" without ever trusting authorId on the wire.
+  const isOwnComment = comment.authorId === viewerParticipantId;
   if (isAnonymousRoom) {
-    return { ...comment, authorNickname: null };
+    return { ...comment, authorNickname: null, isOwnComment };
   }
-  return comment;
+  return { ...comment, isOwnComment };
 }
 
 export function toCardDTO(
@@ -69,7 +76,7 @@ export function toCardDTOv2(
   // automatically (matches always-show-author for cards).
   const comments = commentRepo
     .findByCardId(card.id)
-    .map((c) => toCommentDTO(c, isAnonymousRoom));
+    .map((c) => toCommentDTO(c, isAnonymousRoom, viewerParticipantId));
   const reactionSummaries = reactionRepo.getByCardId(card.id);
   const voteCount = voteRepo.getCountByCardId(card.id);
   const hasVoted = voteRepo.hasVoted(card.id, viewerParticipantId);

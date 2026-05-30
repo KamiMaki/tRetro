@@ -50,9 +50,11 @@ export async function GET(
     // strip the author nickname (defence-in-depth); named rooms carry
     // it automatically (matches the always-show-author pattern used for
     // cards via toCardDTO above).
+    // Read-only history has no current viewer, so isOwnComment is always
+    // false here (empty viewer id never matches an author).
     const comments = commentRepo
       .findByCardId(card.id)
-      .map((c) => toCommentDTO(c, room.isAnonymous));
+      .map((c) => toCommentDTO(c, room.isAnonymous, ''));
     const reactionSummaries = reactionRepo.getByCardId(card.id);
     const reactions = reactionSummaries.map((r) => ({
       emoji: r.emoji,

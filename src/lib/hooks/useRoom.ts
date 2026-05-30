@@ -59,7 +59,8 @@ interface UseRoomReturn {
   deleteActionItem: (actionItemId: string) => void;
   closeRoom: () => void;
   reopenRoom: () => void;
-  addComment: (cardId: string, content: string) => void;
+  addComment: (cardId: string, content: string, imageData?: string | null) => void;
+  deleteComment: (commentId: string) => void;
   toggleReaction: (cardId: string, emoji: string) => void;
   toggleVote: (cardId: string) => void;
   addDrawing: (cardId: string, data: string) => void;
@@ -256,6 +257,16 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       );
     });
 
+    socket.on(SOCKET_EVENTS.COMMENT_DELETED, (payload: { commentId: string; cardId: string }) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === payload.cardId
+            ? { ...c, comments: c.comments.filter((cm) => cm.id !== payload.commentId) }
+            : c
+        )
+      );
+    });
+
     // V2: Reactions
     socket.on(SOCKET_EVENTS.REACTION_UPDATED, (payload: { cardId: string; reactions: Reaction[] }) => {
       setCards((prev) =>
@@ -391,8 +402,12 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.PHASE_SET, { phase, durationSec });
   }, []);
 
-  const addComment = useCallback((cardId: string, content: string) => {
-    socketRef.current?.emit(SOCKET_EVENTS.COMMENT_CREATE, { cardId, content });
+  const addComment = useCallback((cardId: string, content: string, imageData?: string | null) => {
+    socketRef.current?.emit(SOCKET_EVENTS.COMMENT_CREATE, { cardId, content, imageData });
+  }, []);
+
+  const deleteComment = useCallback((commentId: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.COMMENT_DELETE, { commentId });
   }, []);
 
   const toggleReaction = useCallback((cardId: string, emoji: string) => {
@@ -440,6 +455,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     closeRoom,
     reopenRoom,
     addComment,
+    deleteComment,
     toggleReaction,
     toggleVote,
     addDrawing,

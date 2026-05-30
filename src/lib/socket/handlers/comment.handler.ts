@@ -4,24 +4,96 @@ import { commentRepo } from '../../db/repositories/comment.repo';
 import { roomRepo } from '../../db/repositories/room.repo';
 import { toCommentDTO } from '../dto';
 import type { SocketData } from '../middleware';
-import type { CreateCommentPayload } from '../../types';
+import type { CreateCommentPayload, DeleteCommentPayload, Comment } from '../../types';
+
+// Reject obviously oversized attachments before they hit the DB / fan out over
+// the socket. ~3M base64 chars ≈ 2.2MB binary — plenty for a screenshot, while
+// keeping a single comment payload from blowing up every connected client.
+const MAX_IMAGE_CHARS = 3_000_000;
+
+function isValidImageData(data: unknown): data is string {
+  return typeof data === 'string' && /^data:image\/[a-z0-9.+-]+;base64,/i.test(data);
+}
+
+/**
+ * Fan a comment out per-socket so each recipient gets a viewer-correct
+ * `isOwnComment` flag (the same pattern card create uses for `isOwnCard`).
+ */
+function broadcastComment(
+  io: Server,
+  roomId: string,
+  comment: Comment,
+  isAnonymousRoom: boolean,
+): void {
+  const sockets = io.sockets.adapter.rooms.get(roomId);
+  if (!sockets) return;
+  for (const socketId of sockets) {
+    const targetSocket = io.sockets.sockets.get(socketId);
+    if (!targetSocket) continue;
+    const targetData = targetSocket.data as SocketData;
+    targetSocket.emit(
+      SOCKET_EVENTS.COMMENT_CREATED,
+      toCommentDTO(comment, isAnonymousRoom, targetData.participantId),
+    );
+  }
+}
 
 export function registerCommentHandlers(io: Server, socket: Socket): void {
   const data = socket.data as SocketData;
 
   socket.on(SOCKET_EVENTS.COMMENT_CREATE, (payload: CreateCommentPayload) => {
     try {
+      const content = (payload.content ?? '').trim();
+      const rawImage = payload.imageData;
+      const hasImage = rawImage != null && rawImage !== '';
+
+      if (hasImage && !isValidImageData(rawImage)) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Unsupported image format', code: 'BAD_INPUT' });
+        return;
+      }
+      if (hasImage && (rawImage as string).length > MAX_IMAGE_CHARS) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Image is too large (max ~2MB)', code: 'BAD_INPUT' });
+        return;
+      }
+      // A comment must carry text, an image, or both — never nothing.
+      if (!content && !hasImage) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Comment is empty', code: 'BAD_INPUT' });
+        return;
+      }
+
       const comment = commentRepo.create(
-        payload.cardId, data.roomId, data.participantId, payload.content
+        payload.cardId,
+        data.roomId,
+        data.participantId,
+        content,
+        hasImage ? (rawImage as string) : null,
       );
-      // Anonymous rooms strip identity on the wire; named rooms carry
-      // the author nickname automatically (matches the always-show-author
-      // pattern used for cards via toCardDTO).
       const room = roomRepo.findById(data.roomId);
-      const dto = toCommentDTO(comment, room?.isAnonymous ?? false);
-      io.to(data.roomId).emit(SOCKET_EVENTS.COMMENT_CREATED, dto);
-    } catch (err) {
+      broadcastComment(io, data.roomId, comment, room?.isAnonymous ?? false);
+    } catch {
       socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to create comment', code: 'CREATE_FAILED' });
+    }
+  });
+
+  socket.on(SOCKET_EVENTS.COMMENT_DELETE, (payload: DeleteCommentPayload) => {
+    try {
+      const comment = commentRepo.findById(payload.commentId);
+      if (!comment) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Comment not found', code: 'NOT_FOUND' });
+        return;
+      }
+      // Permission: comment author or any SM (mirrors card delete).
+      if (comment.authorId !== data.participantId && !data.isScrumMaster) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'No permission to delete this comment', code: 'FORBIDDEN' });
+        return;
+      }
+      commentRepo.delete(comment.id);
+      io.to(data.roomId).emit(SOCKET_EVENTS.COMMENT_DELETED, {
+        commentId: comment.id,
+        cardId: comment.cardId,
+      });
+    } catch {
+      socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to delete comment', code: 'DELETE_FAILED' });
     }
   });
 }

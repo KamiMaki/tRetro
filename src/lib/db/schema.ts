@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS comments (
   room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
   author_id     TEXT NOT NULL REFERENCES participants(id),
   content       TEXT NOT NULL,
+  image_data    TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

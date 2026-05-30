@@ -152,6 +152,12 @@ export interface Comment {
   // always carry the author's current nickname here.
   authorNickname: string | null;
   content: string;
+  /** Optional base64 image attachment (data URL). null = text-only comment. */
+  imageData: string | null;
+  /** Viewer-specific: true when this comment belongs to the receiving
+   *  participant. Set by the DTO layer per-socket (mirrors card.isOwnCard);
+   *  undefined on the raw DB shape. Drives the delete affordance. */
+  isOwnComment?: boolean;
   createdAt: string;
 }
 
@@ -261,6 +267,12 @@ export interface UpdateActionItemPayload {
 export interface CreateCommentPayload {
   cardId: string;
   content: string;
+  /** Optional base64 image attachment (data URL). */
+  imageData?: string | null;
+}
+
+export interface DeleteCommentPayload {
+  commentId: string;
 }
 
 export interface ToggleReactionPayload {
