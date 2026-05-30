@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { CardDTOv2, Tag } from '@/lib/types';
-import { SECTION_TONES } from '@/lib/types';
+import { SECTION_TONES, SECTIONS } from '@/lib/types';
 import { GlassPanel, Avatar } from '@/components/ui/Aurora';
 import { TagBadge } from '@/components/board/TagBadge';
 import { CommentList } from '@/components/board/CommentList';
@@ -26,11 +26,19 @@ const DECISION_BADGE: Record<Decision, string> = {
 
 interface DiscussionPanelProps {
   cards: CardDTOv2[];
-  onAddComment: (cardId: string, content: string) => void;
+  onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
+  onDeleteComment?: (commentId: string, cardId: string) => void;
+  isScrumMaster?: boolean;
   onCreateActionItem: (description: string) => void;
 }
 
-export function DiscussionPanel({ cards, onAddComment, onCreateActionItem }: DiscussionPanelProps) {
+export function DiscussionPanel({
+  cards,
+  onAddComment,
+  onDeleteComment,
+  isScrumMaster = false,
+  onCreateActionItem,
+}: DiscussionPanelProps) {
   // Group cards by tag id; a card with N tags shows up in N groups.
   const { groups, groupOrder, tagsById } = useMemo(() => {
     const byTag: Record<string, CardDTOv2[]> = {};
@@ -44,6 +52,20 @@ export function DiscussionPanel({ cards, onAddComment, onCreateActionItem }: Dis
           (byTag[tag.id] ??= []).push(card);
         }
       }
+    }
+    // Walk each tag group in board order — go-well first, then didn't-go-well,
+    // thanks, deep-dive — so the focus walkthrough mirrors the board columns
+    // instead of raw insertion order. createdAt breaks ties within a section.
+    const sectionRank = (c: CardDTOv2) => {
+      const i = SECTIONS.indexOf(c.section);
+      return i === -1 ? SECTIONS.length : i;
+    };
+    for (const key of Object.keys(byTag)) {
+      byTag[key].sort((a, b) => {
+        const d = sectionRank(a) - sectionRank(b);
+        if (d !== 0) return d;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
     }
     const order = Object.keys(byTag).sort((a, b) => byTag[b].length - byTag[a].length);
     return { groups: byTag, groupOrder: order, tagsById: byId };
@@ -380,6 +402,8 @@ export function DiscussionPanel({ cards, onAddComment, onCreateActionItem }: Dis
                 cardId={focused.id}
                 comments={focused.comments}
                 onAddComment={onAddComment}
+                onDeleteComment={onDeleteComment}
+                isScrumMaster={isScrumMaster}
               />
             </div>
           ) : (

@@ -55,6 +55,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     closeRoom,
     reopenRoom,
     addComment,
+    deleteComment,
     toggleReaction,
     toggleVote,
     addDrawing,
@@ -408,6 +409,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onMoveCard={moveCard}
               onCreateTag={createTag}
               onAddComment={addComment}
+              onDeleteComment={deleteComment}
               onToggleReaction={toggleReaction}
               onToggleVote={toggleVote}
               onAddDrawing={addDrawing}
@@ -427,6 +429,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
             <DiscussionPanel
               cards={cards}
               onAddComment={addComment}
+              onDeleteComment={deleteComment}
+              isScrumMaster={isScrumMaster}
               onCreateActionItem={(description) => addActionItem({ description })}
             />
           </div>
@@ -437,7 +441,13 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
             hidden={activeTab !== 'review'}
             style={{ display: activeTab === 'review' ? 'block' : 'none' }}
           >
-            <ReviewPanel cards={cards} template={template} onAddComment={addComment} />
+            <ReviewPanel
+              cards={cards}
+              template={template}
+              onAddComment={addComment}
+              onDeleteComment={deleteComment}
+              isScrumMaster={isScrumMaster}
+            />
           </div>
 
           <div

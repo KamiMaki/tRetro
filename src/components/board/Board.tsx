@@ -20,7 +20,8 @@ interface BoardProps {
   onUnrevealCard: (cardId: string) => void;
   onMoveCard: (cardId: string, section: SectionType) => void;
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
-  onAddComment: (cardId: string, content: string) => void;
+  onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
+  onDeleteComment?: (commentId: string, cardId: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
@@ -45,6 +46,7 @@ export function Board({
   onMoveCard,
   onCreateTag,
   onAddComment,
+  onDeleteComment,
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
@@ -77,6 +79,7 @@ export function Board({
             onMoveCard={onMoveCard}
             onCreateTag={onCreateTag}
             onAddComment={onAddComment}
+            onDeleteComment={onDeleteComment}
             onToggleReaction={onToggleReaction}
             onToggleVote={onToggleVote}
             onAddDrawing={onAddDrawing}

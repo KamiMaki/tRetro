@@ -9,6 +9,7 @@ import { TagBadge } from '@/components/board/TagBadge';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { AuroraBg, GlassPanel, Logo, Avatar } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { TAIPEI_TZ } from '@/lib/utils/datetime';
 
 interface HistoryData {
   room: Room;
@@ -24,6 +25,7 @@ function formatDate(dateStr: string) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: TAIPEI_TZ,
   });
 }
 
@@ -33,6 +35,7 @@ function formatDateTime(dateStr: string) {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: TAIPEI_TZ,
   });
 }
 
@@ -599,9 +602,19 @@ function HistoryCard({ card, tone }: { card: CardDTOv2; tone: 'mint' | 'pink' | 
                 <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>Anonymous</span>
                 <span style={{ color: 'var(--fg-3)' }}> · {formatDateTime(comment.createdAt)}</span>
               </div>
-              <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--fg-0)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {comment.content}
-              </div>
+              {comment.content && (
+                <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--fg-0)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {comment.content}
+                </div>
+              )}
+              {comment.imageData && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={comment.imageData}
+                  alt="Comment attachment"
+                  style={{ marginTop: comment.content ? 6 : 0, maxWidth: '100%', maxHeight: 200, borderRadius: 6, border: '1px solid var(--glass-border)', display: 'block' }}
+                />
+              )}
             </div>
           ))}
         </div>

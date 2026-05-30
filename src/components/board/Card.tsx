@@ -30,7 +30,8 @@ interface CardProps {
   onDelete: (cardId: string) => void;
   onReveal: (cardId: string, nickname?: string) => void;
   onUnreveal: (cardId: string) => void;
-  onAddComment: (cardId: string, content: string) => void;
+  onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
+  onDeleteComment?: (commentId: string, cardId: string) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
@@ -60,6 +61,7 @@ export function Card({
   onReveal,
   onUnreveal,
   onAddComment,
+  onDeleteComment,
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
@@ -84,6 +86,7 @@ export function Card({
   // collaborative editing. Server enforces the same rule.
   const canEditContent = !shareMode && !!onUpdateCardContent;
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [revealNickname, setRevealNickname] = useState('');
@@ -92,6 +95,7 @@ export function Card({
   const [contentDraft, setContentDraft] = useState(card.content);
   const contentInputRef = useRef<HTMLTextAreaElement>(null);
   const revealInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const consensus = computeConsensus(card.voteCount, participantCount);
   const showConsensus = card.voteCount > 0 && participantCount > 0;
 
@@ -122,6 +126,12 @@ export function Card({
   useEffect(() => {
     if (!contentEditing) setContentDraft(card.content);
   }, [card.content, contentEditing]);
+
+  // Drop a pending delete-confirm if the affordance is no longer allowed
+  // (e.g. the SM flips on share mode) so it can't resurface mid-confirm.
+  useEffect(() => {
+    if (!canDelete) setDeleteConfirming(false);
+  }, [canDelete]);
 
   function commitContentEdit() {
     const next = contentDraft.trim();
@@ -180,6 +190,22 @@ export function Card({
     onReveal(card.id, trimmed.length > 0 ? trimmed : undefined);
     setRevealOpen(false);
     setRevealNickname('');
+  }
+
+  // Attach an image to the card by reusing the drawing pipeline — an
+  // attached picture is stored and rendered exactly like a drawing (and is
+  // deletable by the author/SM the same way). Keeps the cap in sync with the
+  // server-side comment image limit.
+  function handleCardImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (result && result.length <= 3_000_000) onAddDrawing(card.id, result);
+    };
+    reader.readAsDataURL(file);
   }
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
@@ -454,6 +480,41 @@ export function Card({
             </svg>
           </button>
 
+          {/* Attach image — stored via the drawing pipeline, rendered as a
+              thumbnail above. */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleCardImagePick}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            aria-label="Attach image to card"
+            title="Attach image"
+            style={{
+              padding: 4,
+              borderRadius: 6,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--fg-3)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              transition: 'color .15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--fg-0)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="12" height="10" rx="1.5" />
+              <circle cx="5.5" cy="6.5" r="1.2" />
+              <path d="M3 12l3.5-3.5 2.5 2.5L11 8l2 2" />
+            </svg>
+          </button>
+
           {canEditTags && (
             <button
               type="button"
@@ -560,29 +621,59 @@ export function Card({
             </button>
           )}
           {canDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(card.id)}
-              aria-label="Delete card"
-              title="Delete card"
-              style={{
-                padding: 4,
-                borderRadius: 6,
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--fg-3)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                transition: 'color .15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'oklch(0.78 0.16 25)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-                <path d="M3 3l10 10M13 3L3 13" />
-              </svg>
-            </button>
+            deleteConfirming ? (
+              // Two-step confirm so a stray click never nukes someone's card.
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span className="text-mono fg-2" style={{ fontSize: 10, whiteSpace: 'nowrap' }}>
+                  刪除？
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => {
+                    onDelete(card.id);
+                    setDeleteConfirming(false);
+                  }}
+                  aria-label="Confirm delete card"
+                  style={{ padding: '2px 8px', fontSize: 10 }}
+                >
+                  刪除
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setDeleteConfirming(false)}
+                  aria-label="Cancel delete"
+                  style={{ padding: '2px 8px', fontSize: 10 }}
+                >
+                  取消
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDeleteConfirming(true)}
+                aria-label="Delete card"
+                title="Delete card"
+                style={{
+                  padding: 4,
+                  borderRadius: 6,
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--fg-3)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  transition: 'color .15s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'oklch(0.78 0.16 25)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                  <path d="M3 3l10 10M13 3L3 13" />
+                </svg>
+              </button>
+            )
           )}
         </div>
 
@@ -710,6 +801,8 @@ export function Card({
               cardId={card.id}
               comments={card.comments}
               onAddComment={onAddComment}
+              onDeleteComment={onDeleteComment}
+              isScrumMaster={isScrumMaster}
             />
           </div>
         )}

@@ -25,10 +25,12 @@ const TONE_VAR: Record<Tone, string> = {
 interface ReviewPanelProps {
   cards: CardDTOv2[];
   template?: RetroTemplate;
-  onAddComment: (cardId: string, content: string) => void;
+  onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
+  onDeleteComment?: (commentId: string, cardId: string) => void;
+  isScrumMaster?: boolean;
 }
 
-export function ReviewPanel({ cards, template, onAddComment }: ReviewPanelProps) {
+export function ReviewPanel({ cards, template, onAddComment, onDeleteComment, isScrumMaster = false }: ReviewPanelProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<string>('all'); // 'all' | tag id
 
@@ -153,6 +155,8 @@ export function ReviewPanel({ cards, template, onAddComment }: ReviewPanelProps)
             setExpanded={setExpanded}
             setMany={setMany}
             onAddComment={onAddComment}
+            onDeleteComment={onDeleteComment}
+            isScrumMaster={isScrumMaster}
           />
         ))}
       </div>
@@ -202,6 +206,8 @@ function ReviewSection({
   setExpanded,
   setMany,
   onAddComment,
+  onDeleteComment,
+  isScrumMaster,
 }: {
   section: SectionType;
   label: string;
@@ -210,7 +216,9 @@ function ReviewSection({
   expanded: Record<string, boolean>;
   setExpanded: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   setMany: (ids: string[], value: boolean) => void;
-  onAddComment: (cardId: string, content: string) => void;
+  onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
+  onDeleteComment?: (commentId: string, cardId: string) => void;
+  isScrumMaster?: boolean;
 }) {
   const tone = SECTION_TONES[section];
   const accent = TONE_VAR[tone];
@@ -295,6 +303,8 @@ function ReviewSection({
               expanded={!!expanded[card.id]}
               onToggle={() => setExpanded((s) => ({ ...s, [card.id]: !s[card.id] }))}
               onAddComment={onAddComment}
+              onDeleteComment={onDeleteComment}
+              isScrumMaster={isScrumMaster}
             />
           ))}
         </div>
@@ -309,12 +319,16 @@ function ReviewCard({
   expanded,
   onToggle,
   onAddComment,
+  onDeleteComment,
+  isScrumMaster,
 }: {
   card: CardDTOv2;
   tone: Tone;
   expanded: boolean;
   onToggle: () => void;
-  onAddComment: (cardId: string, content: string) => void;
+  onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
+  onDeleteComment?: (commentId: string, cardId: string) => void;
+  isScrumMaster?: boolean;
 }) {
   // Server-driven: a non-null authorNickname means "show this name".
   // Named rooms always populate it; anonymous rooms force null.
@@ -416,7 +430,13 @@ function ReviewCard({
           className="fade-in"
           style={{ paddingTop: 10, borderTop: '1px dashed var(--glass-border)' }}
         >
-          <CommentList cardId={card.id} comments={card.comments} onAddComment={onAddComment} />
+          <CommentList
+            cardId={card.id}
+            comments={card.comments}
+            onAddComment={onAddComment}
+            onDeleteComment={onDeleteComment}
+            isScrumMaster={isScrumMaster}
+          />
         </div>
       )}
     </div>
