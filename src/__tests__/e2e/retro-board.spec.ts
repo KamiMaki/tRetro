@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
 
+// 1x1 transparent PNG — used to exercise the image-attach upload paths.
+const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+const PNG_FILE = { name: 'pixel.png', mimeType: 'image/png', buffer: PNG_1x1 };
+
 async function createAndJoinRoom(
   page: import('@playwright/test').Page,
   request: import('@playwright/test').APIRequestContext,
@@ -290,11 +297,121 @@ test.describe('tRetro E2E', () => {
       await request.post('/api/rooms', { data: { name: 'DashMultiB' } });
       await request.post('/api/rooms', { data: { name: 'DashMultiC' } });
 
-      // Navigate fresh and wait for content
+      // Navigate fresh and wait for content. Room names aren't unique and the
+      // shared test DB accumulates rooms across runs, so the same name can
+      // appear multiple times — assert at least one of each is visible.
       await page.goto('/', { waitUntil: 'networkidle' });
-      await expect(page.getByText('DashMultiA')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByText('DashMultiB')).toBeVisible({ timeout: 5000 });
-      await expect(page.getByText('DashMultiC')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('DashMultiA').first()).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('DashMultiB').first()).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('DashMultiC').first()).toBeVisible({ timeout: 5000 });
+    });
+  });
+
+  test.describe('New UX features (2026-05-30 batch)', () => {
+    async function addCard(page: import('@playwright/test').Page, text: string, column = 0) {
+      const areas = page.getByPlaceholder(/Drop a thought/);
+      const textarea = areas.nth(column);
+      await textarea.fill(text);
+      await textarea.locator('..').locator('..').getByRole('button', { name: /Send/ }).click();
+      await expect(
+        page.locator('#main-panel-board').getByText(text).first(),
+      ).toBeVisible({ timeout: 15000 });
+    }
+
+    test('card delete requires a confirm step (no accidental deletes)', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Delete Confirm Retro', 'Del');
+      const board = page.locator('#main-panel-board');
+      await addCard(page, 'Card to maybe delete');
+
+      // First click only arms the confirm — the card is still there.
+      await board.getByRole('button', { name: 'Delete card' }).first().click();
+      await expect(board.getByRole('button', { name: 'Confirm delete card' })).toBeVisible();
+      await expect(board.getByText('Card to maybe delete').first()).toBeVisible();
+
+      // Cancel keeps the card.
+      await board.getByRole('button', { name: 'Cancel delete' }).click();
+      await expect(board.getByText('Card to maybe delete').first()).toBeVisible();
+
+      // Arm again + confirm actually removes it.
+      await board.getByRole('button', { name: 'Delete card' }).first().click();
+      await board.getByRole('button', { name: 'Confirm delete card' }).click();
+      await expect(board.getByText('Card to maybe delete')).toHaveCount(0, { timeout: 10000 });
+    });
+
+    test('comments can be posted (with a Taipei timestamp) and deleted', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Comment CRUD Retro', 'Cmt');
+      const board = page.locator('#main-panel-board');
+      await addCard(page, 'Card with comments');
+
+      await board.getByRole('button', { name: /\d+ comments?/ }).first().click();
+      const reply = board.getByPlaceholder(/Reply/).first();
+      await reply.fill('My first comment');
+      await board.getByRole('button', { name: 'Post' }).first().click();
+      await expect(board.getByText('My first comment')).toBeVisible({ timeout: 10000 });
+      // Timestamp renders as Taipei HH:mm (shown as "· HH:mm").
+      await expect(board.getByText(/\d{2}:\d{2}/).first()).toBeVisible();
+
+      // Own comment can be deleted (with a confirm step).
+      await board.getByRole('button', { name: 'Delete comment' }).first().click();
+      await board.getByRole('button', { name: 'Confirm delete comment' }).click();
+      await expect(board.getByText('My first comment')).toHaveCount(0, { timeout: 10000 });
+    });
+
+    test('an image can be attached to a comment', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Image Comment Retro', 'ImgC');
+      const board = page.locator('#main-panel-board');
+      await addCard(page, 'Card for an image comment');
+
+      await board.getByRole('button', { name: /\d+ comments?/ }).first().click();
+      // Target the file input that lives in the comment composer form.
+      const commentFileInput = page.locator(
+        'form:has(textarea[placeholder*="Reply"]) input[type="file"]',
+      ).first();
+      await commentFileInput.setInputFiles(PNG_FILE);
+      await board.getByRole('button', { name: 'Post' }).first().click();
+      await expect(board.getByAltText('Comment attachment').first()).toBeVisible({ timeout: 10000 });
+    });
+
+    test('an image can be attached to a card', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Image Card Retro', 'ImgK');
+      const board = page.locator('#main-panel-board');
+      await addCard(page, 'Card for an attached image');
+
+      // Comments closed -> the only board file input is the card attach control.
+      await board.locator('input[type="file"]').first().setInputFiles(PNG_FILE);
+      await expect(board.getByAltText('Drawing').first()).toBeVisible({ timeout: 10000 });
+    });
+
+    test('discussion focus walkthrough lists cards in board (section) order', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Discussion Order Retro', 'Disc');
+      const board = page.locator('#main-panel-board');
+      // Add the "to-improve" (2nd column) card FIRST, then the "went-well" (1st) card.
+      await addCard(page, 'ZZ improve card', 1);
+      await addCard(page, 'AA wellcard', 0);
+
+      await page.getByRole('tab', { name: 'Discussion' }).click();
+      const disc = page.locator('#main-panel-discussion');
+      await expect(disc.getByText('AA wellcard').first()).toBeVisible({ timeout: 10000 });
+
+      // Board order puts went-well before to-improve regardless of creation order.
+      const text = await disc.innerText();
+      expect(text.indexOf('AA wellcard')).toBeLessThan(text.indexOf('ZZ improve card'));
+    });
+
+    test('a posted comment shows up in the HTML and AI exports', async ({ page, request }) => {
+      const roomId = await createAndJoinRoom(page, request, 'Export Comment Retro', 'Exp');
+      const board = page.locator('#main-panel-board');
+      await addCard(page, 'Card for export');
+
+      await board.getByRole('button', { name: /\d+ comments?/ }).first().click();
+      await board.getByPlaceholder(/Reply/).first().fill('Exported comment text');
+      await board.getByRole('button', { name: 'Post' }).first().click();
+      await expect(board.getByText('Exported comment text')).toBeVisible({ timeout: 10000 });
+
+      const html = await (await request.get(`/api/rooms/${roomId}/export?format=html`)).text();
+      expect(html).toContain('Exported comment text');
+      const ai = await (await request.get(`/api/rooms/${roomId}/export?format=ai`)).text();
+      expect(ai).toContain('Exported comment text');
     });
   });
 });
