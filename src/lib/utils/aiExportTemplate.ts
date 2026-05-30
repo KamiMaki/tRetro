@@ -1,10 +1,18 @@
 import type { Room, CardDB, Tag, ActionItem } from '../types';
 import { SECTION_EMOJIS, SECTION_LABELS, SECTIONS } from '../types';
 import type { SectionType } from '../types';
+import { taipeiTimestamp } from './datetime';
+
+interface ExportComment {
+  authorNickname: string | null;
+  content: string;
+  imageData: string | null;
+}
 
 interface CardWithMeta extends CardDB {
   tags: Tag[];
   authorNickname: string | null;
+  comments?: ExportComment[];
 }
 
 const PROMPT_HEADER = `你是一位資深敏捷教練，正在檢視一場團隊回顧會議的紀錄。
@@ -73,7 +81,7 @@ export function buildAiSummaryMarkdown(
   lines.push(`- 卡片總數：${cards.length}`);
   lines.push(`- 標籤數：${tags.length}`);
   lines.push(`- 既有 action items 數：${actionItems.length}`);
-  lines.push(`- 匯出時間：${new Date().toISOString()}`);
+  lines.push(`- 匯出時間：${taipeiTimestamp()}`);
   lines.push('');
 
   for (const section of SECTIONS) {
@@ -87,6 +95,11 @@ export function buildAiSummaryMarkdown(
         const tagStr = card.tags.length > 0 ? ` [${card.tags.map((t) => `#${t.name}`).join(' ')}]` : '';
         const author = card.isRevealed && card.authorNickname ? ` _（已顯名：${card.authorNickname}）_` : '';
         lines.push(`- ${card.content}${tagStr}${author}`);
+        for (const cm of card.comments ?? []) {
+          const who = cm.authorNickname ? `${cm.authorNickname}：` : '';
+          const img = cm.imageData ? (cm.content ? ' [圖片]' : '[圖片]') : '';
+          lines.push(`  - 💬 ${who}${cm.content}${img}`.trimEnd());
+        }
       }
     }
     lines.push('');

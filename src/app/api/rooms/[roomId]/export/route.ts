@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { roomRepo } from '@/lib/db/repositories/room.repo';
 import { cardRepo } from '@/lib/db/repositories/card.repo';
+import { commentRepo } from '@/lib/db/repositories/comment.repo';
 import { tagRepo } from '@/lib/db/repositories/tag.repo';
 import { actionItemRepo } from '@/lib/db/repositories/action-item.repo';
 import { participantRepo } from '@/lib/db/repositories/participant.repo';
@@ -65,7 +66,14 @@ export async function GET(
         participantRepo.findById(card.authorId)?.nickname ??
         null;
     }
-    return { ...card, tags: cardTags, authorNickname };
+    // Comments per card. Author identity follows the same rule as the card
+    // itself: suppressed in anonymous rooms, current nickname otherwise.
+    const comments = commentRepo.findByCardId(card.id).map((cm) => ({
+      authorNickname: room.isAnonymous ? null : cm.authorNickname,
+      content: cm.content,
+      imageData: cm.imageData,
+    }));
+    return { ...card, tags: cardTags, authorNickname, comments };
   });
 
   // For anonymous / configured rooms the live session count over-reports
