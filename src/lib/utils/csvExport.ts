@@ -1,6 +1,7 @@
 import type { Room, CardDB, Tag, ActionItem } from '../types';
 import { SECTION_LABELS } from '../types';
 import type { SectionType } from '../types';
+import { taipeiTimestamp } from './datetime';
 
 interface CardWithMeta extends CardDB {
   tags: Tag[];
@@ -58,7 +59,7 @@ export function buildRetroCsv(
   // don't match column count; we keep it lightweight.
   lines.push(`# Retro: ${room.name.replace(/[\r\n]/g, ' ')}`);
   lines.push(`# Status: ${room.status}`);
-  lines.push(`# Exported: ${new Date().toISOString()}`);
+  lines.push(`# Exported: ${taipeiTimestamp()}`);
   lines.push('');
   lines.push(CSV_COLUMNS.join(','));
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Drawing } from '@/lib/types';
 import { GlassPanel } from '@/components/ui/Aurora';
+import { formatTaipeiDateTime } from '@/lib/utils/datetime';
 
 interface DrawingThumbnailProps {
   drawing: Drawing;
@@ -100,7 +101,7 @@ export function DrawingThumbnail({ drawing, onDelete }: DrawingThumbnailProps) {
                 }}
               >
                 <span className="text-mono fg-3" style={{ fontSize: 11 }}>
-                  {new Date(drawing.createdAt).toLocaleString()}
+                  {formatTaipeiDateTime(drawing.createdAt)}
                 </span>
                 {onDelete && (
                   <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>

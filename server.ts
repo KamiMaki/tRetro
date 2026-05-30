@@ -1,3 +1,8 @@
+// Pin the whole process to Taipei time (UTC+8, no DST) so server-side date
+// formatting, logs, and any toLocale* without an explicit zone all read as
+// Taipei regardless of the deploy region.
+process.env.TZ = process.env.TZ || 'Asia/Taipei';
+
 import { createServer } from 'http';
 import next from 'next';
 import { parse } from 'url';

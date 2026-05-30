@@ -12,6 +12,7 @@ import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { TeamPicker } from '@/components/team/TeamPicker';
 import { CreateTeamModal } from '@/components/team/CreateTeamModal';
+import { TAIPEI_TZ, formatTaipeiDate } from '@/lib/utils/datetime';
 
 interface TeamInfo {
   id: string;
@@ -25,6 +26,7 @@ function formatDate(dateStr: string) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: TAIPEI_TZ,
   });
 }
 
@@ -69,13 +71,7 @@ function DashboardInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const todayIso = (() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  })();
+  const todayIso = formatTaipeiDate(new Date());
   const [showCreate, setShowCreate] = useState(false);
   const [roomName, setRoomName] = useState(`Retro · ${todayIso}`);
   const [templateId, setTemplateId] = useState<string>('classic');
