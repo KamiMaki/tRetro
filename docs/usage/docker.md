@@ -1,7 +1,15 @@
 # 用 Docker 執行 tRetro
 
-## 映像位置
-Docker Hub：**`penguin88428/retroxpert:latest`**
+## 映像位置與標籤
+Docker Hub：**`penguin88428/retroxpert`**
+
+| 引用方式 | 範例 | 特性 |
+|----------|------|------|
+| tag `latest` | `penguin88428/retroxpert:latest` | 永遠指向最新一次 push（**可變**，會隨改版移動） |
+| tag 版本號 | `penguin88428/retroxpert:0.1.0` | 對應 `package.json` 版本 |
+| digest（釘死） | `penguin88428/retroxpert@sha256:7e99e55c…4280d2` | **不可變**，永遠是這一版（用 `@sha256:`，非 `:`） |
+
+目前 `:latest`、`:0.1.0`、`@sha256:7e99e55c…` 指向同一個 image。要可重現部署，建議用版本號或 digest，不要只依賴 `latest`。
 
 ## 最快上手
 ```bash

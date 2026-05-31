@@ -2,8 +2,8 @@
 
 ## 這次做了什麼
 - 以既有的多階段 `Dockerfile` 將 tRetro（`retroxpert-app`）建置成 production 映像檔。
-- 推送到 Docker Hub：**`penguin88428/retroxpert:latest`**。
-- Digest：`sha256:7e99e55c97953705edbc649e891501b2b14c873be459609e7064cfae824280d2`
+- 推送到 Docker Hub：**`penguin88428/retroxpert`**，標籤 `latest` 與 `0.1.0`（取自 `package.json` 版本）。
+- Digest：`sha256:7e99e55c97953705edbc649e891501b2b14c873be459609e7064cfae824280d2`（兩個 tag 指向同一個 image）。
 - 映像大小：約 1.07 GB。
 
 ## 變更檔案
