@@ -12,7 +12,7 @@ import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { TeamPicker } from '@/components/team/TeamPicker';
 import { CreateTeamModal } from '@/components/team/CreateTeamModal';
-import { TAIPEI_TZ, formatTaipeiDate } from '@/lib/utils/datetime';
+import { TAIPEI_TZ, formatTaipeiDate, parseDbDate } from '@/lib/utils/datetime';
 
 interface TeamInfo {
   id: string;
@@ -22,7 +22,7 @@ interface TeamInfo {
 type TeamState = 'loading' | 'no-team' | TeamInfo;
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  return parseDbDate(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -31,7 +31,7 @@ function formatDate(dateStr: string) {
 }
 
 function relDate(dateStr: string) {
-  const d = new Date(dateStr);
+  const d = parseDbDate(dateStr);
   const now = new Date();
   const days = Math.round((now.getTime() - d.getTime()) / 86400000);
   if (days <= 0) return 'today';
@@ -264,7 +264,7 @@ function DashboardInner() {
       result = result.filter((r) => r.status === statusFilter);
     }
     if (sortBy === 'date') {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      result.sort((a, b) => parseDbDate(b.createdAt).getTime() - parseDbDate(a.createdAt).getTime());
     } else {
       result.sort((a, b) => a.name.localeCompare(b.name));
     }

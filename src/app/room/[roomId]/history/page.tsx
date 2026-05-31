@@ -9,7 +9,7 @@ import { TagBadge } from '@/components/board/TagBadge';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { AuroraBg, GlassPanel, Logo, Avatar } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { TAIPEI_TZ } from '@/lib/utils/datetime';
+import { TAIPEI_TZ, parseDbDate } from '@/lib/utils/datetime';
 
 interface HistoryData {
   room: Room;
@@ -21,7 +21,7 @@ interface HistoryData {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  return parseDbDate(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -30,7 +30,7 @@ function formatDate(dateStr: string) {
 }
 
 function formatDateTime(dateStr: string) {
-  return new Date(dateStr).toLocaleString('en-US', {
+  return parseDbDate(dateStr).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

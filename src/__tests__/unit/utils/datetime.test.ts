@@ -3,6 +3,7 @@ import {
   formatTaipeiDate,
   formatTaipeiTime,
   taipeiTimestamp,
+  parseDbDate,
 } from '@/lib/utils/datetime';
 
 // These assertions hold regardless of the host machine's local timezone
@@ -33,5 +34,35 @@ describe('Taipei datetime helpers (UTC+8, no DST)', () => {
 
   it('accepts a Date instance as well as a string', () => {
     expect(formatTaipeiDate(new Date(utcMidnight))).toBe('2025-01-01');
+  });
+});
+
+// Regression: SQLite datetime('now') is UTC but has NO zone marker
+// ("YYYY-MM-DD HH:MM:SS"). Parsing it as local double-shifted every displayed
+// time by the Taipei offset (e.g. real 07:50 showed as 23:50).
+describe('zone-less DB timestamps are treated as UTC', () => {
+  it('parseDbDate normalises a SQLite-format string to the UTC instant', () => {
+    expect(parseDbDate('2026-05-30 23:50:00').toISOString()).toBe('2026-05-30T23:50:00.000Z');
+  });
+
+  it('formatTaipeiTime renders 07:50 for UTC 23:50 (next Taipei day)', () => {
+    expect(formatTaipeiTime('2026-05-30 23:50:00')).toBe('07:50');
+  });
+
+  it('formatTaipeiDateTime rolls the date forward across Taipei midnight', () => {
+    expect(formatTaipeiDateTime('2026-05-30 23:50:00')).toBe('2026-05-31 07:50');
+  });
+
+  it('formatTaipeiDate gives the Taipei calendar day for a zone-less UTC string', () => {
+    expect(formatTaipeiDate('2026-05-30 23:50:00')).toBe('2026-05-31');
+  });
+
+  it('still honours an explicit Z suffix (no double-shift)', () => {
+    expect(formatTaipeiDateTime('2025-01-01T00:00:00Z')).toBe('2025-01-01 08:00');
+    expect(parseDbDate('2025-01-01T00:00:00Z').toISOString()).toBe('2025-01-01T00:00:00.000Z');
+  });
+
+  it('handles zone-less ISO (T separator, no zone) as UTC too', () => {
+    expect(parseDbDate('2026-05-30T23:50:00').toISOString()).toBe('2026-05-30T23:50:00.000Z');
   });
 });

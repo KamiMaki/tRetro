@@ -10,6 +10,7 @@ import {
   type MetricKey,
   type MetricsHistoryEntry,
 } from '@/lib/types';
+import { parseDbDate, TAIPEI_TZ } from '@/lib/utils/datetime';
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
@@ -26,10 +27,10 @@ function toneToColor(tone: Tone): string {
 }
 
 function shortDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return parseDbDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: TAIPEI_TZ });
 }
 function fullDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return parseDbDate(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: TAIPEI_TZ });
 }
 
 export default function TrendsPage() {
@@ -69,7 +70,7 @@ export default function TrendsPage() {
 
   // Order oldest → newest so the trend reads left-to-right.
   const ordered = useMemo(
-    () => [...history].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    () => [...history].sort((a, b) => parseDbDate(a.createdAt).getTime() - parseDbDate(b.createdAt).getTime()),
     [history],
   );
 
