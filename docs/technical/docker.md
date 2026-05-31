@@ -2,7 +2,7 @@
 
 ## 這次改了什麼（What Changed）
 - **沒有變更原始碼**。`Dockerfile`、`.dockerignore` 已存在於 repo 並已 commit。
-- 本次工作：用既有 Dockerfile 建置 → 本機冒煙測試 → 推送到 Docker Hub `penguin88428/retroxpert:latest`。
+- 本次工作：用既有 Dockerfile 建置 → 本機冒煙測試 → 推送到 Docker Hub `penguin88428/retroxpert`（tag `v1.1` + `latest`）。
 - 新增三份文件（changelog / usage / technical）。
 
 ## 為什麼這樣做（Why）
@@ -55,13 +55,22 @@ docker build -t tretro:latest .
 # 本機跑
 docker run -d -p 3000:3000 -v retro-data:/data tretro:latest
 
-# 發佈
+# 發佈（版本號 tag + 同步更新 latest）
+docker tag tretro:latest penguin88428/retroxpert:v1.1
 docker tag tretro:latest penguin88428/retroxpert:latest
+docker push penguin88428/retroxpert:v1.1
 docker push penguin88428/retroxpert:latest
 
 # 驗證遠端 digest
-docker buildx imagetools inspect penguin88428/retroxpert:latest
+docker buildx imagetools inspect penguin88428/retroxpert:v1.1
 ```
+
+### 版本標籤政策（發佈慣例）
+- Repo 固定 `penguin88428/retroxpert`。
+- 每次發佈用 `vMAJOR.MINOR` 當 tag，並同步更新 `latest`。
+- 進版：取現有最高 `vX.Y`（忽略 git-SHA 等非版本 tag）後 MINOR +1（v1.1 → v1.2 → …）；MAJOR 僅在明確要求時進。
+- 查目前版本：`curl -s "https://hub.docker.com/v2/repositories/penguin88428/retroxpert/tags?page_size=100"`，找 `"name":"v…"`。
+- 目前最新：**v1.1**（2026-05-31）。
 
 ## 注意事項（Caveats）
 - **單一平台**：目前推送的是 `linux/amd64`（外加一個 attestation/SBOM manifest，inspect 會顯示為 `unknown/unknown`，屬正常）。要支援 arm64 需用 `docker buildx build --platform linux/amd64,linux/arm64 --push`。
