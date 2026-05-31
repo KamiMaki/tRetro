@@ -6,6 +6,8 @@ const PNG_1x1 = Buffer.from(
   'base64',
 );
 const PNG_FILE = { name: 'pixel.png', mimeType: 'image/png', buffer: PNG_1x1 };
+const PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 async function createAndJoinRoom(
   page: import('@playwright/test').Page,
@@ -412,6 +414,63 @@ test.describe('tRetro E2E', () => {
       expect(html).toContain('Exported comment text');
       const ai = await (await request.get(`/api/rooms/${roomId}/export?format=ai`)).text();
       expect(ai).toContain('Exported comment text');
+    });
+
+    test('an image can be attached while creating a card', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Create Image Card Retro', 'CrtImg');
+      const board = page.locator('#main-panel-board');
+      // First board column's CardForm: stage an image, then send (image-only card).
+      const form = board.locator('form').first();
+      await form.locator('input[type="file"]').setInputFiles(PNG_FILE);
+      await form.getByRole('button', { name: 'Send' }).click();
+      // The new card renders the attached image as a drawing thumbnail.
+      await expect(board.getByAltText('Drawing').first()).toBeVisible({ timeout: 10000 });
+    });
+
+    test('an image can be pasted directly into the Drop a thought box', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Paste Image Card Retro', 'PasteImg');
+      const board = page.locator('#main-panel-board');
+      const form = board.locator('form').first();
+      const textarea = form.getByPlaceholder(/Drop a thought/);
+      // Simulate a clipboard image paste into the textarea.
+      await textarea.evaluate((el, dataUrl) => {
+        const [meta, b64] = dataUrl.split(',');
+        const mime = meta.match(/data:(.*);base64/)![1];
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const file = new File([bytes], 'pasted.png', { type: mime });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+      }, PNG_DATA_URL);
+      // Pasting stages a preview; the card can then be sent image-only.
+      await expect(form.getByAltText('Card image preview')).toBeVisible({ timeout: 5000 });
+      await form.getByRole('button', { name: 'Send' }).click();
+      await expect(board.getByAltText('Drawing').first()).toBeVisible({ timeout: 10000 });
+    });
+
+    test('comment timestamp shows the correct Taipei time (not 8h off)', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'TZ Check Retro', 'TZ');
+      const board = page.locator('#main-panel-board');
+      await addCard(page, 'Card for tz check');
+      await board.getByRole('button', { name: /\d+ comments?/ }).first().click();
+      await board.getByPlaceholder(/Reply/).first().fill('time check');
+      await board.getByRole('button', { name: 'Post' }).first().click();
+      await expect(board.getByText('time check')).toBeVisible({ timeout: 10000 });
+
+      const shown = await board.getByText(/·\s*\d{2}:\d{2}/).first().innerText();
+      const shownHHMM = shown.match(/(\d{2}):(\d{2})/)![0];
+      const expected = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      }).format(new Date());
+      const toMin = (s: string) => {
+        const [h, mm] = s.split(':').map(Number);
+        return h * 60 + mm;
+      };
+      const diff = Math.abs(toMin(shownHHMM) - toMin(expected));
+      // The 8h bug would put this ~480 min off; allow ±2 min for clock drift/rollover.
+      expect(Math.min(diff, 1440 - diff)).toBeLessThanOrEqual(2);
     });
   });
 });
