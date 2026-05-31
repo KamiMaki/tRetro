@@ -284,7 +284,7 @@ export function Card({
               </button>
             </div>
           </div>
-        ) : (
+        ) : card.content ? (
           <div
             onDoubleClick={canEditContent ? () => setContentEditing(true) : undefined}
             title={canEditContent ? 'Double-click to edit' : undefined}
@@ -300,7 +300,7 @@ export function Card({
           >
             {card.content}
           </div>
-        )}
+        ) : null}
 
         {/* Tags */}
         {card.tags.length > 0 && (

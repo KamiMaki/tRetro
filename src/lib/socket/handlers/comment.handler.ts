@@ -7,9 +7,6 @@ import type { SocketData } from '../middleware';
 import type { CreateCommentPayload, DeleteCommentPayload, Comment } from '../../types';
 import { MAX_CONTENT_CHARS, MAX_IMAGE_CHARS, isValidImageData } from './limits';
 
-// Reject obviously oversized attachments before they hit the DB / fan out over
-// the socket. ~3M base64 chars ≈ 2.2MB binary — plenty for a screenshot, while
-// keeping a single comment payload from blowing up every connected client.
 /**
  * Fan a comment out per-socket so each recipient gets a viewer-correct
  * `isOwnComment` flag (the same pattern card create uses for `isOwnCard`).
