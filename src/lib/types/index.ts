@@ -234,6 +234,8 @@ export interface CreateCardPayload {
   content: string;
   tagIds: string[];
   tempId?: string; // client-side optimistic ID
+  /** Optional base64 image attached at creation; stored as a card drawing. */
+  imageData?: string | null;
 }
 
 export interface UpdateCardPayload {

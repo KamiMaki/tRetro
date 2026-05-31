@@ -5,16 +5,11 @@ import { roomRepo } from '../../db/repositories/room.repo';
 import { toCommentDTO } from '../dto';
 import type { SocketData } from '../middleware';
 import type { CreateCommentPayload, DeleteCommentPayload, Comment } from '../../types';
+import { MAX_CONTENT_CHARS, MAX_IMAGE_CHARS, isValidImageData } from './limits';
 
 // Reject obviously oversized attachments before they hit the DB / fan out over
 // the socket. ~3M base64 chars ≈ 2.2MB binary — plenty for a screenshot, while
 // keeping a single comment payload from blowing up every connected client.
-const MAX_IMAGE_CHARS = 3_000_000;
-
-function isValidImageData(data: unknown): data is string {
-  return typeof data === 'string' && /^data:image\/[a-z0-9.+-]+;base64,/i.test(data);
-}
-
 /**
  * Fan a comment out per-socket so each recipient gets a viewer-correct
  * `isOwnComment` flag (the same pattern card create uses for `isOwnCard`).
@@ -43,7 +38,12 @@ export function registerCommentHandlers(io: Server, socket: Socket): void {
 
   socket.on(SOCKET_EVENTS.COMMENT_CREATE, (payload: CreateCommentPayload) => {
     try {
-      const content = (payload.content ?? '').trim();
+      const rawContent = payload.content ?? '';
+      if (rawContent.length > MAX_CONTENT_CHARS) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: `Comment is too long (max ${MAX_CONTENT_CHARS} characters)`, code: 'BAD_INPUT' });
+        return;
+      }
+      const content = rawContent.trim();
       const rawImage = payload.imageData;
       const hasImage = rawImage != null && rawImage !== '';
 

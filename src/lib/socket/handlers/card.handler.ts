@@ -1,11 +1,13 @@
 import type { Server, Socket } from 'socket.io';
 import { SOCKET_EVENTS } from '../events';
 import { cardRepo } from '../../db/repositories/card.repo';
+import { drawingRepo } from '../../db/repositories/drawing.repo';
 import { participantRepo } from '../../db/repositories/participant.repo';
 import { roomRepo } from '../../db/repositories/room.repo';
 import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 import type { CreateCardPayload, UpdateCardPayload } from '../../types';
+import { MAX_CONTENT_CHARS, MAX_IMAGE_CHARS, isValidImageData } from './limits';
 
 function broadcastCard(
   io: Server,
@@ -32,9 +34,33 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
 
   socket.on(SOCKET_EVENTS.CARD_CREATE, (payload: CreateCardPayload) => {
     try {
+      const rawContent = payload.content ?? '';
+      if (rawContent.length > MAX_CONTENT_CHARS) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: `Card text is too long (max ${MAX_CONTENT_CHARS} characters)`, code: 'BAD_INPUT' });
+        return;
+      }
+      const rawImage = payload.imageData;
+      const hasImage = rawImage != null && rawImage !== '';
+      if (hasImage && !isValidImageData(rawImage)) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Unsupported image format', code: 'BAD_INPUT' });
+        return;
+      }
+      if (hasImage && (rawImage as string).length > MAX_IMAGE_CHARS) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Image is too large (max ~2MB)', code: 'BAD_INPUT' });
+        return;
+      }
+      // A card needs text, an image, or both — never nothing.
+      if (!rawContent.trim() && !hasImage) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card is empty', code: 'BAD_INPUT' });
+        return;
+      }
       const card = cardRepo.create(
-        data.roomId, payload.section, payload.content, data.participantId, payload.tagIds
+        data.roomId, payload.section, rawContent, data.participantId, payload.tagIds
       );
+      // Attach the image as a drawing so it renders as a thumbnail on the card.
+      if (hasImage) {
+        drawingRepo.create(card.id, data.roomId, data.participantId, rawImage as string);
+      }
       const room = roomRepo.findById(data.roomId);
       broadcastCard(io, data.roomId, card, room?.isAnonymous ?? false);
     } catch (err) {
@@ -44,6 +70,10 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
 
   socket.on(SOCKET_EVENTS.CARD_UPDATE, (payload: UpdateCardPayload) => {
     try {
+      if (payload.content !== undefined && payload.content.length > MAX_CONTENT_CHARS) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: `Card text is too long (max ${MAX_CONTENT_CHARS} characters)`, code: 'BAD_INPUT' });
+        return;
+      }
       const card = cardRepo.findById(payload.cardId);
       if (!card) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });

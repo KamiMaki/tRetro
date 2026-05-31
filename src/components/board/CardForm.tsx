@@ -12,6 +12,9 @@ const TAG_COLORS = [
   '#7cd1f2', // cyan
 ];
 
+// Keep in sync with the server-side cap in src/lib/socket/handlers/limits.ts.
+const MAX_IMAGE_CHARS = 3_000_000;
+
 interface CardFormProps {
   section: SectionType;
   tags: Tag[];
@@ -29,18 +32,66 @@ export function CardForm({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [newTagDraft, setNewTagDraft] = useState('');
   const [creatingTag, setCreatingTag] = useState(false);
+  const [image, setImage] = useState<string | null>(null);
+  const [imageErr, setImageErr] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
-    onSubmit({ section, content: content.trim(), tagIds: selectedTagIds });
+    if (!content.trim() && !image) return;
+    onSubmit({ section, content: content.trim(), tagIds: selectedTagIds, imageData: image });
     setContent('');
     setSelectedTagIds([]);
     setCreatingTag(false);
     setNewTagDraft('');
+    setImage(null);
+    setImageErr(null);
     textareaRef.current?.focus();
   };
+
+  function stageImageFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      setImageErr('只能附加圖片');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (!result) return;
+      if (result.length > MAX_IMAGE_CHARS) {
+        setImageErr('圖片太大（上限約 2MB）');
+        return;
+      }
+      setImageErr(null);
+      setImage(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    // Index loop — DataTransferItemList is array-like but not reliably
+    // iterable with for..of across browsers.
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.type.startsWith('image/')) {
+        const file = it.getAsFile();
+        if (file) {
+          e.preventDefault();
+          stageImageFile(file);
+        }
+        return;
+      }
+    }
+  }
+
+  function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) stageImageFile(file);
+    e.target.value = '';
+  }
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) =>
@@ -200,7 +251,8 @@ export function CardForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Drop a thought…"
+        onPaste={handlePaste}
+        placeholder="Drop a thought…（可貼上圖片）"
         rows={2}
         className="field"
         style={{
@@ -211,7 +263,63 @@ export function CardForm({
         }}
       />
 
+      {image && (
+        <div style={{ position: 'relative', display: 'inline-block', alignSelf: 'flex-start' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image}
+            alt="Card image preview"
+            style={{
+              maxHeight: 120, maxWidth: '100%', borderRadius: 8,
+              border: '1px solid var(--glass-border)', display: 'block',
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setImage(null)}
+            aria-label="Remove image"
+            title="Remove image"
+            style={{
+              position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 999,
+              background: 'oklch(0.15 0.02 270 / 0.75)', color: '#fff', border: 'none', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {imageErr && (
+        <div className="text-mono" style={{ fontSize: 10.5, color: 'oklch(0.82 0.14 25)' }}>
+          {imageErr}
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFilePick}
+          style={{ display: 'none' }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Attach image to card"
+          title="Attach image（也可直接貼上）"
+          className="btn"
+          style={{ fontSize: 11, padding: '6px 9px' }}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="2" y="3" width="12" height="10" rx="1.5" />
+            <circle cx="5.5" cy="6.5" r="1.2" />
+            <path d="M3 12l3.5-3.5 2.5 2.5L11 8l2 2" />
+          </svg>
+        </button>
         <span className="text-mono fg-3" style={{ fontSize: 10, opacity: 0.7 }}>
           {selectedTagIds.length > 0
             ? `${selectedTagIds.length} tag${selectedTagIds.length === 1 ? '' : 's'}`
@@ -219,7 +327,7 @@ export function CardForm({
         </span>
         <button
           type="submit"
-          disabled={!content.trim()}
+          disabled={!content.trim() && !image}
           className="btn btn-primary"
           style={{ marginLeft: 'auto', fontSize: 12, padding: '6px 14px' }}
         >

@@ -54,7 +54,10 @@ export function CommentList({
   function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
     const items = e.clipboardData?.items;
     if (!items) return;
-    for (const it of items) {
+    // Index loop — DataTransferItemList is array-like but not reliably
+    // iterable with for..of across browsers.
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
       if (it.type.startsWith('image/')) {
         const file = it.getAsFile();
         if (file) {
