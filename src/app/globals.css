@@ -416,6 +416,29 @@ body {
     0 2px 6px oklch(0.30 0.05 270 / 0.12);
 }
 
+/* User-coloured tag chips. The hex/rgb tag colour comes in as --tag-base
+   from the inline style. The tag must stay visibly that colour — light
+   mode darkens the text enough to read on a light surface but keeps a
+   strong hue (just mix toward dark, don't dilute toward grey). No
+   shadow in either mode. */
+.chip-tag {
+  background: color-mix(in oklab, var(--tag-base, oklch(0.65 0 0)) 22%, transparent);
+  color: var(--tag-base, oklch(0.92 0.04 270));
+  border-color: color-mix(in oklab, var(--tag-base, oklch(0.65 0 0)) 35%, transparent);
+  text-shadow: none;
+  box-shadow: none;
+}
+[data-theme="light"] .chip-tag {
+  /* 55% alpha of the tag base — visibly that hue against a light surface */
+  background: color-mix(in oklab, var(--tag-base, oklch(0.65 0 0)) 55%, transparent);
+  /* 60% tag hue + 40% near-black: dark enough to read on the light pill,
+     still recognisable as the original tag colour. */
+  color: color-mix(in oklab, var(--tag-base, oklch(0.30 0 0)) 60%, oklch(0.16 0.04 270));
+  border-color: color-mix(in oklab, var(--tag-base, oklch(0.65 0 0)) 80%, oklch(0.30 0.05 270));
+  text-shadow: none;
+  box-shadow: none;
+}
+
 /* ───── Status pills (live / closed) ───── */
 .status-pill {
   display: inline-flex;

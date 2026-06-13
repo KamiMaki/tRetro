@@ -44,22 +44,11 @@ const LOGO_LETTER_STYLE: CSSProperties = {
 };
 
 export function Logo({ size = 22, wordmark = true }: { size?: number; wordmark?: boolean }) {
+  if (!wordmark) return null;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- small static asset, no need for next/image */}
-      <img
-        src="/icon.png"
-        alt="RetroXpert"
-        width={size}
-        height={size}
-        style={{ display: 'block', width: size, height: size }}
-      />
-      {wordmark && (
-        <span className="text-display" style={{ fontWeight: 700, fontSize: size * 0.85, letterSpacing: '-0.02em' }}>
-          <span style={LOGO_LETTER_STYLE}>R</span>etro
-          <span style={LOGO_LETTER_STYLE}>X</span>pert
-        </span>
-      )}
+    <span className="text-display" style={{ fontWeight: 700, fontSize: size * 0.85, letterSpacing: '-0.02em' }}>
+      <span style={LOGO_LETTER_STYLE}>R</span>etro
+      <span style={LOGO_LETTER_STYLE}>X</span>pert
     </span>
   );
 }
