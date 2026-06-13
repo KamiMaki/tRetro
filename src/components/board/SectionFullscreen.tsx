@@ -2,19 +2,19 @@
 
 import { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
-import { SECTION_LABELS, SECTION_EMOJIS, SECTION_TONES } from '@/lib/types';
-import type { RetroTemplate } from '@/lib/templates';
+import type { CardDTOv2, Tag, SectionType, SectionTone, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
 
 interface SectionFullscreenProps {
   section: SectionType;
+  label: string;
+  emoji: string;
+  tone: SectionTone;
   cards: CardDTOv2[];
   tags: Tag[];
   isScrumMaster: boolean;
   participantCount: number;
-  template?: RetroTemplate;
   onClose: () => void;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
@@ -39,11 +39,13 @@ interface SectionFullscreenProps {
 export function SectionFullscreen(props: SectionFullscreenProps) {
   const {
     section,
+    label,
+    emoji,
+    tone,
     cards,
     tags,
     isScrumMaster,
     participantCount,
-    template,
     onClose,
     onAddCard,
     onDeleteCard,
@@ -64,9 +66,6 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onUpdateCardContent,
   } = props;
 
-  const tone = SECTION_TONES[section];
-  const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
-  const label = template?.labels[section] ?? SECTION_LABELS[section];
 
   // Fullscreen view sorts cards by their first tag's name (untagged cards
   // last). This puts cards that share a tag visually adjacent so the team

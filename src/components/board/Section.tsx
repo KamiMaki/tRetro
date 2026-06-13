@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { CardDTOv2, Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
-import { SECTION_LABELS, SECTION_EMOJIS, SECTION_TONES } from '@/lib/types';
-import type { RetroTemplate } from '@/lib/templates';
+import type { CardDTOv2, Tag, SectionType, SectionTone, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { Card } from '@/components/board/Card';
 import { CardForm } from '@/components/board/CardForm';
 import { SectionFullscreen } from '@/components/board/SectionFullscreen';
@@ -12,12 +10,19 @@ import { GlassPanel } from '@/components/ui/Aurora';
 const DRAG_MIME = 'application/x-tretro-card';
 
 interface SectionProps {
+  /** The section_key this column represents. */
   section: SectionType;
+  /** Display label / emoji / accent tone, resolved from room_sections. */
+  label: string;
+  emoji: string;
+  tone: SectionTone;
+  /** Section_key the SM "park" action moves a card into (the room's
+   *  discuss-equivalent). Undefined hides the park affordance. */
+  parkSectionKey?: string;
   cards: CardDTOv2[];
   tags: Tag[];
   isScrumMaster: boolean;
   participantCount: number;
-  template?: RetroTemplate;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
   onDeleteCard: (cardId: string) => void;
   onRevealCard: (cardId: string, nickname?: string) => void;
@@ -40,11 +45,14 @@ interface SectionProps {
 
 export function Section({
   section,
+  label,
+  emoji,
+  tone,
+  parkSectionKey,
   cards,
   tags,
   isScrumMaster,
   participantCount,
-  template,
   onAddCard,
   onDeleteCard,
   onRevealCard,
@@ -63,9 +71,6 @@ export function Section({
   onUpdateCardTags,
   onUpdateCardContent,
 }: SectionProps) {
-  const tone = SECTION_TONES[section];
-  const emoji = template?.emojis[section] ?? SECTION_EMOJIS[section];
-  const label = template?.labels[section] ?? SECTION_LABELS[section];
   const [fullscreen, setFullscreen] = useState(false);
   const [dragHover, setDragHover] = useState(false);
 
@@ -211,7 +216,8 @@ export function Section({
                   onAddDrawing={onAddDrawing}
                   onDeleteDrawing={onDeleteDrawing}
                   onConvertToAction={onConvertToAction}
-                  onParkCard={(cardId) => onMoveCard(cardId, 'deep-dive')}
+                  parkSectionKey={parkSectionKey}
+                  onParkCard={parkSectionKey ? (cardId) => onMoveCard(cardId, parkSectionKey) : undefined}
                   onUpdateCardTags={onUpdateCardTags}
                   onUpdateCardContent={onUpdateCardContent}
                 />
@@ -234,11 +240,13 @@ export function Section({
       {fullscreen && (
         <SectionFullscreen
           section={section}
+          label={label}
+          emoji={emoji}
+          tone={tone}
           cards={cards}
           tags={tags}
           isScrumMaster={isScrumMaster}
           participantCount={participantCount}
-          template={template}
           isAnonymousRoom={isAnonymousRoom}
           onClose={() => setFullscreen(false)}
           onAddCard={onAddCard}

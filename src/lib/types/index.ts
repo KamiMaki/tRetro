@@ -40,6 +40,16 @@ export const SECTION_TONES: Record<string, SectionTone> = {
   'deep-dive':  'violet',
 };
 
+/** Minimal section shape the board UI renders from — satisfied by both a
+ *  RoomSection (server data) and a template-derived seed (fallback before
+ *  the room's sections have loaded). */
+export interface BoardSectionView {
+  sectionKey: string;
+  label: string;
+  emoji: string;
+  tone: SectionTone;
+}
+
 /** A customisable board section, scoped to one room (room_sections row). */
 export interface RoomSection {
   id: string;

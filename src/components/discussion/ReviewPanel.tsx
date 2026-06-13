@@ -1,9 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { CardDTOv2, SectionType, Tag } from '@/lib/types';
-import { SECTIONS, SECTION_TONES, SECTION_LABELS, SECTION_EMOJIS } from '@/lib/types';
-import type { RetroTemplate } from '@/lib/templates';
+import type { CardDTOv2, SectionTone, Tag, BoardSectionView } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 import { CommentList } from '@/components/board/CommentList';
 import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
@@ -13,10 +11,9 @@ import { Avatar } from '@/components/ui/Aurora';
 // stacked top-to-bottom, with one-click expand/collapse of all comment
 // threads. A pure read/triage surface: no decision controls.
 
-type Tone = 'mint' | 'pink' | 'amber' | 'violet';
-
-const TONE_VAR: Record<Tone, string> = {
+const TONE_VAR: Record<SectionTone, string> = {
   mint: 'var(--aurora-mint)',
+  cyan: 'var(--aurora-cyan)',
   pink: 'var(--aurora-pink)',
   amber: 'var(--aurora-amber)',
   violet: 'var(--aurora-violet)',
@@ -24,18 +21,16 @@ const TONE_VAR: Record<Tone, string> = {
 
 interface ReviewPanelProps {
   cards: CardDTOv2[];
-  template?: RetroTemplate;
+  /** The room's sections in display order (room_sections or fallback). */
+  sections: BoardSectionView[];
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
   isScrumMaster?: boolean;
 }
 
-export function ReviewPanel({ cards, template, onAddComment, onDeleteComment, isScrumMaster = false }: ReviewPanelProps) {
+export function ReviewPanel({ cards, sections, onAddComment, onDeleteComment, isScrumMaster = false }: ReviewPanelProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<string>('all'); // 'all' | tag id
-
-  const labelFor = (s: SectionType) => template?.labels[s] ?? SECTION_LABELS[s];
-  const emojiFor = (s: SectionType) => template?.emojis[s] ?? SECTION_EMOJIS[s];
 
   // Tag list for the filter rail — sorted by how many cards carry each tag.
   const { tagsById, topTags, tagCounts } = useMemo(() => {
@@ -142,15 +137,15 @@ export function ReviewPanel({ cards, template, onAddComment, onDeleteComment, is
         </button>
       </div>
 
-      {/* 4 stacked sections */}
+      {/* Stacked sections — one per room section, in board order. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-        {SECTIONS.map((section) => (
+        {sections.map((s) => (
           <ReviewSection
-            key={section}
-            section={section}
-            label={labelFor(section)}
-            emoji={emojiFor(section)}
-            cards={cards.filter((c) => c.section === section && matchesFilter(c))}
+            key={s.sectionKey}
+            label={s.label}
+            emoji={s.emoji}
+            tone={s.tone}
+            cards={cards.filter((c) => c.section === s.sectionKey && matchesFilter(c))}
             expanded={expanded}
             setExpanded={setExpanded}
             setMany={setMany}
@@ -198,9 +193,9 @@ function FilterPill({
 }
 
 function ReviewSection({
-  section,
   label,
   emoji,
+  tone,
   cards,
   expanded,
   setExpanded,
@@ -209,9 +204,9 @@ function ReviewSection({
   onDeleteComment,
   isScrumMaster,
 }: {
-  section: SectionType;
   label: string;
   emoji: string;
+  tone: SectionTone;
   cards: CardDTOv2[];
   expanded: Record<string, boolean>;
   setExpanded: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
@@ -220,7 +215,6 @@ function ReviewSection({
   onDeleteComment?: (commentId: string, cardId: string) => void;
   isScrumMaster?: boolean;
 }) {
-  const tone = SECTION_TONES[section];
   const accent = TONE_VAR[tone];
   const ids = cards.map((c) => c.id);
   const sectionExpanded = cards.length > 0 && ids.every((id) => expanded[id]);
@@ -323,7 +317,7 @@ function ReviewCard({
   isScrumMaster,
 }: {
   card: CardDTOv2;
-  tone: Tone;
+  tone: SectionTone;
   expanded: boolean;
   onToggle: () => void;
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;

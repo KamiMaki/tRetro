@@ -39,9 +39,12 @@ interface CardProps {
    *  (server enforces; we just hide the affordance otherwise). */
   onDeleteDrawing?: (drawingId: string) => void;
   onConvertToAction?: (content: string) => void;
-  /** SM-only "park" — moves the card to the deep-discussion column for a
-   *  later deeper conversation. No-op when the card is already there. */
+  /** SM-only "park" — moves the card to the room's discuss-equivalent
+   *  section for a later deeper conversation. No-op when already there. */
   onParkCard?: (cardId: string) => void;
+  /** The section_key park targets. Hides the affordance for cards already
+   *  in that section. */
+  parkSectionKey?: string;
   /** Update the card's tag set (author or SM). */
   onUpdateCardTags?: (cardId: string, tagIds: string[]) => void;
   /** Update the card's content text. Server allows any participant to
@@ -68,6 +71,7 @@ export function Card({
   onDeleteDrawing,
   onConvertToAction,
   onParkCard,
+  parkSectionKey,
   onUpdateCardTags,
   onUpdateCardContent,
 }: CardProps) {
@@ -81,7 +85,7 @@ export function Card({
   // Park = move the card to the deep-discussion column for a later deeper
   // conversation. Only useful when (a) the SM is actively presenting and
   // (b) the card isn't already in deep-discussion.
-  const canPark = isScrumMaster && shareMode && card.section !== 'deep-dive' && !!onParkCard;
+  const canPark = isScrumMaster && shareMode && card.section !== parkSectionKey && !!onParkCard;
   // Anyone in the room can edit any card's content — the team asked for
   // collaborative editing. Server enforces the same rule.
   const canEditContent = !shareMode && !!onUpdateCardContent;

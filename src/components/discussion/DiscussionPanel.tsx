@@ -1,8 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { CardDTOv2, Tag } from '@/lib/types';
-import { SECTION_TONES, SECTIONS } from '@/lib/types';
+import type { CardDTOv2, Tag, BoardSectionView } from '@/lib/types';
 import { GlassPanel, Avatar } from '@/components/ui/Aurora';
 import { TagBadge } from '@/components/board/TagBadge';
 import { CommentList } from '@/components/board/CommentList';
@@ -15,7 +14,6 @@ import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 // marker.
 
 type Decision = 'action' | 'park';
-type Tone = 'mint' | 'cyan' | 'pink' | 'amber' | 'violet';
 
 const UNTAGGED = '__untagged__';
 
@@ -26,6 +24,8 @@ const DECISION_BADGE: Record<Decision, string> = {
 
 interface DiscussionPanelProps {
   cards: CardDTOv2[];
+  /** The room's sections — drives focus-walkthrough order + card tone. */
+  sections: BoardSectionView[];
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
   isScrumMaster?: boolean;
@@ -34,11 +34,23 @@ interface DiscussionPanelProps {
 
 export function DiscussionPanel({
   cards,
+  sections,
   onAddComment,
   onDeleteComment,
   isScrumMaster = false,
   onCreateActionItem,
 }: DiscussionPanelProps) {
+  // section_key -> board position, and section_key -> accent tone.
+  const sectionOrder = useMemo(() => {
+    const m = new Map<string, number>();
+    sections.forEach((s, i) => m.set(s.sectionKey, i));
+    return m;
+  }, [sections]);
+  const toneByKey = useMemo(() => {
+    const m = new Map<string, BoardSectionView['tone']>();
+    for (const s of sections) m.set(s.sectionKey, s.tone);
+    return m;
+  }, [sections]);
   // Group cards by tag id; a card with N tags shows up in N groups.
   const { groups, groupOrder, tagsById } = useMemo(() => {
     const byTag: Record<string, CardDTOv2[]> = {};
@@ -56,10 +68,7 @@ export function DiscussionPanel({
     // Walk each tag group in board order — go-well first, then didn't-go-well,
     // thanks, deep-dive — so the focus walkthrough mirrors the board columns
     // instead of raw insertion order. createdAt breaks ties within a section.
-    const sectionRank = (c: CardDTOv2) => {
-      const i = SECTIONS.indexOf(c.section);
-      return i === -1 ? SECTIONS.length : i;
-    };
+    const sectionRank = (c: CardDTOv2) => sectionOrder.get(c.section) ?? sections.length;
     for (const key of Object.keys(byTag)) {
       byTag[key].sort((a, b) => {
         const d = sectionRank(a) - sectionRank(b);
@@ -69,7 +78,7 @@ export function DiscussionPanel({
     }
     const order = Object.keys(byTag).sort((a, b) => byTag[b].length - byTag[a].length);
     return { groups: byTag, groupOrder: order, tagsById: byId };
-  }, [cards]);
+  }, [cards, sectionOrder, sections.length]);
 
   const [tagIdx, setTagIdx] = useState(0);
   const [cardIdx, setCardIdx] = useState(0);
@@ -283,7 +292,7 @@ export function DiscussionPanel({
             <div key={focused.id} className="drop-in" style={{ width: 'min(440px, 100%)' }}>
               <div
                 className="sticky-card"
-                data-tone={SECTION_TONES[focused.section] as Tone}
+                data-tone={toneByKey.get(focused.section) ?? 'violet'}
                 style={{
                   padding: '24px 26px',
                   fontSize: 18,

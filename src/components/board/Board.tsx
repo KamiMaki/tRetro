@@ -1,8 +1,7 @@
 'use client';
 
-import type { CardDTOv2, Tag, CreateCardPayload, CreateTagPayload, SectionType } from '@/lib/types';
-import { SECTIONS } from '@/lib/types';
-import type { RetroTemplate } from '@/lib/templates';
+import type { CSSProperties } from 'react';
+import type { CardDTOv2, Tag, CreateCardPayload, CreateTagPayload, SectionType, BoardSectionView } from '@/lib/types';
 import { Section } from '@/components/board/Section';
 
 interface BoardProps {
@@ -10,7 +9,11 @@ interface BoardProps {
   tags: Tag[];
   isScrumMaster: boolean;
   participantCount: number;
-  template?: RetroTemplate;
+  /** The room's board sections in display order (room_sections, or a
+   *  template fallback before they load). */
+  sections: BoardSectionView[];
+  /** Section_key the SM "park" action targets (room's discuss-equivalent). */
+  parkSectionKey?: string;
   shareMode: boolean;
   /** Forwarded to Card so reveal/unreveal toggles hide in named rooms. */
   isAnonymousRoom: boolean;
@@ -36,7 +39,8 @@ export function Board({
   tags,
   isScrumMaster,
   participantCount,
-  template,
+  sections,
+  parkSectionKey,
   shareMode,
   isAnonymousRoom,
   onAddCard,
@@ -60,16 +64,19 @@ export function Board({
       {/* 4-column board grid. Sort/filter were removed; the per-section
           fullscreen view sorts by tag automatically. The timer lives in the
           Tools drawer above the tabs. */}
-      <div className="board-grid">
-        {SECTIONS.map((section) => (
+      <div className="board-grid" style={{ '--section-count': sections.length } as CSSProperties}>
+        {sections.map((s) => (
           <Section
-            key={section}
-            section={section}
-            cards={cards.filter((c) => c.section === section)}
+            key={s.sectionKey}
+            section={s.sectionKey}
+            label={s.label}
+            emoji={s.emoji}
+            tone={s.tone}
+            parkSectionKey={parkSectionKey}
+            cards={cards.filter((c) => c.section === s.sectionKey)}
             tags={tags}
             isScrumMaster={isScrumMaster}
             participantCount={participantCount}
-            template={template}
             shareMode={shareMode}
             isAnonymousRoom={isAnonymousRoom}
             onAddCard={onAddCard}
@@ -110,7 +117,8 @@ export function Board({
         }
         @media (min-width: 1280px) {
           .board-grid {
-            grid-template-columns: repeat(4, 1fr);
+            /* One column per section. Falls back to 4 before sections load. */
+            grid-template-columns: repeat(var(--section-count, 4), minmax(0, 1fr));
           }
         }
         :global([data-density="compact"]) .board-grid {

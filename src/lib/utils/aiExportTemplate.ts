@@ -1,6 +1,5 @@
-import type { Room, CardDB, Tag, ActionItem } from '../types';
-import { SECTION_EMOJIS, SECTION_LABELS, SECTIONS } from '../types';
-import type { SectionType } from '../types';
+import type { Room, CardDB, Tag, ActionItem, BoardSectionView } from '../types';
+import { resolveExportSections } from './export';
 import { taipeiTimestamp } from './datetime';
 
 interface ExportComment {
@@ -70,9 +69,13 @@ export function buildAiSummaryMarkdown(
   tags: Tag[],
   actionItems: ActionItem[],
   participantCount: number,
+  sections?: BoardSectionView[],
 ): string {
   const lines: string[] = [];
   lines.push(PROMPT_HEADER);
+
+  const exportSections = resolveExportSections(sections);
+  const labelByKey = new Map(exportSections.map((s) => [s.sectionKey, s.label]));
 
   lines.push(`# 回顧會議：${room.name}`);
   lines.push('');
@@ -84,9 +87,8 @@ export function buildAiSummaryMarkdown(
   lines.push(`- 匯出時間：${taipeiTimestamp()}`);
   lines.push('');
 
-  for (const section of SECTIONS) {
-    const sectionCards = cards.filter((c) => c.section === section);
-    lines.push(`## ${SECTION_EMOJIS[section]} ${SECTION_LABELS[section]}（${sectionCards.length}）`);
+  const renderSection = (label: string, emoji: string, sectionCards: CardWithMeta[]) => {
+    lines.push(`## ${emoji} ${label}（${sectionCards.length}）`);
     lines.push('');
     if (sectionCards.length === 0) {
       lines.push('_（本區塊無卡片）_');
@@ -103,6 +105,16 @@ export function buildAiSummaryMarkdown(
       }
     }
     lines.push('');
+  };
+
+  const knownKeys = new Set(exportSections.map((s) => s.sectionKey));
+  for (const section of exportSections) {
+    renderSection(section.label, section.emoji, cards.filter((c) => c.section === section.sectionKey));
+  }
+  // Cards whose section was removed still surface, never silently dropped.
+  const orphans = cards.filter((c) => !knownKeys.has(c.section));
+  if (orphans.length > 0) {
+    renderSection('未分類', '🗂️', orphans);
   }
 
   // Tag distribution
@@ -113,8 +125,8 @@ export function buildAiSummaryMarkdown(
     lines.push('|------|-------|---------|');
     for (const tag of tags) {
       const tagCards = cards.filter((c) => c.tags.some((t) => t.id === tag.id));
-      const sections = [...new Set(tagCards.map((c) => SECTION_LABELS[c.section as SectionType]))];
-      lines.push(`| ${tag.name} | ${tagCards.length} | ${sections.join('、') || '—'} |`);
+      const sectionLabels = [...new Set(tagCards.map((c) => labelByKey.get(c.section) ?? c.section))];
+      lines.push(`| ${tag.name} | ${tagCards.length} | ${sectionLabels.join('、') || '—'} |`);
     }
     lines.push('');
   }

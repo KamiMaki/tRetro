@@ -1,6 +1,24 @@
-import type { Room, CardDB, Tag, ActionItem } from '../types';
+import type { Room, CardDB, Tag, ActionItem, BoardSectionView } from '../types';
 import { SECTION_EMOJIS, SECTION_LABELS, SECTIONS } from '../types';
 import { taipeiTimestamp } from './datetime';
+
+interface ExportSection {
+  sectionKey: string;
+  label: string;
+  emoji: string;
+}
+
+/**
+ * The sections an export iterates. Prefers the room's customised sections;
+ * falls back to the four built-ins for legacy callers/tests that don't pass
+ * any. Used by every export format so MD / HTML / AI stay in sync.
+ */
+export function resolveExportSections(sections?: BoardSectionView[]): ExportSection[] {
+  if (sections && sections.length > 0) {
+    return sections.map((s) => ({ sectionKey: s.sectionKey, label: s.label, emoji: s.emoji }));
+  }
+  return SECTIONS.map((k) => ({ sectionKey: k, label: SECTION_LABELS[k], emoji: SECTION_EMOJIS[k] }));
+}
 
 /** A card comment as it appears in an export (no base64 payload — the image
  *  is reduced to a placeholder marker so the file stays readable/small). */
@@ -27,7 +45,8 @@ export function exportToMarkdown(
   cards: CardWithMeta[],
   _tags: Tag[],
   actionItems: ActionItem[],
-  participantCount: number
+  participantCount: number,
+  sections?: BoardSectionView[],
 ): string {
   const lines: string[] = [];
   lines.push(`# ${room.name} - Retrospective Summary`);
@@ -37,10 +56,8 @@ export function exportToMarkdown(
   lines.push(`> Status: ${room.status}`);
   lines.push('');
 
-  for (const section of SECTIONS) {
-    const sectionCards = cards.filter(c => c.section === section);
-    // Emoji prefix per section, e.g. `## 😆 Went Well (3 cards)`.
-    lines.push(`## ${SECTION_EMOJIS[section]} ${SECTION_LABELS[section]} (${sectionCards.length} cards)`);
+  const renderSection = (label: string, emoji: string, sectionCards: CardWithMeta[]) => {
+    lines.push(`## ${emoji} ${label} (${sectionCards.length} cards)`);
     lines.push('');
     if (sectionCards.length === 0) {
       lines.push('_No cards_');
@@ -57,6 +74,18 @@ export function exportToMarkdown(
       }
     }
     lines.push('');
+  };
+
+  const exportSections = resolveExportSections(sections);
+  const known = new Set(exportSections.map((s) => s.sectionKey));
+  for (const section of exportSections) {
+    renderSection(section.label, section.emoji, cards.filter((c) => c.section === section.sectionKey));
+  }
+  // Safety net: never silently drop a card whose section_key is no longer in
+  // the room's section list (e.g. a section removed after cards were filed).
+  const orphans = cards.filter((c) => !known.has(c.section));
+  if (orphans.length > 0) {
+    renderSection('Uncategorized', '🗂️', orphans);
   }
 
   // Action items
@@ -82,9 +111,10 @@ export function exportToHtml(
   cards: CardWithMeta[],
   tags: Tag[],
   actionItems: ActionItem[],
-  participantCount: number
+  participantCount: number,
+  sections?: BoardSectionView[],
 ): string {
-  const md = exportToMarkdown(room, cards, tags, actionItems, participantCount);
+  const md = exportToMarkdown(room, cards, tags, actionItems, participantCount, sections);
   // Simple markdown-to-HTML conversion
   const bodyHtml = md
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')

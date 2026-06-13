@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { roomRepo } from '@/lib/db/repositories/room.repo';
+import { roomSectionRepo } from '@/lib/db/repositories/room-section.repo';
 import { cardRepo } from '@/lib/db/repositories/card.repo';
 import { commentRepo } from '@/lib/db/repositories/comment.repo';
 import { tagRepo } from '@/lib/db/repositories/tag.repo';
@@ -42,6 +43,7 @@ export async function GET(
 
   const cards = cardRepo.findByRoomId(roomId);
   const tags = tagRepo.findByRoomId(roomId);
+  const sections = roomSectionRepo.findByRoomId(roomId);
   const actionItems = actionItemRepo.findByRoomId(roomId);
   const participants = participantRepo.findByRoomId(roomId);
 
@@ -82,7 +84,7 @@ export async function GET(
   const denom = resolveVoteDenominator(room, participants.length);
 
   if (format === 'html') {
-    const html = exportToHtml(room, cardsWithMeta, tags, actionItems, denom);
+    const html = exportToHtml(room, cardsWithMeta, tags, actionItems, denom, sections);
     return new Response(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
@@ -92,7 +94,7 @@ export async function GET(
   }
 
   if (format === 'ai') {
-    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, denom);
+    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, denom, sections);
     return new Response(aiMd, {
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',
@@ -113,7 +115,7 @@ export async function GET(
     });
   }
 
-  const md = exportToMarkdown(room, cardsWithMeta, tags, actionItems, denom);
+  const md = exportToMarkdown(room, cardsWithMeta, tags, actionItems, denom, sections);
   return new Response(md, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',

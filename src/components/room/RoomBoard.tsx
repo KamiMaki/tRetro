@@ -16,7 +16,8 @@ import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
 import { PhaseBar } from '@/components/room/PhaseBar';
 import { DiscussionPanel } from '@/components/discussion/DiscussionPanel';
 import { ReviewPanel } from '@/components/discussion/ReviewPanel';
-import { findTemplate } from '@/lib/templates';
+import { templateSections } from '@/lib/templates';
+import type { BoardSectionView } from '@/lib/types';
 
 interface RoomBoardProps {
   roomId: string;
@@ -37,6 +38,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     participants,
     cards,
     tags,
+    sections,
     actionItems,
     isScrumMaster,
     connectionStatus,
@@ -228,7 +230,18 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     return metricsAggregate.reduce((max, m) => Math.max(max, m.submissions || 0), 0);
   }, [metricsAggregate]);
 
-  const template = useMemo(() => findTemplate(room?.templateId), [room?.templateId]);
+  // The room's board sections (server data), with a template-derived
+  // fallback for the brief window before ROOM_JOINED arrives.
+  const boardSections = useMemo<BoardSectionView[]>(
+    () => (sections.length > 0 ? sections : templateSections(room?.templateId)),
+    [sections, room?.templateId],
+  );
+  // Where the SM "park" action sends a card: the room's deep-dive section if
+  // it still exists, otherwise the last section.
+  const parkSectionKey = useMemo(() => {
+    const deepDive = boardSections.find((s) => s.sectionKey === 'deep-dive');
+    return deepDive?.sectionKey ?? boardSections[boardSections.length - 1]?.sectionKey;
+  }, [boardSections]);
 
   const TABS: Array<{ key: MainTab; label: string; badge?: number; badgeSoft?: boolean; icon: React.ReactNode }> = [
     {
@@ -399,7 +412,8 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               tags={tags}
               isScrumMaster={isScrumMaster}
               participantCount={resolveVoteDenominator(room ?? {}, participants.length)}
-              template={template}
+              sections={boardSections}
+              parkSectionKey={parkSectionKey}
               shareMode={shareMode}
               isAnonymousRoom={room?.isAnonymous ?? true}
               onAddCard={addCard}
@@ -428,6 +442,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           >
             <DiscussionPanel
               cards={cards}
+              sections={boardSections}
               onAddComment={addComment}
               onDeleteComment={deleteComment}
               isScrumMaster={isScrumMaster}
@@ -443,7 +458,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
           >
             <ReviewPanel
               cards={cards}
-              template={template}
+              sections={boardSections}
               onAddComment={addComment}
               onDeleteComment={deleteComment}
               isScrumMaster={isScrumMaster}

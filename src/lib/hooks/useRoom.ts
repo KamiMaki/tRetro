@@ -13,6 +13,7 @@ import type {
   Drawing,
   Tag,
   ActionItem,
+  RoomSection,
   RoomJoinedPayload,
   CreateCardPayload,
   UpdateCardPayload,
@@ -43,6 +44,7 @@ interface UseRoomReturn {
   participants: ParticipantSummary[];
   cards: CardDTOv2[];
   tags: Tag[];
+  sections: RoomSection[];
   actionItems: ActionItem[];
   isScrumMaster: boolean;
   toastMessage: { message: string; type: 'success' | 'error' | 'info' } | null;
@@ -97,6 +99,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
   const [cards, setCards] = useState<CardDTOv2[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [sections, setSections] = useState<RoomSection[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [toastMessage, setToastMessage] = useState<UseRoomReturn['toastMessage']>(null);
   const [isScrumMaster, setIsScrumMaster] = useState(false);
@@ -156,6 +159,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       setParticipants(payload.participants);
       setCards(payload.cards.map(toCardDTOv2));
       setTags(payload.tags);
+      setSections(payload.sections ?? []);
       setActionItems(payload.actionItems);
       if (payload.phaseState) {
         setPhaseState(payload.phaseState);
@@ -438,6 +442,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     participants,
     cards,
     tags,
+    sections,
     actionItems,
     isScrumMaster,
     toastMessage,
