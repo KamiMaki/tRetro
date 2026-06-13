@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import type { Tag, SectionType, CreateCardPayload, CreateTagPayload } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
+import { MAX_IMAGE_CHARS, imageSizeError } from '@/lib/utils/imageLimits';
 
 const TAG_COLORS = [
   '#84e1c8', // mint
@@ -11,9 +12,6 @@ const TAG_COLORS = [
   '#fcd987', // amber
   '#7cd1f2', // cyan
 ];
-
-// Keep in sync with the server-side cap in src/lib/socket/handlers/limits.ts.
-const MAX_IMAGE_CHARS = 3_000_000;
 
 interface CardFormProps {
   section: SectionType;
@@ -55,12 +53,18 @@ export function CardForm({
       setImageErr('只能附加圖片');
       return;
     }
+    const sizeErr = imageSizeError(file);
+    if (sizeErr) {
+      setImageErr(sizeErr);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
       if (!result) return;
+      // Backstop: encoded string should not exceed server cap.
       if (result.length > MAX_IMAGE_CHARS) {
-        setImageErr('圖片太大（上限約 2MB）');
+        setImageErr(`圖片編碼後超過上限`);
         return;
       }
       setImageErr(null);

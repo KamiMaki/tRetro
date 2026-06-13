@@ -4,9 +4,8 @@ import { useRef, useState } from 'react';
 import type { Comment } from '@/lib/types';
 import { Avatar } from '@/components/ui/Aurora';
 import { formatTaipeiTime } from '@/lib/utils/datetime';
-
-// Keep in sync with the server-side cap in comment.handler.ts.
-const MAX_IMAGE_CHARS = 3_000_000;
+import { MAX_IMAGE_CHARS, imageSizeError } from '@/lib/utils/imageLimits';
+import { ZoomableImage } from '@/components/ui/Lightbox';
 
 interface CommentListProps {
   cardId: string;
@@ -47,12 +46,18 @@ export function CommentList({
       setImageErr('只能附加圖片');
       return;
     }
+    const sizeErr = imageSizeError(file);
+    if (sizeErr) {
+      setImageErr(sizeErr);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
       if (!result) return;
+      // Backstop: encoded string should not exceed server cap.
       if (result.length > MAX_IMAGE_CHARS) {
-        setImageErr('圖片太大（上限約 2MB）');
+        setImageErr(`圖片編碼後超過上限`);
         return;
       }
       setImageErr(null);
@@ -66,12 +71,18 @@ export function CommentList({
       setEditImageErr('只能附加圖片');
       return;
     }
+    const sizeErr = imageSizeError(file);
+    if (sizeErr) {
+      setEditImageErr(sizeErr);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
       if (!result) return;
+      // Backstop: encoded string should not exceed server cap.
       if (result.length > MAX_IMAGE_CHARS) {
-        setEditImageErr('圖片太大（上限約 2MB）');
+        setEditImageErr(`圖片編碼後超過上限`);
         return;
       }
       setEditImageErr(null);
@@ -408,8 +419,7 @@ export function CommentList({
                         </div>
                       )}
                       {comment.imageData && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <ZoomableImage
                           src={comment.imageData}
                           alt="Comment attachment"
                           style={{
