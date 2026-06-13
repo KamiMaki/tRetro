@@ -13,6 +13,7 @@ import { Toast } from '@/components/ui/Toast';
 import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
+import { OnboardingTour, type TourStep } from '@/components/room/OnboardingTour';
 import { RoomSectionsModal } from '@/components/room/RoomSectionsModal';
 import { PhaseBar } from '@/components/room/PhaseBar';
 import { DiscussionPanel } from '@/components/discussion/DiscussionPanel';
@@ -28,6 +29,48 @@ type MainTab = 'board' | 'discussion' | 'review' | 'actions' | 'metrics';
 
 const SHARE_MODE_KEY = 'tretro-share-mode';
 const TOOLS_OPEN_KEY = 'tretro-tools-open';
+const ONBOARDING_SEEN_KEY = 'tretro-onboarding-seen';
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    title: '歡迎使用 RetroXpert 👋',
+    body: '這是你的回顧看板。這份簡短導覽會帶你認識所有主要功能，大約需要 1 分鐘。',
+  },
+  {
+    target: '[data-tour="tabs"]',
+    title: '主要分頁',
+    body: '透過這五個分頁切換不同模式：看板（貼卡片）、討論（逐一審視）、檢視（全覽）、行動項目、以及 Sprint 指標。',
+  },
+  {
+    target: 'main .col textarea, main .col input[type="text"]',
+    title: '新增卡片',
+    body: '在任意欄位的輸入框中輸入文字，按 Enter 或點擊送出按鈕即可新增卡片。你也可以貼上圖片。',
+  },
+  {
+    target: '[data-tour="tools"]',
+    title: '工具面板（計時器）',
+    body: '展開 Tools 面板來啟動倒數計時器，讓每個階段保持節奏。Scrum Master 可以設定時間並開始/暫停。',
+  },
+  {
+    target: '[data-tour="sections"]',
+    title: '自訂區塊',
+    body: '點擊 Sections 可新增、刪除或重新命名看板區塊，也能調整顏色。讓看板符合你的回顧模板。',
+  },
+  {
+    target: '[data-tour="guide"]',
+    title: '引導手冊（Guide）',
+    body: '每個階段都有對應的引導提示與可唸出來的問題，幫助 Facilitator 帶領討論。點擊 Guide 隨時開啟。',
+  },
+  {
+    target: '[data-tour="summary"]',
+    title: 'AI 摘要提示（Summary Prompt）',
+    body: '點擊後會將整場回顧的內容連同摘要提示一起複製到剪貼簿，貼到任何 AI 工具（ChatGPT、Claude 等）即可獲得主題分析。',
+  },
+  {
+    title: '準備好了！',
+    body: '你已經了解所有主要功能。隨時可以點擊右上角的「教學 ?」按鈕重看這份導覽。祝回顧順利！',
+  },
+];
 
 export function RoomBoard({ roomId }: RoomBoardProps) {
   const sessionToken =
@@ -82,6 +125,23 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
   const [facilitatorOpen, setFacilitatorOpen] = useState(false);
   const [sectionsModalOpen, setSectionsModalOpen] = useState(false);
   const [prefilledActionContent, setPrefilledActionContent] = useState('');
+
+  // Onboarding tour — SSR-safe, shows once on first visit.
+  const [tourOpen, setTourOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.localStorage.getItem(ONBOARDING_SEEN_KEY) !== '1') {
+      setTourOpen(true);
+    }
+  }, []);
+
+  const handleTourClose = useCallback(() => {
+    setTourOpen(false);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+    }
+  }, []);
 
   // SM share-mode toggle. SessionStorage so a tab refresh during a live retro
   // doesn't accidentally drop the SM out of share mode.
@@ -335,7 +395,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         <main className="room-shell">
           {/* Top control row: tabs + tools / share-mode pills */}
           <div className="top-controls">
-            <nav className="main-tabs" role="tablist" aria-label="Retro tabs">
+            <nav className="main-tabs" role="tablist" aria-label="Retro tabs" data-tour="tabs">
               {TABS.map((t) => {
                 const isActive = activeTab === t.key;
                 return (
@@ -371,6 +431,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
                 aria-controls="tools-drawer"
                 className={toolsOpen ? 'pill pill-active' : 'pill'}
                 title="Timer · Filter · Sort"
+                data-tour="tools"
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M2 4h12M2 8h12M2 12h8" />
@@ -385,6 +446,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
                 onClick={() => setSectionsModalOpen(true)}
                 className="pill"
                 title="版面設定 — 編輯這場回顧的區塊"
+                data-tour="sections"
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="2" y="2" width="5" height="12" rx="1" />
@@ -413,6 +475,21 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
                   {shareMode && <span className="live-dot" aria-hidden="true" />}
                 </button>
               )}
+
+              {/* Replay onboarding tour */}
+              <button
+                type="button"
+                onClick={() => setTourOpen(true)}
+                className="pill"
+                title="重看新手導覽"
+                aria-label="重看新手導覽"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6" />
+                  <path d="M8 5v3.5l2 2" />
+                </svg>
+                教學
+              </button>
             </div>
           </div>
 
@@ -559,6 +636,10 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
         onDeleteSection={deleteSection}
         onReorderSections={reorderSections}
       />
+
+      {tourOpen && (
+        <OnboardingTour steps={TOUR_STEPS} onClose={handleTourClose} />
+      )}
 
       <style jsx>{`
         .room-shell {

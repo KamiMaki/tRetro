@@ -216,6 +216,7 @@ export function RoomHeader({
         className="btn"
         onClick={onOpenFacilitator}
         title="Guide (per-phase tips & prompts)"
+        data-tour="guide"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M4 5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
@@ -245,6 +246,7 @@ export function RoomHeader({
             className="btn"
             onClick={handleCopyAiPrompt}
             title="Copy a ready-to-paste summary prompt + retro content to your clipboard. Paste into ChatGPT / Claude / Gemini for theme synthesis."
+            data-tour="summary"
             style={{
               background: aiCopied ? 'oklch(0.78 0.15 175 / 0.20)' : undefined,
               borderColor: aiCopied ? 'oklch(0.78 0.15 175 / 0.45)' : undefined,
