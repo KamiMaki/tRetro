@@ -61,6 +61,12 @@ export function runMigrations(): void {
     db.exec(`ALTER TABLE comments ADD COLUMN image_data TEXT`);
   }
 
+  // 2026-06-13: comments.updated_at — nullable; non-null means the comment was
+  // edited at least once. null = never edited (original post).
+  if (!commentCols.some((c) => c.name === 'updated_at')) {
+    db.exec(`ALTER TABLE comments ADD COLUMN updated_at TEXT`);
+  }
+
   // 2026-05-24: team-spaces multi-tenancy.
   // Re-read rooms columns after earlier ALTERs so the guard reflects
   // current schema state.

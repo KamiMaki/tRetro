@@ -207,6 +207,8 @@ export interface Comment {
    *  undefined on the raw DB shape. Drives the delete affordance. */
   isOwnComment?: boolean;
   createdAt: string;
+  /** ISO timestamp of last edit (zone-less UTC, like createdAt). null = never edited. */
+  updatedAt: string | null;
 }
 
 export interface Reaction {
@@ -326,6 +328,12 @@ export interface CreateCommentPayload {
 
 export interface DeleteCommentPayload {
   commentId: string;
+}
+
+export interface UpdateCommentPayload {
+  commentId: string;
+  content: string;
+  imageData?: string | null;
 }
 
 export interface ToggleReactionPayload {

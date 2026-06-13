@@ -24,6 +24,7 @@ interface SectionFullscreenProps {
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
@@ -55,6 +56,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     onCreateTag,
     onAddComment,
     onDeleteComment,
+    onUpdateComment,
     onToggleReaction,
     onToggleVote,
     onAddDrawing,
@@ -167,6 +169,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               onUnreveal={onUnrevealCard}
               onAddComment={onAddComment}
               onDeleteComment={onDeleteComment}
+              onUpdateComment={onUpdateComment}
               onToggleReaction={onToggleReaction}
               onToggleVote={onToggleVote}
               onAddDrawing={onAddDrawing}

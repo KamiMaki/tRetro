@@ -99,3 +99,88 @@ describe('comment.handler content-length guard', () => {
     expect(comments[0].content.length).toBe(MAX_CONTENT_CHARS);
   });
 });
+
+describe('comment.handler COMMENT_UPDATE', () => {
+  let roomId: string;
+  let authorId: string;
+  let otherId: string;
+  let cardId: string;
+  let commentId: string;
+
+  beforeEach(() => {
+    const room = roomRepo.create('Update Test Room');
+    roomId = room.id;
+    authorId = participantRepo.create(roomId, 'Author').id;
+    otherId = participantRepo.create(roomId, 'Other').id;
+    cardId = cardRepo.create(roomId, 'went-well', 'a card', authorId, []).id;
+    // Create the comment as the author
+    const comment = commentRepo.create(cardId, roomId, authorId, 'original text');
+    commentId = comment.id;
+  });
+
+  it('author can update own comment — broadcasts COMMENT_UPDATED with new content', () => {
+    const { handlers, emitted } = makeHarness({
+      roomId, participantId: authorId, isScrumMaster: false, nickname: 'Author', teamId: 't',
+    } as SocketData);
+
+    handlers.get(SOCKET_EVENTS.COMMENT_UPDATE)!({ commentId, content: 'updated text' });
+
+    // broadcastComment short-circuits (rooms map returns undefined), so no
+    // socket emit. Verify the DB row was updated.
+    expect(emitted).toHaveLength(0);
+    const updated = commentRepo.findById(commentId)!;
+    expect(updated.content).toBe('updated text');
+    expect(updated.updatedAt).not.toBeNull();
+  });
+
+  it('non-author non-SM is FORBIDDEN and DB is unchanged', () => {
+    const { handlers, emitted } = makeHarness({
+      roomId, participantId: otherId, isScrumMaster: false, nickname: 'Other', teamId: 't',
+    } as SocketData);
+
+    handlers.get(SOCKET_EVENTS.COMMENT_UPDATE)!({ commentId, content: 'sneaky edit' });
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].event).toBe(SOCKET_EVENTS.ERROR);
+    expect(emitted[0].payload).toMatchObject({ code: 'FORBIDDEN' });
+    // Content must be unchanged
+    expect(commentRepo.findById(commentId)!.content).toBe('original text');
+  });
+
+  it('SM can update another user\'s comment', () => {
+    const { handlers, emitted } = makeHarness({
+      roomId, participantId: otherId, isScrumMaster: true, nickname: 'Other', teamId: 't',
+    } as SocketData);
+
+    handlers.get(SOCKET_EVENTS.COMMENT_UPDATE)!({ commentId, content: 'sm edit' });
+
+    expect(emitted).toHaveLength(0);
+    expect(commentRepo.findById(commentId)!.content).toBe('sm edit');
+  });
+
+  it('empty update (no text, no image) is rejected with BAD_INPUT', () => {
+    const { handlers, emitted } = makeHarness({
+      roomId, participantId: authorId, isScrumMaster: false, nickname: 'Author', teamId: 't',
+    } as SocketData);
+
+    handlers.get(SOCKET_EVENTS.COMMENT_UPDATE)!({ commentId, content: '   ' });
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].event).toBe(SOCKET_EVENTS.ERROR);
+    expect(emitted[0].payload).toMatchObject({ code: 'BAD_INPUT' });
+    // Content unchanged
+    expect(commentRepo.findById(commentId)!.content).toBe('original text');
+  });
+
+  it('update for a missing comment returns NOT_FOUND', () => {
+    const { handlers, emitted } = makeHarness({
+      roomId, participantId: authorId, isScrumMaster: false, nickname: 'Author', teamId: 't',
+    } as SocketData);
+
+    handlers.get(SOCKET_EVENTS.COMMENT_UPDATE)!({ commentId: 'no-such-id', content: 'x' });
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].event).toBe(SOCKET_EVENTS.ERROR);
+    expect(emitted[0].payload).toMatchObject({ code: 'NOT_FOUND' });
+  });
+});

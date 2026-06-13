@@ -11,6 +11,7 @@ interface CommentRow {
   content: string;
   image_data: string | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 function toComment(row: CommentRow): Comment {
@@ -28,6 +29,7 @@ function toComment(row: CommentRow): Comment {
     content: row.content,
     imageData: row.image_data ?? null,
     createdAt: row.created_at,
+    updatedAt: row.updated_at ?? null,
   };
 }
 
@@ -57,6 +59,16 @@ export const commentRepo = {
     const db = getDb();
     const rows = db.prepare('SELECT * FROM comments WHERE card_id = ? ORDER BY created_at').all(cardId) as CommentRow[];
     return rows.map(toComment);
+  },
+
+  /** Update content and/or image; stamps updated_at to now. Returns the
+   *  refreshed comment, or null if the row no longer exists. */
+  update(id: string, content: string, imageData: string | null): Comment | null {
+    const db = getDb();
+    db.prepare(
+      `UPDATE comments SET content = ?, image_data = ?, updated_at = datetime('now') WHERE id = ?`
+    ).run(content, imageData, id);
+    return this.findById(id);
   },
 
   /** Delete by id. Returns true if a row was removed. */

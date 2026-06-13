@@ -43,6 +43,8 @@ export const SOCKET_EVENTS = {
   // Comments
   COMMENT_CREATE: 'comment:create',
   COMMENT_CREATED: 'comment:created',
+  COMMENT_UPDATE: 'comment:update',
+  COMMENT_UPDATED: 'comment:updated',
   COMMENT_DELETE: 'comment:delete',
   COMMENT_DELETED: 'comment:deleted',
 

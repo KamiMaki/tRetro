@@ -58,6 +58,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     reopenRoom,
     addComment,
     deleteComment,
+    updateComment,
     toggleReaction,
     toggleVote,
     addDrawing,
@@ -424,6 +425,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onCreateTag={createTag}
               onAddComment={addComment}
               onDeleteComment={deleteComment}
+              onUpdateComment={(commentId, _cardId, content, imageData) => updateComment(commentId, content, imageData)}
               onToggleReaction={toggleReaction}
               onToggleVote={toggleVote}
               onAddDrawing={addDrawing}
@@ -445,6 +447,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               sections={boardSections}
               onAddComment={addComment}
               onDeleteComment={deleteComment}
+              onUpdateComment={(commentId, _cardId, content, imageData) => updateComment(commentId, content, imageData)}
               isScrumMaster={isScrumMaster}
               onCreateActionItem={(description) => addActionItem({ description })}
             />
@@ -461,6 +464,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               sections={boardSections}
               onAddComment={addComment}
               onDeleteComment={deleteComment}
+              onUpdateComment={(commentId, _cardId, content, imageData) => updateComment(commentId, content, imageData)}
               isScrumMaster={isScrumMaster}
             />
           </div>

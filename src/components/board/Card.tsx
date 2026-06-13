@@ -32,6 +32,7 @@ interface CardProps {
   onUnreveal: (cardId: string) => void;
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
@@ -65,6 +66,7 @@ export function Card({
   onUnreveal,
   onAddComment,
   onDeleteComment,
+  onUpdateComment,
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
@@ -806,6 +808,7 @@ export function Card({
               comments={card.comments}
               onAddComment={onAddComment}
               onDeleteComment={onDeleteComment}
+              onUpdateComment={onUpdateComment}
               isScrumMaster={isScrumMaster}
             />
           </div>

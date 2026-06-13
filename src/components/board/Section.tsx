@@ -31,6 +31,7 @@ interface SectionProps {
   onCreateTag: (payload: Omit<CreateTagPayload, 'roomId'>) => void;
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
   onToggleReaction: (cardId: string, emoji: string) => void;
   onToggleVote: (cardId: string) => void;
   onAddDrawing: (cardId: string, data: string) => void;
@@ -61,6 +62,7 @@ export function Section({
   onCreateTag,
   onAddComment,
   onDeleteComment,
+  onUpdateComment,
   onToggleReaction,
   onToggleVote,
   onAddDrawing,
@@ -211,6 +213,7 @@ export function Section({
                   onUnreveal={onUnrevealCard}
                   onAddComment={onAddComment}
                   onDeleteComment={onDeleteComment}
+                  onUpdateComment={onUpdateComment}
                   onToggleReaction={onToggleReaction}
                   onToggleVote={onToggleVote}
                   onAddDrawing={onAddDrawing}
@@ -257,6 +260,7 @@ export function Section({
           onCreateTag={onCreateTag}
           onAddComment={onAddComment}
           onDeleteComment={onDeleteComment}
+          onUpdateComment={onUpdateComment}
           onToggleReaction={onToggleReaction}
           onToggleVote={onToggleVote}
           onAddDrawing={onAddDrawing}

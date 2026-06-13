@@ -36,6 +36,7 @@ interface DiscussionPanelProps {
   sections: BoardSectionView[];
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
   isScrumMaster?: boolean;
   onCreateActionItem: (description: string) => void;
 }
@@ -45,6 +46,7 @@ export function DiscussionPanel({
   sections,
   onAddComment,
   onDeleteComment,
+  onUpdateComment,
   isScrumMaster = false,
   onCreateActionItem,
 }: DiscussionPanelProps) {
@@ -501,6 +503,7 @@ export function DiscussionPanel({
                 comments={focused.comments}
                 onAddComment={onAddComment}
                 onDeleteComment={onDeleteComment}
+                onUpdateComment={onUpdateComment}
                 isScrumMaster={isScrumMaster}
               />
             </div>

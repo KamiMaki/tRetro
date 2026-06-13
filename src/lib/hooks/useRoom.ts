@@ -63,6 +63,7 @@ interface UseRoomReturn {
   reopenRoom: () => void;
   addComment: (cardId: string, content: string, imageData?: string | null) => void;
   deleteComment: (commentId: string) => void;
+  updateComment: (commentId: string, content: string, imageData?: string | null) => void;
   toggleReaction: (cardId: string, emoji: string) => void;
   toggleVote: (cardId: string) => void;
   addDrawing: (cardId: string, data: string) => void;
@@ -271,6 +272,16 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       );
     });
 
+    socket.on(SOCKET_EVENTS.COMMENT_UPDATED, (updated: Comment) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === updated.cardId
+            ? { ...c, comments: c.comments.map((cm) => (cm.id === updated.id ? updated : cm)) }
+            : c
+        )
+      );
+    });
+
     // V2: Reactions
     socket.on(SOCKET_EVENTS.REACTION_UPDATED, (payload: { cardId: string; reactions: Reaction[] }) => {
       setCards((prev) =>
@@ -414,6 +425,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.COMMENT_DELETE, { commentId });
   }, []);
 
+  const updateComment = useCallback((commentId: string, content: string, imageData?: string | null) => {
+    socketRef.current?.emit(SOCKET_EVENTS.COMMENT_UPDATE, { commentId, content, imageData });
+  }, []);
+
   const toggleReaction = useCallback((cardId: string, emoji: string) => {
     socketRef.current?.emit(SOCKET_EVENTS.REACTION_TOGGLE, { cardId, emoji });
   }, []);
@@ -461,6 +476,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     reopenRoom,
     addComment,
     deleteComment,
+    updateComment,
     toggleReaction,
     toggleVote,
     addDrawing,

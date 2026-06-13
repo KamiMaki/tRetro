@@ -15,7 +15,10 @@ interface CommentListProps {
   /** When provided, own comments (and any comment for an SM) show a delete
    *  control. Omit for read-only surfaces. */
   onDeleteComment?: (commentId: string, cardId: string) => void;
-  /** SMs may delete any comment in the room, not just their own. */
+  /** When provided, own comments (and any comment for an SM) show an edit
+   *  control. Same permission gate as onDeleteComment. */
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
+  /** SMs may delete/edit any comment in the room, not just their own. */
   isScrumMaster?: boolean;
 }
 
@@ -24,13 +27,20 @@ export function CommentList({
   comments,
   onAddComment,
   onDeleteComment,
+  onUpdateComment,
   isScrumMaster = false,
 }: CommentListProps) {
   const [draft, setDraft] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [imageErr, setImageErr] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  // editingId — which comment is currently in inline edit mode.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [editImage, setEditImage] = useState<string | null>(null);
+  const [editImageErr, setEditImageErr] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   function stageFile(file: File) {
     if (!file.type.startsWith('image/')) {
@@ -47,6 +57,25 @@ export function CommentList({
       }
       setImageErr(null);
       setImage(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function stageEditFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      setEditImageErr('只能附加圖片');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (!result) return;
+      if (result.length > MAX_IMAGE_CHARS) {
+        setEditImageErr('圖片太大（上限約 2MB）');
+        return;
+      }
+      setEditImageErr(null);
+      setEditImage(result);
     };
     reader.readAsDataURL(file);
   }
@@ -69,9 +98,31 @@ export function CommentList({
     }
   }
 
+  function handleEditPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.type.startsWith('image/')) {
+        const file = it.getAsFile();
+        if (file) {
+          e.preventDefault();
+          stageEditFile(file);
+        }
+        return;
+      }
+    }
+  }
+
   function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) stageFile(file);
+    e.target.value = '';
+  }
+
+  function handleEditFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) stageEditFile(file);
     e.target.value = '';
   }
 
@@ -83,6 +134,31 @@ export function CommentList({
     setDraft('');
     setImage(null);
     setImageErr(null);
+  }
+
+  function openEdit(comment: Comment) {
+    setEditingId(comment.id);
+    setEditDraft(comment.content);
+    setEditImage(comment.imageData ?? null);
+    setEditImageErr(null);
+    setConfirmingId(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditDraft('');
+    setEditImage(null);
+    setEditImageErr(null);
+  }
+
+  function commitEdit(comment: Comment) {
+    const trimmed = editDraft.trim();
+    if (!trimmed && !editImage) return;
+    onUpdateComment!(comment.id, comment.cardId, trimmed, editImage);
+    setEditingId(null);
+    setEditDraft('');
+    setEditImage(null);
+    setEditImageErr(null);
   }
 
   return (
@@ -114,6 +190,8 @@ export function CommentList({
         >
           {comments.map((comment) => {
             const canDelete = !!onDeleteComment && (comment.isOwnComment || isScrumMaster);
+            const canEdit = !!onUpdateComment && (comment.isOwnComment || isScrumMaster);
+            const isEditing = editingId === comment.id;
             return (
               <div key={comment.id} style={{ display: 'flex', gap: 8 }}>
                 {comment.authorNickname
@@ -129,6 +207,7 @@ export function CommentList({
                     minWidth: 0,
                   }}
                 >
+                  {/* Header row: author · time · edited marker · actions */}
                   <div
                     className="text-mono"
                     style={{ fontSize: 10, marginBottom: 2, color: 'var(--fg-2)', display: 'flex', alignItems: 'center', gap: 4 }}
@@ -139,88 +218,212 @@ export function CommentList({
                     <span style={{ color: 'var(--fg-3)' }}>
                       · {formatTaipeiTime(comment.createdAt)}
                     </span>
-                    {canDelete && (
+                    {comment.updatedAt && (
+                      <span style={{ color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                        · 已編輯
+                      </span>
+                    )}
+                    {(canEdit || canDelete) && !isEditing && (
                       <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        {confirmingId === comment.id ? (
-                          <>
-                            <span className="fg-3" style={{ fontSize: 10 }}>刪除？</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onDeleteComment!(comment.id, comment.cardId);
-                                setConfirmingId(null);
-                              }}
-                              aria-label="Confirm delete comment"
-                              style={{
-                                padding: '1px 6px', fontSize: 10, borderRadius: 6, cursor: 'pointer',
-                                background: 'oklch(0.65 0.18 25 / 0.18)', color: 'oklch(0.85 0.14 25)',
-                                border: '1px solid oklch(0.65 0.18 25 / 0.35)', fontFamily: 'inherit',
-                              }}
-                            >
-                              刪除
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmingId(null)}
-                              aria-label="Cancel delete comment"
-                              style={{
-                                padding: '1px 6px', fontSize: 10, borderRadius: 6, cursor: 'pointer',
-                                background: 'transparent', color: 'var(--fg-3)',
-                                border: '1px solid var(--glass-border)', fontFamily: 'inherit',
-                              }}
-                            >
-                              取消
-                            </button>
-                          </>
-                        ) : (
+                        {/* Edit pencil button */}
+                        {canEdit && (
                           <button
                             type="button"
-                            onClick={() => setConfirmingId(comment.id)}
-                            aria-label="Delete comment"
-                            title="Delete comment"
+                            onClick={() => openEdit(comment)}
+                            aria-label="Edit comment"
+                            title="Edit comment"
                             style={{
-                              marginLeft: 'auto', padding: 2, borderRadius: 6, background: 'transparent',
+                              padding: 2, borderRadius: 6, background: 'transparent',
                               border: 'none', color: 'var(--fg-3)', cursor: 'pointer', display: 'inline-flex',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = 'oklch(0.78 0.16 25)')}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--aurora-violet)')}
                             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
                           >
-                            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-                              <path d="M3 3l10 10M13 3L3 13" />
+                            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M11.5 1.5l3 3-9 9H2.5v-3z" />
+                              <path d="M9.5 3.5l3 3" />
                             </svg>
                           </button>
+                        )}
+                        {/* Delete button — two-step confirm */}
+                        {canDelete && (
+                          confirmingId === comment.id ? (
+                            <>
+                              <span className="fg-3" style={{ fontSize: 10 }}>刪除？</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onDeleteComment!(comment.id, comment.cardId);
+                                  setConfirmingId(null);
+                                }}
+                                aria-label="Confirm delete comment"
+                                style={{
+                                  padding: '1px 6px', fontSize: 10, borderRadius: 6, cursor: 'pointer',
+                                  background: 'oklch(0.65 0.18 25 / 0.18)', color: 'oklch(0.85 0.14 25)',
+                                  border: '1px solid oklch(0.65 0.18 25 / 0.35)', fontFamily: 'inherit',
+                                }}
+                              >
+                                刪除
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingId(null)}
+                                aria-label="Cancel delete comment"
+                                style={{
+                                  padding: '1px 6px', fontSize: 10, borderRadius: 6, cursor: 'pointer',
+                                  background: 'transparent', color: 'var(--fg-3)',
+                                  border: '1px solid var(--glass-border)', fontFamily: 'inherit',
+                                }}
+                              >
+                                取消
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingId(comment.id)}
+                              aria-label="Delete comment"
+                              title="Delete comment"
+                              style={{
+                                marginLeft: canEdit ? 0 : 'auto', padding: 2, borderRadius: 6, background: 'transparent',
+                                border: 'none', color: 'var(--fg-3)', cursor: 'pointer', display: 'inline-flex',
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = 'oklch(0.78 0.16 25)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-3)')}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                                <path d="M3 3l10 10M13 3L3 13" />
+                              </svg>
+                            </button>
+                          )
                         )}
                       </span>
                     )}
                   </div>
-                  {comment.content && (
-                    <div
-                      style={{
-                        fontSize: 12.5,
-                        lineHeight: 1.5,
-                        color: 'var(--fg-0)',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      {comment.content}
+
+                  {/* Inline edit mode */}
+                  {isEditing ? (
+                    <div style={{ marginTop: 4 }}>
+                      <textarea
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        onPaste={handleEditPaste}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                          else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(comment); }
+                        }}
+                        rows={2}
+                        className="field"
+                        style={{ fontSize: 12, padding: '6px 10px', minHeight: 0, resize: 'none', width: '100%' }}
+                        aria-label="Edit comment text"
+                      />
+                      {/* Edit image preview */}
+                      {editImage && (
+                        <div style={{ position: 'relative', display: 'inline-block', alignSelf: 'flex-start', marginTop: 4, marginBottom: 4 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={editImage}
+                            alt="Edit attachment preview"
+                            style={{ maxHeight: 100, maxWidth: '100%', borderRadius: 8, border: '1px solid var(--glass-border)', display: 'block' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEditImage(null)}
+                            aria-label="Remove image"
+                            title="Remove image"
+                            style={{
+                              position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 999,
+                              background: 'oklch(0.15 0.02 270 / 0.75)', color: '#fff', border: 'none', cursor: 'pointer',
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                            }}
+                          >
+                            <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                              <path d="M3 3l10 10M13 3L3 13" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                      {editImageErr && (
+                        <div className="text-mono" style={{ fontSize: 10.5, color: 'oklch(0.82 0.14 25)', marginBottom: 2 }}>
+                          {editImageErr}
+                        </div>
+                      )}
+                      <input
+                        ref={editFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditFilePick}
+                        style={{ display: 'none' }}
+                      />
+                      <div style={{ display: 'flex', gap: 6, marginTop: 4, alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => editFileInputRef.current?.click()}
+                          aria-label="Attach image"
+                          title="Attach image"
+                          className="btn"
+                          style={{ fontSize: 10, padding: '3px 7px', flexShrink: 0 }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <rect x="2" y="3" width="12" height="10" rx="1.5" />
+                            <circle cx="5.5" cy="6.5" r="1.2" />
+                            <path d="M3 12l3.5-3.5 2.5 2.5L11 8l2 2" />
+                          </svg>
+                        </button>
+                        <span className="text-mono fg-3" style={{ fontSize: 10, marginRight: 'auto' }}>
+                          Enter 儲存 · Esc 取消
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={cancelEdit}
+                          style={{ padding: '2px 8px', fontSize: 10 }}
+                        >
+                          取消
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => commitEdit(comment)}
+                          disabled={!editDraft.trim() && !editImage}
+                          style={{ padding: '2px 8px', fontSize: 10 }}
+                        >
+                          儲存
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  {comment.imageData && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={comment.imageData}
-                      alt="Comment attachment"
-                      style={{
-                        marginTop: comment.content ? 6 : 0,
-                        maxWidth: '100%',
-                        maxHeight: 240,
-                        borderRadius: 8,
-                        border: '1px solid var(--glass-border)',
-                        display: 'block',
-                        objectFit: 'contain',
-                      }}
-                    />
+                  ) : (
+                    <>
+                      {comment.content && (
+                        <div
+                          style={{
+                            fontSize: 12.5,
+                            lineHeight: 1.5,
+                            color: 'var(--fg-0)',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {comment.content}
+                        </div>
+                      )}
+                      {comment.imageData && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={comment.imageData}
+                          alt="Comment attachment"
+                          style={{
+                            marginTop: comment.content ? 6 : 0,
+                            maxWidth: '100%',
+                            maxHeight: 240,
+                            borderRadius: 8,
+                            border: '1px solid var(--glass-border)',
+                            display: 'block',
+                            objectFit: 'contain',
+                          }}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -25,10 +25,11 @@ interface ReviewPanelProps {
   sections: BoardSectionView[];
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
   isScrumMaster?: boolean;
 }
 
-export function ReviewPanel({ cards, sections, onAddComment, onDeleteComment, isScrumMaster = false }: ReviewPanelProps) {
+export function ReviewPanel({ cards, sections, onAddComment, onDeleteComment, onUpdateComment, isScrumMaster = false }: ReviewPanelProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<string>('all'); // 'all' | tag id
 
@@ -151,6 +152,7 @@ export function ReviewPanel({ cards, sections, onAddComment, onDeleteComment, is
             setMany={setMany}
             onAddComment={onAddComment}
             onDeleteComment={onDeleteComment}
+            onUpdateComment={onUpdateComment}
             isScrumMaster={isScrumMaster}
           />
         ))}
@@ -202,6 +204,7 @@ function ReviewSection({
   setMany,
   onAddComment,
   onDeleteComment,
+  onUpdateComment,
   isScrumMaster,
 }: {
   label: string;
@@ -213,6 +216,7 @@ function ReviewSection({
   setMany: (ids: string[], value: boolean) => void;
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
   isScrumMaster?: boolean;
 }) {
   const accent = TONE_VAR[tone];
@@ -298,6 +302,7 @@ function ReviewSection({
               onToggle={() => setExpanded((s) => ({ ...s, [card.id]: !s[card.id] }))}
               onAddComment={onAddComment}
               onDeleteComment={onDeleteComment}
+              onUpdateComment={onUpdateComment}
               isScrumMaster={isScrumMaster}
             />
           ))}
@@ -314,6 +319,7 @@ function ReviewCard({
   onToggle,
   onAddComment,
   onDeleteComment,
+  onUpdateComment,
   isScrumMaster,
 }: {
   card: CardDTOv2;
@@ -322,6 +328,7 @@ function ReviewCard({
   onToggle: () => void;
   onAddComment: (cardId: string, content: string, imageData?: string | null) => void;
   onDeleteComment?: (commentId: string, cardId: string) => void;
+  onUpdateComment?: (commentId: string, cardId: string, content: string, imageData?: string | null) => void;
   isScrumMaster?: boolean;
 }) {
   // Server-driven: a non-null authorNickname means "show this name".
@@ -429,6 +436,7 @@ function ReviewCard({
             comments={card.comments}
             onAddComment={onAddComment}
             onDeleteComment={onDeleteComment}
+            onUpdateComment={onUpdateComment}
             isScrumMaster={isScrumMaster}
           />
         </div>

@@ -123,7 +123,8 @@ CREATE TABLE IF NOT EXISTS comments (
   author_id     TEXT NOT NULL REFERENCES participants(id),
   content       TEXT NOT NULL,
   image_data    TEXT,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT
 );
 
 CREATE TABLE IF NOT EXISTS reactions (
