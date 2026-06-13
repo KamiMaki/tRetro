@@ -25,6 +25,7 @@ import { SOCKET_EVENTS } from '@/lib/socket/events';
 import { roomRepo } from '@/lib/db/repositories/room.repo';
 import { participantRepo } from '@/lib/db/repositories/participant.repo';
 import { cardRepo } from '@/lib/db/repositories/card.repo';
+import { roomSectionRepo } from '@/lib/db/repositories/room-section.repo';
 
 interface EmittedEvent {
   event: string;
@@ -127,6 +128,92 @@ describe('card.handler content-length guard', () => {
 
       expect(emitted).toHaveLength(0);
       expect(cardRepo.findById(card.id)!.content).toBe('updated content');
+    });
+  });
+});
+
+/**
+ * Custom sections: CARD_MOVE / CARD_CREATE must validate `section` against the
+ * room's actual room_sections (the legacy 4-key CHECK was dropped — see
+ * migrations.ts 2026-06-13), not a hardcoded list. A team-owned room is seeded
+ * from the classic template, then we add a custom section and exercise both the
+ * accept and reject paths.
+ */
+describe('card.handler section validation against room_sections', () => {
+  let roomId: string;
+  let participantId: string;
+  let customKey: string;
+
+  beforeEach(() => {
+    // roomRepo.create seeds room_sections from the classic template
+    // (went-well / to-improve / thanks / deep-dive).
+    const room = roomRepo.create('Section Validation Room', 'classic', null);
+    roomId = room.id;
+    participantId = participantRepo.create(roomId, 'Tester').id;
+    // A freshly-created custom column, exactly like the live section editor adds.
+    customKey = 'custom-ab12cd34';
+    roomSectionRepo.create(roomId, customKey, 'Parking Lot', '🅿️', 'violet');
+  });
+
+  function harness() {
+    return makeHarness({ roomId, participantId, isScrumMaster: true, nickname: 'Tester', teamId: 't' } as SocketData);
+  }
+
+  describe('CARD_MOVE', () => {
+    it('moves a card into a freshly-created custom section and reassigns it', () => {
+      const card = cardRepo.create(roomId, 'went-well', 'movable', participantId, []);
+      const { handlers, emitted } = harness();
+
+      handlers.get(SOCKET_EVENTS.CARD_MOVE)!({ cardId: card.id, section: customKey });
+
+      expect(emitted).toHaveLength(0);
+      expect(cardRepo.findById(card.id)!.section).toBe(customKey);
+    });
+
+    it('rejects a move into a non-existent section without writing', () => {
+      const card = cardRepo.create(roomId, 'went-well', 'stay put', participantId, []);
+      const { handlers, emitted } = harness();
+
+      handlers.get(SOCKET_EVENTS.CARD_MOVE)!({ cardId: card.id, section: 'custom-does-not-exist' });
+
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0].event).toBe(SOCKET_EVENTS.ERROR);
+      expect(emitted[0].payload).toMatchObject({ code: 'BAD_INPUT' });
+      expect(cardRepo.findById(card.id)!.section).toBe('went-well');
+    });
+  });
+
+  describe('CARD_CREATE', () => {
+    it('creates a card under a freshly-created custom section', () => {
+      const { handlers, emitted } = harness();
+
+      handlers.get(SOCKET_EVENTS.CARD_CREATE)!({
+        roomId,
+        section: customKey,
+        content: 'into custom',
+        tagIds: [],
+      });
+
+      expect(emitted).toHaveLength(0);
+      const cards = cardRepo.findByRoomId(roomId);
+      expect(cards).toHaveLength(1);
+      expect(cards[0].section).toBe(customKey);
+    });
+
+    it('rejects a create into a non-existent section without writing', () => {
+      const { handlers, emitted } = harness();
+
+      handlers.get(SOCKET_EVENTS.CARD_CREATE)!({
+        roomId,
+        section: 'custom-does-not-exist',
+        content: 'orphan card',
+        tagIds: [],
+      });
+
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0].event).toBe(SOCKET_EVENTS.ERROR);
+      expect(emitted[0].payload).toMatchObject({ code: 'BAD_INPUT' });
+      expect(cardRepo.findByRoomId(roomId)).toHaveLength(0);
     });
   });
 });

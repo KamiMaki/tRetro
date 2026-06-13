@@ -4,6 +4,7 @@ import { cardRepo } from '../../db/repositories/card.repo';
 import { drawingRepo } from '../../db/repositories/drawing.repo';
 import { participantRepo } from '../../db/repositories/participant.repo';
 import { roomRepo } from '../../db/repositories/room.repo';
+import { roomSectionRepo } from '../../db/repositories/room-section.repo';
 import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 import type { CreateCardPayload, UpdateCardPayload } from '../../types';
@@ -52,6 +53,18 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
       // A card needs text, an image, or both — never nothing.
       if (!rawContent.trim() && !hasImage) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card is empty', code: 'BAD_INPUT' });
+        return;
+      }
+      // The target section must be one of THIS room's sections. The legacy
+      // CHECK constraint that used to enforce this at the DB layer was dropped
+      // for custom sections (migrations.ts 2026-06-13), so validate against
+      // room_sections here — otherwise a card could be persisted under any
+      // arbitrary section string.
+      const sectionExists = roomSectionRepo
+        .findByRoomId(data.roomId)
+        .some((s) => s.sectionKey === payload.section);
+      if (!sectionExists) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid section', code: 'BAD_INPUT' });
         return;
       }
       const card = cardRepo.create(
@@ -178,13 +191,15 @@ export function registerCardHandlers(io: Server, socket: Socket): void {
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'Card not found', code: 'NOT_FOUND' });
           return;
         }
-        const allowed: ReadonlySet<string> = new Set([
-          'went-well',
-          'to-improve',
-          'thanks',
-          'deep-dive',
-        ]);
-        if (!allowed.has(section)) {
+        // Validate the destination against THIS room's sections rather than a
+        // hardcoded list of the four legacy keys — rooms can now define
+        // arbitrary custom sections (room_sections; the DB CHECK was dropped in
+        // migrations.ts 2026-06-13). Using data.roomId (the handshake-validated
+        // room) keeps a client from targeting another room's sections.
+        const sectionExists = roomSectionRepo
+          .findByRoomId(data.roomId)
+          .some((s) => s.sectionKey === section);
+        if (!sectionExists) {
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'Invalid section', code: 'BAD_INPUT' });
           return;
         }
