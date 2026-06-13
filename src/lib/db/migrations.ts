@@ -1,5 +1,7 @@
 import { getDb } from './connection';
 import { CREATE_TABLES_SQL } from './schema';
+import { generateId } from '../utils/id';
+import { templateSections } from '../templates';
 
 export function runMigrations(): void {
   const db = getDb();
@@ -75,4 +77,72 @@ export function runMigrations(): void {
     db.exec(`ALTER TABLE rooms ADD COLUMN is_anonymous INTEGER NOT NULL DEFAULT 0`);
   }
   db.exec(`CREATE INDEX IF NOT EXISTS idx_rooms_team ON rooms(team_id)`);
+
+  // 2026-06-13: custom sections. Drop the legacy 4-value CHECK on
+  // cards.section so a room can define arbitrary sections. SQLite cannot
+  // ALTER a CHECK, so rebuild the table. It is FK-safe: child rows
+  // (card_tags / comments / reactions / votes / drawings) reference
+  // cards.id and we preserve every id, but DROP TABLE would still trip
+  // foreign_keys, so disable FK enforcement around the swap and restore it
+  // after. Only rebuild when the old CHECK is actually present — fresh DBs
+  // already use the constraint-free schema.
+  const cardsTableSql =
+    (db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='cards'").get() as
+      | { sql: string }
+      | undefined)?.sql ?? '';
+  if (/CHECK\s*\(\s*section/i.test(cardsTableSql)) {
+    db.pragma('foreign_keys = OFF');
+    const rebuildCards = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE cards_rebuild (
+          id                TEXT PRIMARY KEY,
+          room_id           TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+          section           TEXT NOT NULL,
+          content           TEXT NOT NULL,
+          author_id         TEXT NOT NULL REFERENCES participants(id),
+          is_revealed       INTEGER NOT NULL DEFAULT 0,
+          revealed_nickname TEXT,
+          is_parked         INTEGER NOT NULL DEFAULT 0,
+          created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO cards_rebuild
+          (id, room_id, section, content, author_id, is_revealed, revealed_nickname, is_parked, created_at, updated_at)
+          SELECT id, room_id, section, content, author_id, is_revealed, revealed_nickname, is_parked, created_at, updated_at
+          FROM cards;
+        DROP TABLE cards;
+        ALTER TABLE cards_rebuild RENAME TO cards;
+        CREATE INDEX IF NOT EXISTS idx_cards_room ON cards(room_id);
+        CREATE INDEX IF NOT EXISTS idx_cards_section ON cards(room_id, section);
+      `);
+    });
+    try {
+      rebuildCards();
+    } finally {
+      db.pragma('foreign_keys = ON');
+    }
+  }
+
+  // 2026-06-13: backfill room_sections for rooms that predate custom
+  // sections — seed each from its chosen template's default layout.
+  const roomsWithoutSections = db
+    .prepare(
+      `SELECT r.id AS id, r.template_id AS template_id
+         FROM rooms r
+        WHERE NOT EXISTS (SELECT 1 FROM room_sections rs WHERE rs.room_id = r.id)`,
+    )
+    .all() as Array<{ id: string; template_id: string | null }>;
+  if (roomsWithoutSections.length > 0) {
+    const insertSection = db.prepare(
+      'INSERT INTO room_sections (id, room_id, section_key, label, emoji, tone, position) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    );
+    const seedAll = db.transaction((rooms: Array<{ id: string; template_id: string | null }>) => {
+      for (const room of rooms) {
+        for (const s of templateSections(room.template_id)) {
+          insertSection.run(generateId(), room.id, s.sectionKey, s.label, s.emoji, s.tone, s.position);
+        }
+      }
+    });
+    seedAll(roomsWithoutSections);
+  }
 }

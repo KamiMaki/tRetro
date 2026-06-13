@@ -15,7 +15,7 @@ import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 // marker.
 
 type Decision = 'action' | 'park';
-type Tone = 'mint' | 'pink' | 'amber' | 'violet';
+type Tone = 'mint' | 'cyan' | 'pink' | 'amber' | 'violet';
 
 const UNTAGGED = '__untagged__';
 

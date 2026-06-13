@@ -1,4 +1,5 @@
-import type { SectionType } from '../types';
+import type { SectionType, SectionTone } from '../types';
+import { SECTIONS, SECTION_TONES } from '../types';
 
 /**
  * Retro 模板：每個模板用同一套 4 個 section key，但提供不同的 emoji 與標題，
@@ -94,4 +95,30 @@ export const RETRO_TEMPLATES: RetroTemplate[] = [
 
 export function findTemplate(id: string | null | undefined): RetroTemplate {
   return RETRO_TEMPLATES.find((t) => t.id === id) ?? RETRO_TEMPLATES[0];
+}
+
+/** One seed row for a room/team section, derived from a template. */
+export interface SeedSection {
+  sectionKey: string;
+  label: string;
+  emoji: string;
+  tone: SectionTone;
+  position: number;
+}
+
+/**
+ * Expand a template id into its default section rows. Used to seed a new
+ * room's room_sections (and a team's team_sections) so the board starts
+ * with the chosen template's labels/emojis and the canonical per-section
+ * tone, while remaining fully editable afterwards.
+ */
+export function templateSections(templateId: string | null | undefined): SeedSection[] {
+  const tpl = findTemplate(templateId);
+  return SECTIONS.map((key, i) => ({
+    sectionKey: key,
+    label: tpl.labels[key],
+    emoji: tpl.emojis[key],
+    tone: SECTION_TONES[key] ?? 'violet',
+    position: i,
+  }));
 }

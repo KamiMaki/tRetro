@@ -1,29 +1,67 @@
-// Section types
-export type SectionType = 'went-well' | 'to-improve' | 'thanks' | 'deep-dive';
+// Section types.
+//
+// Sections are now per-room data (see room_sections / team_sections). A
+// section is identified by a free-form `section_key`, so SectionType is a
+// plain string. The four values below are only the built-in DEFAULT seed
+// used when a room/team has not customised its board.
+export type SectionType = string;
 
-export const SECTION_LABELS: Record<SectionType, string> = {
+/** The four built-in default section keys (seed for a brand-new board). */
+export type DefaultSectionKey = 'went-well' | 'to-improve' | 'thanks' | 'deep-dive';
+
+/** Accent tones a section can use. Mirrors the template accent palette. */
+export type SectionTone = 'mint' | 'cyan' | 'violet' | 'pink' | 'amber';
+
+/** Fallbacks for a section_key with no matching room_sections row. */
+export const DEFAULT_SECTION_TONE: SectionTone = 'violet';
+export const DEFAULT_SECTION_EMOJI = '🗒️';
+
+export const SECTION_LABELS: Record<string, string> = {
   'went-well': 'Went Well',
   'to-improve': "Didn't Go Well",
   'thanks': 'Thanks',
   'deep-dive': 'Deep Discussion',
 };
 
-export const SECTION_EMOJIS: Record<SectionType, string> = {
+export const SECTION_EMOJIS: Record<string, string> = {
   'went-well': '😆',
   'to-improve': '🥲',
   'thanks': '😍',
   'deep-dive': '🧐',
 };
 
-export const SECTIONS: SectionType[] = ['went-well', 'to-improve', 'thanks', 'deep-dive'];
+export const SECTIONS: DefaultSectionKey[] = ['went-well', 'to-improve', 'thanks', 'deep-dive'];
 
-/** Visual tone mapping for each section — used by board section panels. */
-export const SECTION_TONES: Record<SectionType, 'mint' | 'pink' | 'amber' | 'violet'> = {
+/** Visual tone mapping for each default section — used as a seed/fallback. */
+export const SECTION_TONES: Record<string, SectionTone> = {
   'went-well':  'mint',
   'to-improve': 'amber',
   'thanks':     'pink',
   'deep-dive':  'violet',
 };
+
+/** A customisable board section, scoped to one room (room_sections row). */
+export interface RoomSection {
+  id: string;
+  roomId: string;
+  sectionKey: string;
+  label: string;
+  emoji: string;
+  tone: SectionTone;
+  position: number;
+}
+
+/** A team's default board section (team_sections row). Same shape as
+ *  RoomSection but keyed by team — copied into room_sections at room open. */
+export interface TeamSection {
+  id: string;
+  teamId: string;
+  sectionKey: string;
+  label: string;
+  emoji: string;
+  tone: SectionTone;
+  position: number;
+}
 
 // Room status
 export type RoomStatus = 'active' | 'closed';
@@ -226,6 +264,9 @@ export interface RoomJoinedPayload {
   metricsAggregate: MetricAggregate[];
   ownMetricScores: OwnMetricScores;
   phaseState?: RoomPhaseState;
+  /** The room's customised board sections, ordered by position. Optional for
+   *  back-compat; clients fall back to the built-in default layout. */
+  sections?: RoomSection[];
 }
 
 export interface CreateCardPayload {

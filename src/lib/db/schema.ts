@@ -31,10 +31,15 @@ CREATE TABLE IF NOT EXISTS participants (
   is_online       INTEGER NOT NULL DEFAULT 1
 );
 
+-- cards.section is a free-form section_key that references a row in
+-- room_sections for the same room. It used to carry a CHECK constraint
+-- pinned to the four legacy sections; that was dropped (see migrations.ts
+-- 2026-06-13) so teams can define arbitrary sections. App-level code seeds
+-- and validates section keys against room_sections.
 CREATE TABLE IF NOT EXISTS cards (
   id                TEXT PRIMARY KEY,
   room_id           TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-  section           TEXT NOT NULL CHECK(section IN ('went-well','to-improve','thanks','deep-dive')),
+  section           TEXT NOT NULL,
   content           TEXT NOT NULL,
   author_id         TEXT NOT NULL REFERENCES participants(id),
   is_revealed       INTEGER NOT NULL DEFAULT 0,
@@ -59,6 +64,34 @@ CREATE TABLE IF NOT EXISTS card_tags (
   PRIMARY KEY (card_id, tag_id)
 );
 
+-- Per-room board sections (customisable). Seeded at room creation from the
+-- owning team's team_sections (or the chosen template when the team has
+-- none). A room keeps its own snapshot so editing a team's defaults never
+-- rewrites the structure of an already-running / closed retro.
+CREATE TABLE IF NOT EXISTS room_sections (
+  id            TEXT PRIMARY KEY,
+  room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  section_key   TEXT NOT NULL,
+  label         TEXT NOT NULL,
+  emoji         TEXT NOT NULL DEFAULT '🗒️',
+  tone          TEXT NOT NULL DEFAULT 'violet',
+  position      INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(room_id, section_key)
+);
+
+-- Per-team default board layout. Editable in team settings; copied into
+-- room_sections whenever the team opens a new room.
+CREATE TABLE IF NOT EXISTS team_sections (
+  id            TEXT PRIMARY KEY,
+  team_id       TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  section_key   TEXT NOT NULL,
+  label         TEXT NOT NULL,
+  emoji         TEXT NOT NULL DEFAULT '🗒️',
+  tone          TEXT NOT NULL DEFAULT 'violet',
+  position      INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(team_id, section_key)
+);
+
 CREATE TABLE IF NOT EXISTS action_items (
   id            TEXT PRIMARY KEY,
   room_id       TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
@@ -80,6 +113,8 @@ CREATE INDEX IF NOT EXISTS idx_cards_room ON cards(room_id);
 CREATE INDEX IF NOT EXISTS idx_cards_section ON cards(room_id, section);
 CREATE INDEX IF NOT EXISTS idx_tags_room ON tags(room_id);
 CREATE INDEX IF NOT EXISTS idx_action_items_room ON action_items(room_id);
+CREATE INDEX IF NOT EXISTS idx_room_sections_room ON room_sections(room_id);
+CREATE INDEX IF NOT EXISTS idx_team_sections_team ON team_sections(team_id);
 
 CREATE TABLE IF NOT EXISTS comments (
   id            TEXT PRIMARY KEY,

@@ -1,5 +1,6 @@
 import { getDb } from '../connection';
 import { generateRoomId } from '../../utils/id';
+import { roomSectionRepo } from './room-section.repo';
 import type { Room, RoomSummary } from '../../types';
 
 interface RoomRow {
@@ -126,6 +127,9 @@ export const roomRepo = {
     db.prepare(
       'INSERT INTO rooms (id, name, template_id, team_id, participant_count, is_anonymous) VALUES (?, ?, ?, ?, ?, ?)'
     ).run(id, name, templateId, teamId, participantCount, isAnonymous ? 1 : 0);
+    // Seed the room's customisable board sections from the team's default
+    // layout (or the chosen template). Keeps every new room self-describing.
+    roomSectionRepo.seed(id, teamId, templateId);
     return this.findById(id)!;
   },
 

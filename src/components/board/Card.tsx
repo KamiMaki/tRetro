@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { CardDTOv2, Tag } from '@/lib/types';
+import type { CardDTOv2, Tag, SectionTone } from '@/lib/types';
 import { TagBadge } from '@/components/board/TagBadge';
 import { VoteButton } from '@/components/board/VoteButton';
 import { ReactionBar } from '@/components/board/ReactionBar';
@@ -13,7 +13,7 @@ import { computeConsensus } from '@/lib/utils/consensus';
 
 interface CardProps {
   card: CardDTOv2;
-  tone?: 'mint' | 'pink' | 'amber' | 'violet';
+  tone?: SectionTone;
   isScrumMaster: boolean;
   participantCount: number;
   /** Room-wide tag list — used by the inline tag editor. */
