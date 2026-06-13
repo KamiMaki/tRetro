@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardDTOv2, Tag, BoardSectionView } from '@/lib/types';
 import { GlassPanel, Avatar } from '@/components/ui/Aurora';
 import { TagBadge } from '@/components/board/TagBadge';
@@ -16,6 +16,14 @@ import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 type Decision = 'action' | 'park';
 
 const UNTAGGED = '__untagged__';
+
+// Resizable comment panel (right column). Persisted per-browser so a
+// facilitator's preferred width survives reloads.
+const COMMENTS_MIN = 260;
+const COMMENTS_MAX = 640;
+const COMMENTS_DEFAULT = 300;
+const COMMENTS_WIDTH_KEY = 'tretro-discussion-comments-width';
+const clampCommentsWidth = (w: number) => Math.min(COMMENTS_MAX, Math.max(COMMENTS_MIN, w));
 
 const DECISION_BADGE: Record<Decision, string> = {
   action: 'var(--aurora-mint)',
@@ -83,6 +91,61 @@ export function DiscussionPanel({
   const [tagIdx, setTagIdx] = useState(0);
   const [cardIdx, setCardIdx] = useState(0);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
+
+  // Width of the right comment column (px). Drag the divider or use arrow
+  // keys when it's focused. Persisted to localStorage on release.
+  const [commentsWidth, setCommentsWidth] = useState(COMMENTS_DEFAULT);
+  const liveWidthRef = useRef(COMMENTS_DEFAULT);
+
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem(COMMENTS_WIDTH_KEY));
+    if (Number.isFinite(saved) && saved >= COMMENTS_MIN && saved <= COMMENTS_MAX) {
+      liveWidthRef.current = saved;
+      setCommentsWidth(saved);
+    }
+  }, []);
+
+  const persistWidth = (w: number) => {
+    try {
+      window.localStorage.setItem(COMMENTS_WIDTH_KEY, String(w));
+    } catch {
+      /* localStorage may be unavailable (private mode / iframe) */
+    }
+  };
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = liveWidthRef.current;
+    const onMove = (ev: MouseEvent) => {
+      // Drag left → wider comment column.
+      const next = clampCommentsWidth(startWidth + (startX - ev.clientX));
+      liveWidthRef.current = next;
+      setCommentsWidth(next);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      document.body.style.userSelect = '';
+      persistWidth(liveWidthRef.current);
+    };
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const onResizeKey = (e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 48 : 16;
+    let next: number | null = null;
+    if (e.key === 'ArrowLeft') next = clampCommentsWidth(liveWidthRef.current + step);
+    else if (e.key === 'ArrowRight') next = clampCommentsWidth(liveWidthRef.current - step);
+    if (next != null) {
+      e.preventDefault();
+      liveWidthRef.current = next;
+      setCommentsWidth(next);
+      persistWidth(next);
+    }
+  };
 
   if (cards.length === 0) {
     return (
@@ -204,8 +267,8 @@ export function DiscussionPanel({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '260px 1fr 300px',
-          gap: 18,
+          gridTemplateColumns: `260px minmax(0, 1fr) 12px ${commentsWidth}px`,
+          gap: 12,
           height: 'calc(100vh - 280px)',
           minHeight: 440,
         }}
@@ -394,6 +457,32 @@ export function DiscussionPanel({
               Next →
             </button>
           </div>
+        </div>
+
+        {/* Drag handle — resize the comment column (←/→ when focused) */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize comment panel"
+          aria-valuemin={COMMENTS_MIN}
+          aria-valuemax={COMMENTS_MAX}
+          aria-valuenow={Math.round(commentsWidth)}
+          tabIndex={0}
+          onMouseDown={startResize}
+          onKeyDown={onResizeKey}
+          title="拖曳調整留言區寬度（←/→ 微調）"
+          style={{
+            cursor: 'col-resize',
+            alignSelf: 'stretch',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 6,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--glass-highlight)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span aria-hidden="true" style={{ width: 4, height: 56, borderRadius: 999, background: 'var(--glass-border)' }} />
         </div>
 
         {/* Right — comment viewer for the focused card */}
