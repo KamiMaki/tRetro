@@ -133,6 +133,13 @@ export interface Team {
   createdAt: string;
 }
 
+/** A team's editable customisation settings (summary prompt + reaction
+ *  palette). null on either field means "use the built-in default". */
+export interface TeamSettings {
+  summaryPrompt: string | null;
+  reactionEmojis: string[] | null;
+}
+
 export interface Participant {
   id: string;
   roomId: string;
@@ -279,6 +286,41 @@ export interface RoomJoinedPayload {
   /** The room's customised board sections, ordered by position. Optional for
    *  back-compat; clients fall back to the built-in default layout. */
   sections?: RoomSection[];
+  /** The reaction-bar palette resolved from the room's team (or the built-in
+   *  defaults when teamless). Optional for back-compat; clients fall back to
+   *  DEFAULT_REACTION_EMOJIS. */
+  reactionEmojis?: string[];
+}
+
+// ───── Section editor payloads (client → server) ─────
+
+/** Add a new section to the live board. */
+export interface CreateSectionPayload {
+  label: string;
+  emoji: string;
+  tone: SectionTone;
+}
+
+/** Edit an existing section. Any subset of fields may be supplied. */
+export interface UpdateSectionPayload {
+  id: string;
+  label?: string;
+  emoji?: string;
+  tone?: SectionTone;
+}
+
+/** Delete a section. When the section still holds cards, `moveToSectionKey`
+ *  must name a destination section to absorb them first (else the server
+ *  rejects with SECTION_NOT_EMPTY). */
+export interface DeleteSectionPayload {
+  id: string;
+  moveToSectionKey?: string;
+}
+
+/** Reorder the board — `orderedIds` is the full set of section ids in their
+ *  new top-to-bottom order. */
+export interface ReorderSectionsPayload {
+  orderedIds: string[];
 }
 
 export interface CreateCardPayload {

@@ -14,7 +14,13 @@ interface CardWithMeta extends CardDB {
   comments?: ExportComment[];
 }
 
-const PROMPT_HEADER = `你是一位資深敏捷教練，正在檢視一場團隊回顧會議的紀錄。
+/**
+ * Default AI-summary prompt header. Exported so a team can seed/preview it in
+ * team settings and so the export route can fall back to it when a team has
+ * no custom summary_prompt. Used as the header that precedes the retro
+ * content in the ?format=ai export.
+ */
+export const DEFAULT_SUMMARY_PROMPT = `你是一位資深敏捷教練，正在檢視一場團隊回顧會議的紀錄。
 以下資料來自一場匿名團隊回顧。每張卡片都是團隊成員的貢獻，作者身分刻意隱藏。
 
 請完成下列三項任務：
@@ -70,9 +76,12 @@ export function buildAiSummaryMarkdown(
   actionItems: ActionItem[],
   participantCount: number,
   sections?: BoardSectionView[],
+  summaryPrompt?: string | null,
 ): string {
   const lines: string[] = [];
-  lines.push(PROMPT_HEADER);
+  // The team may customise the prompt header; fall back to the default when
+  // unset (null / teamless room).
+  lines.push(summaryPrompt ?? DEFAULT_SUMMARY_PROMPT);
 
   const exportSections = resolveExportSections(sections);
   const labelByKey = new Map(exportSections.map((s) => [s.sectionKey, s.label]));

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { roomRepo } from '@/lib/db/repositories/room.repo';
 import { roomSectionRepo } from '@/lib/db/repositories/room-section.repo';
+import { teamRepo } from '@/lib/db/repositories/team.repo';
 import { cardRepo } from '@/lib/db/repositories/card.repo';
 import { commentRepo } from '@/lib/db/repositories/comment.repo';
 import { tagRepo } from '@/lib/db/repositories/tag.repo';
@@ -94,7 +95,12 @@ export async function GET(
   }
 
   if (format === 'ai') {
-    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, denom, sections);
+    // Use the owning team's custom summary prompt when set; teamless rooms
+    // (and teams that never customised) fall back to the default header.
+    const summaryPrompt = room.teamId
+      ? teamRepo.getSettings(room.teamId)?.summaryPrompt ?? null
+      : null;
+    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, denom, sections, summaryPrompt);
     return new Response(aiMd, {
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',

@@ -3,41 +3,43 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Reaction } from '@/lib/types';
-
-const COMMON_EMOJIS = [
-  '🔥', '👏', '🙌', '💪', '🚀',
-  '❤️', '🎉', '😮', '😆', '🤔',
-  '😢', '😠', '😎', '🫡', '🛐',
-  '💯', '❓', '❗', '✅', '❌',
-];
+import { DEFAULT_REACTION_EMOJIS } from '@/lib/constants/reactions';
 
 const CELL = 32;
 const PICKER_GAP = 4;
 const PICKER_PADDING = 8;
 const PICKER_COLS = 5;
-const PICKER_ROWS = Math.ceil(COMMON_EMOJIS.length / PICKER_COLS);
-const PICKER_W = PICKER_COLS * CELL + (PICKER_COLS - 1) * PICKER_GAP + PICKER_PADDING * 2;
-const PICKER_H = PICKER_ROWS * CELL + (PICKER_ROWS - 1) * PICKER_GAP + PICKER_PADDING * 2;
 
 interface ReactionBarProps {
   cardId: string;
   reactions: Reaction[];
   onToggleReaction: (cardId: string, emoji: string) => void;
+  /** The team's reaction palette. Falls back to DEFAULT_REACTION_EMOJIS when
+   *  absent/empty so the picker is never blank before the room state loads. */
+  emojis?: string[];
 }
 
-export function ReactionBar({ cardId, reactions, onToggleReaction }: ReactionBarProps) {
+export function ReactionBar({ cardId, reactions, onToggleReaction, emojis }: ReactionBarProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Resolve the palette + grid geometry from the actual list length so a
+  // custom palette of any size lays out (and positions the popover) correctly.
+  const paletteEmojis = emojis && emojis.length ? emojis : DEFAULT_REACTION_EMOJIS;
+  const pickerRows = Math.max(1, Math.ceil(paletteEmojis.length / PICKER_COLS));
+  const pickerCols = Math.min(PICKER_COLS, paletteEmojis.length) || PICKER_COLS;
+  const pickerW = pickerCols * CELL + (pickerCols - 1) * PICKER_GAP + PICKER_PADDING * 2;
+  const pickerH = pickerRows * CELL + (pickerRows - 1) * PICKER_GAP + PICKER_PADDING * 2;
 
   function openPicker() {
     const btn = triggerRef.current;
     if (!btn) return;
     const r = btn.getBoundingClientRect();
-    let top = r.top - PICKER_H - 6;
+    let top = r.top - pickerH - 6;
     let left = r.left;
     if (top < 8) top = r.bottom + 6;
-    if (left + PICKER_W > window.innerWidth - 8) left = window.innerWidth - PICKER_W - 8;
+    if (left + pickerW > window.innerWidth - 8) left = window.innerWidth - pickerW - 8;
     if (left < 8) left = 8;
     setPos({ top, left });
     setPickerOpen(true);
@@ -79,13 +81,13 @@ export function ReactionBar({ cardId, reactions, onToggleReaction }: ReactionBar
               zIndex: 71,
               padding: PICKER_PADDING,
               display: 'grid',
-              gridTemplateColumns: `repeat(${PICKER_COLS}, ${CELL}px)`,
+              gridTemplateColumns: `repeat(${pickerCols}, ${CELL}px)`,
               gap: PICKER_GAP,
               borderRadius: 12,
               animation: 'fade-in 0.18s ease-out both',
             }}
           >
-            {COMMON_EMOJIS.map((emoji) => (
+            {paletteEmojis.map((emoji) => (
               <button
                 key={emoji}
                 type="button"

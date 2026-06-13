@@ -40,6 +40,13 @@ export const SOCKET_EVENTS = {
   ACTION_DELETE: 'action:delete',
   ACTION_DELETED: 'action:deleted',
 
+  // Sections (live board-section editor)
+  SECTION_CREATE: 'section:create',
+  SECTION_UPDATE: 'section:update',
+  SECTION_DELETE: 'section:delete',
+  SECTION_REORDER: 'section:reorder',
+  SECTIONS_UPDATED: 'sections:updated',
+
   // Comments
   COMMENT_CREATE: 'comment:create',
   COMMENT_CREATED: 'comment:created',

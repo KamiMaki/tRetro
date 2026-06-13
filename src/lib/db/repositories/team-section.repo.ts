@@ -116,4 +116,32 @@ export const teamSectionRepo = {
       orderedIds.forEach((id, i) => stmt.run(i, id, teamId));
     })();
   },
+
+  /**
+   * Replace a team's entire default layout in one transaction: delete all
+   * existing rows and re-insert `rows` in the given order (position = array
+   * index). Each row reuses its `sectionKey` when supplied, else a fresh
+   * generated key. Returns the new ordered list.
+   *
+   * Used by the team-settings PUT — the editor sends the full desired list
+   * and we make the DB match it atomically (no partial state if a row fails).
+   */
+  replaceAll(
+    teamId: string,
+    rows: Array<{ sectionKey?: string; label: string; emoji: string; tone: SectionTone }>,
+  ): TeamSection[] {
+    const db = getDb();
+    const del = db.prepare('DELETE FROM team_sections WHERE team_id = ?');
+    const insert = db.prepare(
+      'INSERT INTO team_sections (id, team_id, section_key, label, emoji, tone, position) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    );
+    db.transaction(() => {
+      del.run(teamId);
+      rows.forEach((r, i) => {
+        const sectionKey = r.sectionKey && r.sectionKey.trim() ? r.sectionKey : `custom-${generateId(8)}`;
+        insert.run(generateId(), teamId, sectionKey, r.label, r.emoji, r.tone, i);
+      });
+    })();
+    return this.findByTeamId(teamId);
+  },
 };

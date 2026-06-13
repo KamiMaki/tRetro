@@ -13,6 +13,8 @@ interface SectionFullscreenProps {
   tone: SectionTone;
   cards: CardDTOv2[];
   tags: Tag[];
+  /** Team reaction palette forwarded to each card's ReactionBar. */
+  reactionEmojis?: string[];
   isScrumMaster: boolean;
   participantCount: number;
   onClose: () => void;
@@ -45,6 +47,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
     tone,
     cards,
     tags,
+    reactionEmojis,
     isScrumMaster,
     participantCount,
     onClose,
@@ -162,6 +165,7 @@ export function SectionFullscreen(props: SectionFullscreenProps) {
               isScrumMaster={isScrumMaster}
               participantCount={participantCount}
               roomTags={tags}
+              reactionEmojis={reactionEmojis}
               shareMode={shareMode}
               isAnonymousRoom={isAnonymousRoom}
               onDelete={onDeleteCard}

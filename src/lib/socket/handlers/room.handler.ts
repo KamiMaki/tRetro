@@ -7,10 +7,12 @@ import { cardRepo } from '../../db/repositories/card.repo';
 import { tagRepo } from '../../db/repositories/tag.repo';
 import { actionItemRepo } from '../../db/repositories/action-item.repo';
 import { metricRepo } from '../../db/repositories/metric.repo';
+import { teamRepo } from '../../db/repositories/team.repo';
 import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 import { sendActionItemDigest } from '../../integrations/digest';
 import { getPhaseState, setPhaseState } from '../phase-store';
+import { DEFAULT_REACTION_EMOJIS } from '../../constants/reactions';
 import type { RoomPhase } from '../../types';
 
 export function registerRoomHandlers(io: Server, socket: Socket): void {
@@ -45,6 +47,10 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const metricsAggregate = metricRepo.getAggregateByRoomId(roomId);
     const ownMetricScores = metricRepo.getOwnScores(roomId, participantId);
     const phaseState = getPhaseState(roomId);
+    // Resolve the reaction palette from the room's team (teamless → defaults).
+    const reactionEmojis =
+      (room?.teamId ? teamRepo.getSettings(room.teamId)?.reactionEmojis : null) ??
+      DEFAULT_REACTION_EMOJIS;
 
     socket.emit(SOCKET_EVENTS.ROOM_JOINED, {
       room,
@@ -57,6 +63,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       metricsAggregate,
       ownMetricScores,
       phaseState,
+      reactionEmojis,
     });
 
     // Notify others. In anonymous rooms, broadcast a Guest-N label

@@ -18,6 +18,9 @@ interface CardProps {
   participantCount: number;
   /** Room-wide tag list — used by the inline tag editor. */
   roomTags: Tag[];
+  /** Team reaction palette shown in this card's reaction picker. Falls back
+   *  to the built-in defaults inside ReactionBar when omitted. */
+  reactionEmojis?: string[];
   /** When true, the SM is sharing their screen. Hide 'You', author name, and
    *  reveal/un-reveal/delete affordances so the audience can't tell which card
    *  belongs to whom. SM-only park button is also gated on this flag. */
@@ -59,6 +62,7 @@ export function Card({
   isScrumMaster,
   participantCount,
   roomTags,
+  reactionEmojis,
   shareMode,
   isAnonymousRoom,
   onDelete,
@@ -343,6 +347,7 @@ export function Card({
             cardId={card.id}
             reactions={card.reactions}
             onToggleReaction={onToggleReaction}
+            emojis={reactionEmojis}
           />
         </div>
 

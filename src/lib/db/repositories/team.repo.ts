@@ -1,7 +1,7 @@
 import { getDb } from '../connection';
 import { generateId } from '../../utils/id';
 import { hashTeamPassword, verifyTeamPassword } from '../../utils/teamPassword';
-import type { Team } from '../../types';
+import type { Team, TeamSettings } from '../../types';
 
 interface TeamRow {
   id: string;
@@ -79,6 +79,52 @@ export const teamRepo = {
   },
 
   /**
+   * Read a team's customisation settings (summary prompt + reaction palette).
+   * `reaction_emojis` is stored as a JSON array; a malformed/empty value
+   * decodes to null so callers fall back to defaults. Returns null for an
+   * unknown team id.
+   */
+  getSettings(teamId: string): TeamSettings | null {
+    const db = getDb();
+    const row = db
+      .prepare('SELECT summary_prompt, reaction_emojis FROM teams WHERE id = ?')
+      .get(teamId) as { summary_prompt: string | null; reaction_emojis: string | null } | undefined;
+    if (!row) return null;
+    return {
+      summaryPrompt: row.summary_prompt ?? null,
+      reactionEmojis: parseReactionEmojis(row.reaction_emojis),
+    };
+  },
+
+  /**
+   * Patch a team's settings. Only the provided keys are written; passing
+   * `null` clears a field back to its default. `reactionEmojis` is
+   * JSON-stringified (null → SQL NULL). Returns the updated settings, or
+   * null for an unknown team id.
+   */
+  updateSettings(
+    teamId: string,
+    updates: { summaryPrompt?: string | null; reactionEmojis?: string[] | null },
+  ): TeamSettings | null {
+    const db = getDb();
+    const sets: string[] = [];
+    const vals: Array<string | null> = [];
+    if (updates.summaryPrompt !== undefined) {
+      sets.push('summary_prompt = ?');
+      vals.push(updates.summaryPrompt ?? null);
+    }
+    if (updates.reactionEmojis !== undefined) {
+      sets.push('reaction_emojis = ?');
+      vals.push(updates.reactionEmojis ? JSON.stringify(updates.reactionEmojis) : null);
+    }
+    if (sets.length > 0) {
+      vals.push(teamId);
+      db.prepare(`UPDATE teams SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+    }
+    return this.getSettings(teamId);
+  },
+
+  /**
    * Hard-delete a team. CASCADE wipes all the team's rooms (and their
    * cards/votes/participants via existing room cascades). Returns true
    * when a row was actually removed.
@@ -89,3 +135,20 @@ export const teamRepo = {
     return info.changes > 0;
   },
 };
+
+/**
+ * Decode a stored reaction_emojis cell into a string[] or null. Null when
+ * absent, malformed, not an array, or empty after filtering to non-empty
+ * strings (so an empty/garbage value falls back to defaults at the caller).
+ */
+function parseReactionEmojis(raw: string | null): string[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    const emojis = parsed.filter((e): e is string => typeof e === 'string' && e.length > 0);
+    return emojis.length > 0 ? emojis : null;
+  } catch {
+    return null;
+  }
+}

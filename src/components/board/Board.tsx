@@ -12,6 +12,8 @@ interface BoardProps {
   /** The room's board sections in display order (room_sections, or a
    *  template fallback before they load). */
   sections: BoardSectionView[];
+  /** The team's reaction palette, forwarded down to each card's ReactionBar. */
+  reactionEmojis?: string[];
   /** Section_key the SM "park" action targets (room's discuss-equivalent). */
   parkSectionKey?: string;
   shareMode: boolean;
@@ -41,6 +43,7 @@ export function Board({
   isScrumMaster,
   participantCount,
   sections,
+  reactionEmojis,
   parkSectionKey,
   shareMode,
   isAnonymousRoom,
@@ -77,6 +80,7 @@ export function Board({
             parkSectionKey={parkSectionKey}
             cards={cards.filter((c) => c.section === s.sectionKey)}
             tags={tags}
+            reactionEmojis={reactionEmojis}
             isScrumMaster={isScrumMaster}
             participantCount={participantCount}
             shareMode={shareMode}

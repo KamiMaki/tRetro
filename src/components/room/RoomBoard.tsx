@@ -13,6 +13,7 @@ import { Toast } from '@/components/ui/Toast';
 import { AuroraBg } from '@/components/ui/Aurora';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { FacilitatorPanel } from '@/components/room/FacilitatorPanel';
+import { RoomSectionsModal } from '@/components/room/RoomSectionsModal';
 import { PhaseBar } from '@/components/room/PhaseBar';
 import { DiscussionPanel } from '@/components/discussion/DiscussionPanel';
 import { ReviewPanel } from '@/components/discussion/ReviewPanel';
@@ -39,6 +40,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     cards,
     tags,
     sections,
+    reactionEmojis,
     actionItems,
     isScrumMaster,
     connectionStatus,
@@ -68,12 +70,17 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     submitMetrics,
     phaseState,
     setPhase,
+    createSection,
+    updateSection,
+    deleteSection,
+    reorderSections,
   } = roomState;
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<MainTab>('board');
   const [helpOpen, setHelpOpen] = useState(false);
   const [facilitatorOpen, setFacilitatorOpen] = useState(false);
+  const [sectionsModalOpen, setSectionsModalOpen] = useState(false);
   const [prefilledActionContent, setPrefilledActionContent] = useState('');
 
   // SM share-mode toggle. SessionStorage so a tab refresh during a live retro
@@ -237,6 +244,13 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     () => (sections.length > 0 ? sections : templateSections(room?.templateId)),
     [sections, room?.templateId],
   );
+  // Card count per section_key — drives the "move cards" guard in the section
+  // editor's delete flow.
+  const cardCountBySection = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    for (const c of cards) counts[c.section] = (counts[c.section] ?? 0) + 1;
+    return counts;
+  }, [cards]);
   // Where the SM "park" action sends a card: the room's deep-dive section if
   // it still exists, otherwise the last section.
   const parkSectionKey = useMemo(() => {
@@ -366,6 +380,19 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
                   <span className="pill-dot" aria-hidden="true" />
                 )}
               </button>
+              <button
+                type="button"
+                onClick={() => setSectionsModalOpen(true)}
+                className="pill"
+                title="版面設定 — 編輯這場回顧的區塊"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="2" width="5" height="12" rx="1" />
+                  <rect x="9" y="2" width="5" height="5" rx="1" />
+                  <path d="M11.5 10v3M10 11.5h3" />
+                </svg>
+                Sections
+              </button>
               {isScrumMaster && (
                 <button
                   type="button"
@@ -414,6 +441,7 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               isScrumMaster={isScrumMaster}
               participantCount={resolveVoteDenominator(room ?? {}, participants.length)}
               sections={boardSections}
+              reactionEmojis={reactionEmojis}
               parkSectionKey={parkSectionKey}
               shareMode={shareMode}
               isAnonymousRoom={room?.isAnonymous ?? true}
@@ -519,6 +547,17 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
       <FacilitatorPanel
         open={facilitatorOpen}
         onClose={() => setFacilitatorOpen(false)}
+      />
+
+      <RoomSectionsModal
+        open={sectionsModalOpen}
+        onClose={() => setSectionsModalOpen(false)}
+        sections={sections}
+        cardCountBySection={cardCountBySection}
+        onCreateSection={createSection}
+        onUpdateSection={updateSection}
+        onDeleteSection={deleteSection}
+        onReorderSections={reorderSections}
       />
 
       <style jsx>{`

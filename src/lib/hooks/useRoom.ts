@@ -26,6 +26,12 @@ import type {
   RoomPhaseState,
 } from '@/lib/types';
 import { METRIC_KEYS } from '@/lib/types';
+import { DEFAULT_REACTION_EMOJIS } from '@/lib/constants/reactions';
+import type {
+  CreateSectionPayload,
+  UpdateSectionPayload,
+  DeleteSectionPayload,
+} from '@/lib/types';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -45,6 +51,7 @@ interface UseRoomReturn {
   cards: CardDTOv2[];
   tags: Tag[];
   sections: RoomSection[];
+  reactionEmojis: string[];
   actionItems: ActionItem[];
   isScrumMaster: boolean;
   toastMessage: { message: string; type: 'success' | 'error' | 'info' } | null;
@@ -73,6 +80,10 @@ interface UseRoomReturn {
   submitMetrics: (scores: OwnMetricScores) => void;
   phaseState: RoomPhaseState;
   setPhase: (phase: RoomPhase, durationSec?: number | null) => void;
+  createSection: (payload: CreateSectionPayload) => void;
+  updateSection: (payload: UpdateSectionPayload) => void;
+  deleteSection: (payload: DeleteSectionPayload) => void;
+  reorderSections: (orderedIds: string[]) => void;
 }
 
 interface UseRoomOptions {
@@ -101,6 +112,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
   const [cards, setCards] = useState<CardDTOv2[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [sections, setSections] = useState<RoomSection[]>([]);
+  const [reactionEmojis, setReactionEmojis] = useState<string[]>(DEFAULT_REACTION_EMOJIS);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [toastMessage, setToastMessage] = useState<UseRoomReturn['toastMessage']>(null);
   const [isScrumMaster, setIsScrumMaster] = useState(false);
@@ -161,6 +173,9 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       setCards(payload.cards.map(toCardDTOv2));
       setTags(payload.tags);
       setSections(payload.sections ?? []);
+      if (Array.isArray(payload.reactionEmojis) && payload.reactionEmojis.length > 0) {
+        setReactionEmojis(payload.reactionEmojis);
+      }
       setActionItems(payload.actionItems);
       if (payload.phaseState) {
         setPhaseState(payload.phaseState);
@@ -171,6 +186,11 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       if (payload.ownMetricScores && typeof payload.ownMetricScores === 'object') {
         setOwnMetricScores(payload.ownMetricScores);
       }
+    });
+
+    // Live section edits (US-003) — replace the whole ordered list.
+    socket.on(SOCKET_EVENTS.SECTIONS_UPDATED, (payload: { sections: RoomSection[] }) => {
+      if (Array.isArray(payload?.sections)) setSections(payload.sections);
     });
 
     socket.on(SOCKET_EVENTS.CARD_CREATED, (card: CardDTOv2) => {
@@ -417,6 +437,22 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.PHASE_SET, { phase, durationSec });
   }, []);
 
+  const createSection = useCallback((payload: CreateSectionPayload) => {
+    socketRef.current?.emit(SOCKET_EVENTS.SECTION_CREATE, payload);
+  }, []);
+
+  const updateSection = useCallback((payload: UpdateSectionPayload) => {
+    socketRef.current?.emit(SOCKET_EVENTS.SECTION_UPDATE, payload);
+  }, []);
+
+  const deleteSection = useCallback((payload: DeleteSectionPayload) => {
+    socketRef.current?.emit(SOCKET_EVENTS.SECTION_DELETE, payload);
+  }, []);
+
+  const reorderSections = useCallback((orderedIds: string[]) => {
+    socketRef.current?.emit(SOCKET_EVENTS.SECTION_REORDER, { orderedIds });
+  }, []);
+
   const addComment = useCallback((cardId: string, content: string, imageData?: string | null) => {
     socketRef.current?.emit(SOCKET_EVENTS.COMMENT_CREATE, { cardId, content, imageData });
   }, []);
@@ -458,6 +494,7 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     cards,
     tags,
     sections,
+    reactionEmojis,
     actionItems,
     isScrumMaster,
     toastMessage,
@@ -486,5 +523,9 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     submitMetrics,
     phaseState,
     setPhase,
+    createSection,
+    updateSection,
+    deleteSection,
+    reorderSections,
   };
 }

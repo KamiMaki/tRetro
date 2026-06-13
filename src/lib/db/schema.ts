@@ -4,7 +4,13 @@ CREATE TABLE IF NOT EXISTS teams (
   name            TEXT NOT NULL UNIQUE,
   password_hash   TEXT NOT NULL,
   password_salt   TEXT NOT NULL,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  -- Per-team AI summary prompt (header for the ?format=ai export). NULL =
+  -- use DEFAULT_SUMMARY_PROMPT.
+  summary_prompt  TEXT,
+  -- Per-team reaction-bar palette as a JSON array of emoji strings. NULL =
+  -- use DEFAULT_REACTION_EMOJIS.
+  reaction_emojis TEXT
 );
 
 CREATE TABLE IF NOT EXISTS rooms (

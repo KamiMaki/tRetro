@@ -21,6 +21,8 @@ interface SectionProps {
   parkSectionKey?: string;
   cards: CardDTOv2[];
   tags: Tag[];
+  /** Team reaction palette forwarded to each card's ReactionBar. */
+  reactionEmojis?: string[];
   isScrumMaster: boolean;
   participantCount: number;
   onAddCard: (payload: Omit<CreateCardPayload, 'roomId'>) => void;
@@ -52,6 +54,7 @@ export function Section({
   parkSectionKey,
   cards,
   tags,
+  reactionEmojis,
   isScrumMaster,
   participantCount,
   onAddCard,
@@ -206,6 +209,7 @@ export function Section({
                   isScrumMaster={isScrumMaster}
                   participantCount={participantCount}
                   roomTags={tags}
+                  reactionEmojis={reactionEmojis}
                   shareMode={shareMode}
                   isAnonymousRoom={isAnonymousRoom}
                   onDelete={onDeleteCard}
@@ -248,6 +252,7 @@ export function Section({
           tone={tone}
           cards={cards}
           tags={tags}
+          reactionEmojis={reactionEmojis}
           isScrumMaster={isScrumMaster}
           participantCount={participantCount}
           isAnonymousRoom={isAnonymousRoom}

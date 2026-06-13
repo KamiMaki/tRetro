@@ -67,6 +67,18 @@ export function runMigrations(): void {
     db.exec(`ALTER TABLE comments ADD COLUMN updated_at TEXT`);
   }
 
+  // 2026-06-13: per-team customisation columns on teams.
+  //   summary_prompt  — overrides the default AI-export header (US-004).
+  //   reaction_emojis — JSON array overriding the reaction palette (US-005).
+  // Both nullable; NULL means "use the built-in default".
+  const teamCols = db.prepare(`PRAGMA table_info(teams)`).all() as Array<{ name: string }>;
+  if (!teamCols.some((c) => c.name === 'summary_prompt')) {
+    db.exec(`ALTER TABLE teams ADD COLUMN summary_prompt TEXT`);
+  }
+  if (!teamCols.some((c) => c.name === 'reaction_emojis')) {
+    db.exec(`ALTER TABLE teams ADD COLUMN reaction_emojis TEXT`);
+  }
+
   // 2026-05-24: team-spaces multi-tenancy.
   // Re-read rooms columns after earlier ALTERs so the guard reflects
   // current schema state.

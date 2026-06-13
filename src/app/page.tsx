@@ -12,6 +12,7 @@ import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
 import { TeamPicker } from '@/components/team/TeamPicker';
 import { CreateTeamModal } from '@/components/team/CreateTeamModal';
+import { TeamSettingsModal } from '@/components/team/TeamSettingsModal';
 import { TAIPEI_TZ, formatTaipeiDate, parseDbDate } from '@/lib/utils/datetime';
 
 interface TeamInfo {
@@ -85,6 +86,7 @@ function DashboardInner() {
   // the picker); otherwise the team metadata.
   const [team, setTeam] = useState<TeamState>('loading');
   const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [showTeamSettings, setShowTeamSettings] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -321,7 +323,7 @@ function DashboardInner() {
           }}
         >
           <Logo />
-          <TeamChip name={team.name} onSwitch={handleSwitchTeam} />
+          <TeamChip name={team.name} onSwitch={handleSwitchTeam} onSettings={() => setShowTeamSettings(true)} />
           <div style={{ flex: 1, minWidth: 16 }} />
           <GlassPanel
             style={{
@@ -536,6 +538,10 @@ function DashboardInner() {
           creating={creating}
           error={createError}
         />
+      )}
+
+      {showTeamSettings && (
+        <TeamSettingsModal onClose={() => setShowTeamSettings(false)} />
       )}
 
       <KeyboardHelp
@@ -954,7 +960,7 @@ function Stat({ icon, value, label }: { icon: 'users' | 'cards' | 'check'; value
   );
 }
 
-function TeamChip({ name, onSwitch }: { name: string; onSwitch: () => void }) {
+function TeamChip({ name, onSwitch, onSettings }: { name: string; onSwitch: () => void; onSettings: () => void }) {
   return (
     <GlassPanel
       style={{
@@ -975,6 +981,16 @@ function TeamChip({ name, onSwitch }: { name: string; onSwitch: () => void }) {
       <span style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {name}
       </span>
+      <button
+        type="button"
+        onClick={onSettings}
+        title="團隊設定 / Team settings"
+        aria-label="Team settings"
+        className="btn btn-ghost"
+        style={{ padding: '2px 8px', fontSize: 11 }}
+      >
+        settings
+      </button>
       <button
         type="button"
         onClick={onSwitch}

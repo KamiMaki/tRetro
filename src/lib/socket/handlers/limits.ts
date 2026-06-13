@@ -15,3 +15,18 @@ export const MAX_IMAGE_CHARS = 3_000_000;
 export function isValidImageData(data: unknown): data is string {
   return typeof data === 'string' && /^data:image\/[a-z0-9.+-]+;base64,/i.test(data);
 }
+
+// Section editor bounds. A section label is a short column heading, an emoji
+// is a single glyph (kept generous to allow multi-codepoint emoji). Shared by
+// the section socket handler and the team-settings API so both surfaces apply
+// the same rules.
+export const MAX_SECTION_LABEL_CHARS = 40;
+export const MAX_SECTION_EMOJI_CHARS = 16;
+
+/** The five accent tones a section may use (mirrors SectionTone). */
+export const SECTION_TONE_VALUES = ['mint', 'cyan', 'violet', 'pink', 'amber'] as const;
+
+/** True when `tone` is one of the five allowed SectionTone values. */
+export function isValidSectionTone(tone: unknown): tone is (typeof SECTION_TONE_VALUES)[number] {
+  return typeof tone === 'string' && (SECTION_TONE_VALUES as readonly string[]).includes(tone);
+}
