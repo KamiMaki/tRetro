@@ -62,6 +62,19 @@ export default async function globalSetup() {
     throw new Error(`E2E Ring-2 auth setup failed: ${teamAuthRes.status()} ${body}`);
   }
 
-  await ctx.storageState({ path: storagePath });
+  // Persist cookies (both auth rings) AND seed localStorage so the first-run
+  // onboarding tour (src/components/room/OnboardingTour.tsx) never auto-opens
+  // during E2E — its full-screen backdrop would otherwise intercept every
+  // board interaction. The API request context can't set localStorage, so we
+  // augment the storageState JSON with an origins entry by hand.
+  const state = await ctx.storageState();
+  state.origins = [
+    ...(state.origins ?? []),
+    {
+      origin: baseURL,
+      localStorage: [{ name: 'tretro-onboarding-seen', value: '1' }],
+    },
+  ];
+  fs.writeFileSync(storagePath, JSON.stringify(state));
   await ctx.dispose();
 }

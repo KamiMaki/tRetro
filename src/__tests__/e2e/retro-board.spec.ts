@@ -473,4 +473,54 @@ test.describe('tRetro E2E', () => {
       expect(Math.min(diff, 1440 - diff)).toBeLessThanOrEqual(2);
     });
   });
+
+  test.describe('Customization (2026-06-13 batch)', () => {
+    test('a section can be renamed and a new section added, live on the board', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Section Edit Retro', 'SecEd');
+      const board = page.locator('#main-panel-board');
+
+      // Open the live room-section editor.
+      await page.getByRole('button', { name: 'Sections' }).click();
+
+      // Rename the first section (Went Well → 能量來源). Label edits flush on blur.
+      const firstLabel = page.getByRole('textbox', { name: 'Section label' }).first();
+      await expect(firstLabel).toBeVisible({ timeout: 5000 });
+      await firstLabel.fill('能量來源');
+      await firstLabel.blur();
+
+      // Add a new section (server seeds key + position; default label 新區塊).
+      await page.getByRole('button', { name: /新增區塊/ }).click();
+
+      // Close the editor.
+      await page.getByRole('button', { name: '完成' }).click();
+
+      // The board reflects both edits live (via SECTIONS_UPDATED → useRoom).
+      await expect(board.getByText('能量來源').first()).toBeVisible({ timeout: 10000 });
+      await expect(board.getByText('新區塊').first()).toBeVisible({ timeout: 10000 });
+    });
+
+    test('a comment can be edited and shows an edited marker', async ({ page, request }) => {
+      await createAndJoinRoom(page, request, 'Comment Edit Retro', 'CmtEd');
+      const board = page.locator('#main-panel-board');
+
+      const textarea = board.getByPlaceholder(/Drop a thought/).first();
+      await textarea.fill('Card to comment on');
+      await textarea.locator('..').locator('..').getByRole('button', { name: /Send/ }).click();
+      await expect(board.getByText('Card to comment on').first()).toBeVisible({ timeout: 15000 });
+
+      await board.getByRole('button', { name: /\d+ comments?/ }).first().click();
+      await board.getByPlaceholder(/Reply/).first().fill('first version');
+      await board.getByRole('button', { name: 'Post' }).first().click();
+      await expect(board.getByText('first version')).toBeVisible({ timeout: 10000 });
+
+      // Edit the comment.
+      await board.getByRole('button', { name: 'Edit comment' }).first().click();
+      const editBox = board.getByRole('textbox', { name: 'Edit comment text' });
+      await editBox.fill('edited version');
+      await board.getByRole('button', { name: '儲存' }).click();
+
+      await expect(board.getByText('edited version')).toBeVisible({ timeout: 10000 });
+      await expect(board.getByText('已編輯').first()).toBeVisible({ timeout: 5000 });
+    });
+  });
 });
