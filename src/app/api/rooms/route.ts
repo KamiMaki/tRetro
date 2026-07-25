@@ -31,15 +31,6 @@ export async function POST(request: Request) {
         participantCount = parsed;
       }
     }
-    // Anonymous rooms over-count when we fall back to live sessions
-    // (every browser tab mints a new Guest-XXX). Force the facilitator
-    // to commit a number so consensus ratios stay meaningful.
-    if (isAnonymous && (participantCount == null || participantCount <= 0)) {
-      return NextResponse.json(
-        { error: 'Anonymous rooms require a positive participantCount' },
-        { status: 400 },
-      );
-    }
     const room = roomRepo.create(name.trim(), templateId, gate.teamId, participantCount, isAnonymous);
     return NextResponse.json(
       {

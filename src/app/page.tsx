@@ -7,6 +7,7 @@ import type { RoomSummary, SectionType } from '@/lib/types';
 import { SECTIONS, SECTION_EMOJIS, SECTION_LABELS } from '@/lib/types';
 import { RETRO_TEMPLATES, findTemplate } from '@/lib/templates';
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
+import { Switch } from '@/components/ui/Switch';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useShortcuts } from '@/lib/hooks/useShortcuts';
 import { KeyboardHelp, type KeyboardHelpItem } from '@/components/ui/KeyboardHelp';
@@ -77,7 +78,7 @@ function DashboardInner() {
   const [roomName, setRoomName] = useState(`Retro · ${todayIso}`);
   const [templateId, setTemplateId] = useState<string>('classic');
   const [participantCountInput, setParticipantCountInput] = useState<string>('');
-  const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(true);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -222,14 +223,6 @@ function DashboardInner() {
     const parsedCount = participantCountInput.trim().length > 0
       ? Number.parseInt(participantCountInput, 10)
       : null;
-    // Client-side guard mirrors the server-side rule in PR-4: anonymous
-    // rooms cannot use the session-fallback denominator because every
-    // session row is a fresh Guest-XXX. Block the submit before we even
-    // round-trip.
-    if (isAnonymous && (!parsedCount || parsedCount <= 0)) {
-      setCreateError('Anonymous rooms require a positive participant count.');
-      return;
-    }
     setCreating(true);
     setCreateError(null);
     try {
@@ -1032,10 +1025,6 @@ function NewRoomModal({
   creating: boolean;
   error: string | null;
 }) {
-  const parsedCount = participantCountInput.trim().length > 0
-    ? Number.parseInt(participantCountInput, 10)
-    : null;
-  const anonymousNeedsCount = isAnonymous && (parsedCount == null || parsedCount <= 0);
   return (
     <div onClick={onClose} className="modal-backdrop">
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 100%)', position: 'relative', zIndex: 81 }}>
@@ -1151,7 +1140,7 @@ function NewRoomModal({
                   style={{ display: 'block', marginBottom: 6, fontSize: 11 }}
                   htmlFor="participantCount"
                 >
-                  Participant count{isAnonymous ? ' (required)' : ' (optional)'}
+                  Participant count (optional)
                 </label>
                 <input
                   id="participantCount"
@@ -1165,34 +1154,35 @@ function NewRoomModal({
                 />
               </div>
               <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center' }}>
-                <label
+                <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: 10,
                     padding: '10px 12px',
                     border: '1px solid ' + (isAnonymous ? 'var(--aurora-violet)' : 'var(--glass-border)'),
                     borderRadius: 10,
-                    cursor: 'pointer',
                     width: '100%',
                     background: isAnonymous ? 'oklch(0.68 0.20 285 / 0.10)' : 'transparent',
                     transition: 'background 0.15s, border-color 0.15s',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isAnonymous}
-                    onChange={(e) => setIsAnonymous(e.target.checked)}
-                  />
-                  <span style={{ fontSize: 13, color: 'var(--fg-0)' }}>Anonymous mode</span>
-                </label>
+                  <Switch id="anonymousMode" checked={isAnonymous} onChange={setIsAnonymous} />
+                  <label htmlFor="anonymousMode" style={{ cursor: 'pointer' }}>
+                    <span style={{ display: 'block', fontSize: 13, color: 'var(--fg-0)' }}>Anonymous mode</span>
+                    <span className="fg-3" style={{ display: 'block', fontSize: 11, marginTop: 1 }}>
+                      {isAnonymous ? 'On — names hidden' : 'Off — names shown'}
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
             {isAnonymous ? (
               <div className="fg-2" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.5 }}>
                 Nicknames are hidden in the participant sidebar and on cards
-                (the reveal toggle is disabled in anonymous rooms). A positive
-                participant count is required so vote ratios are accurate.
+                (the reveal toggle is disabled in anonymous rooms). Participant
+                count is optional — leave it blank and vote ratios fall back
+                to the number of people currently connected.
               </div>
             ) : (
               <div className="fg-2" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.5 }}>
@@ -1219,14 +1209,14 @@ function NewRoomModal({
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
               <button type="button" className="btn btn-ghost" onClick={onClose}>
                 Cancel
               </button>
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={!name.trim() || creating || anonymousNeedsCount}
+                disabled={!name.trim() || creating}
               >
                 {creating ? 'Creating…' : 'Create board'}
               </button>

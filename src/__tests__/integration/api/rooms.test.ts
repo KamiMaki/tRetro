@@ -92,7 +92,7 @@ describe('POST /api/rooms — team scoping + per-room settings', () => {
     expect(room.isAnonymous).toBe(false);
   });
 
-  it('rejects anonymous=true without positive participantCount', async () => {
+  it('accepts anonymous=true without a participantCount', async () => {
     const team = await teamRepo.create('TeamA', 'pw1234');
     const noCount = await createRoom(
       jsonRequest('http://localhost/api/rooms', {
@@ -101,7 +101,11 @@ describe('POST /api/rooms — team scoping + per-room settings', () => {
         body: { name: 'Anon', isAnonymous: true },
       }),
     );
-    expect(noCount.status).toBe(400);
+    expect(noCount.status).toBe(201);
+    const noCountBody = await noCount.json();
+    const noCountRoom = roomRepo.findById(noCountBody.roomId)!;
+    expect(noCountRoom.isAnonymous).toBe(true);
+    expect(noCountRoom.participantCount).toBeNull();
 
     const zeroCount = await createRoom(
       jsonRequest('http://localhost/api/rooms', {
@@ -110,7 +114,11 @@ describe('POST /api/rooms — team scoping + per-room settings', () => {
         body: { name: 'Anon', isAnonymous: true, participantCount: 0 },
       }),
     );
-    expect(zeroCount.status).toBe(400);
+    expect(zeroCount.status).toBe(201);
+    const zeroCountBody = await zeroCount.json();
+    const zeroCountRoom = roomRepo.findById(zeroCountBody.roomId)!;
+    expect(zeroCountRoom.isAnonymous).toBe(true);
+    expect(zeroCountRoom.participantCount).toBeNull();
   });
 
   it('accepts anonymous=true with positive participantCount', async () => {
