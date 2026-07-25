@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PasswordField } from '@/components/ui/PasswordField';
 
 const MIN_PASSWORD_LEN = 8;
 const MAX_NAME_LEN = 40;
@@ -127,27 +128,25 @@ export function CreateTeamModal({ onClose, onCreated }: Props) {
             <label className="text-mono fg-2" style={{ display: 'block', marginBottom: 6, fontSize: 11 }} htmlFor="teamPassword">
               Password (min {MIN_PASSWORD_LEN} chars)
             </label>
-            <input
+            <PasswordField
               id="teamPassword"
-              type="password"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="field"
-              style={{ marginBottom: 14, letterSpacing: '0.12em' }}
+              style={{ marginBottom: 14 }}
             />
 
             <label className="text-mono fg-2" style={{ display: 'block', marginBottom: 6, fontSize: 11 }} htmlFor="teamPasswordConfirm">
               Confirm password
             </label>
-            <input
+            <PasswordField
               id="teamPasswordConfirm"
-              type="password"
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className="field"
-              style={{ marginBottom: 14, letterSpacing: '0.12em' }}
+              style={{ marginBottom: 14 }}
             />
 
             {confirm.length > 0 && confirm !== password && (

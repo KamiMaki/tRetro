@@ -3,6 +3,13 @@
 > Date shipped: 2026-05-24
 > Scope: 9 PRs (`cb22203` → `2ac5b68`, plus the final docs/setup PR)
 > Plan of record: `.omc/plans/team-spaces-plan.md` (Architect + Critic APPROVED iteration 1)
+>
+> **Update 2026-07-25:** Ring 1 (the daily-password gate) described below
+> was removed. `src/proxy.ts` is no longer "not modified" — it now checks
+> for the `tretro-team` cookie's presence directly. Everything else in this
+> document (team scoping, the claim flow, the vote-denominator priority
+> chain, rate limiting) is unaffected and still current. See
+> `docs/technical/team-login-and-anonymous-default.md` for the full change.
 
 This document is the canonical reference for how multi-tenancy works in
 RetroXpert. It is meant for an engineer reading the code cold: enough
@@ -59,9 +66,12 @@ because an existing rooms table predates the column and would error.
 - `src/app/trends/page.tsx` — Title becomes “Trends for [Team Name]”
 - `src/components/room/RoomBoard.tsx` — passes `resolveVoteDenominator(room, participants.length)` instead of raw `participants.length`
 
-### NOT modified (deliberate)
+### NOT modified (deliberate, at the time this feature shipped)
 
-- `src/proxy.ts` — Ring 1 only; Edge runtime can’t reach SQLite, so team checks live in API routes
+- `src/proxy.ts` — Ring 1 only; Edge runtime can’t reach SQLite, so team checks live in API routes.
+  **No longer true as of 2026-07-25** — Ring 1 was removed and `src/proxy.ts`
+  now checks the `tretro-team` cookie’s presence directly (still no DB
+  access from the proxy; the real team check still lives in `requireTeamId()`).
 - `src/components/board/Card.tsx` — receives the resolved value as a prop
 - `src/lib/utils/csvExport.ts` — does not use participant count for vote math
 
@@ -69,7 +79,7 @@ because an existing rooms table predates the column and would error.
 
 ## 2. Why this design
 
-### The two-ring auth model
+### The two-ring auth model (as shipped 2026-05-24 — REMOVED 2026-07-25, see below)
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -89,7 +99,7 @@ because an existing rooms table predates the column and would error.
    API routes, repos, socket handlers
 ```
 
-Why two cookies instead of one? Three reasons:
+Why two cookies instead of one (the reasoning at the time)? Three reasons:
 
 1. **Daily rotation vs. long-lived teams.** Ring 1 rotates nightly so
    shared screenshots expire; teams should not have to re-auth daily.
@@ -98,6 +108,17 @@ Why two cookies instead of one? Three reasons:
    routes.
 3. **Separation of concerns.** Each cookie has one job; future changes
    to one ring don’t risk breaking the other.
+
+**As of 2026-07-25, Ring 1 is gone.** The daily password added a cookie and
+a support question without adding isolation that Ring 2 didn't already
+provide — every team-scoped route was already behind `requireTeamId()`.
+`src/proxy.ts` now checks only that `tretro-team` is present (still no DB
+lookup at the proxy layer — that constraint from reason 2 above didn't
+change, there's just no Ring 1 left to need it). Ring 2 (`requireTeamId()`,
+the `tretro-team` cookie, the claim flow, rate limiting) is exactly as
+described in the rest of this document. See
+`docs/technical/team-login-and-anonymous-default.md` for the full removal
+writeup.
 
 ### Why `team_id` is nullable
 

@@ -1,64 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  AUTH_COOKIE_NAME,
-  PASSWORD_QUERY_PARAM,
-  getDailyPassword,
-  msUntilTaipeiMidnight,
-  verifyPassword,
-} from '@/lib/utils/dailyPassword';
+import { TEAM_COOKIE_NAME } from '@/lib/utils/teamCookie';
 
 /**
- * Anonymous gate: every request must either present a valid auth cookie or
- * carry `?password=YYYYMMDD` (Taipei time). Cookies refresh nightly.
+ * Team gate: every request must present a `tretro-team` cookie. This is a
+ * cheap presence/parse check only — real authorisation (does this cookie's
+ * team ID actually exist and match the request?) happens where it already
+ * did: `requireTeamId()` in the API routes and the Socket.io handshake
+ * (`src/lib/socket/middleware.ts`). The proxy never touches the DB.
  *
  * Lives in `src/proxy.ts` per the Next.js 16 file convention (the legacy
  * `middleware` filename is deprecated).
  *
  * Public escape hatches:
- *   - /login          (the form itself)
- *   - /api/auth       (the form's POST target)
+ *   - /login          (the team-login form)
+ *   - /api/teams      (list/create teams + the login/logout endpoints the
+ *                      form needs before it has a cookie; auth-requiring
+ *                      sub-routes under this prefix self-guard via
+ *                      requireTeamId())
  *   - /api/health     (uptime probes / Docker healthcheck)
  *   - /favicon.ico, /_next/*, static assets — handled via the matcher
  */
 export function proxy(req: NextRequest): NextResponse {
   const { nextUrl } = req;
-  const { pathname, searchParams } = nextUrl;
+  const { pathname } = nextUrl;
 
   if (
     pathname === '/login' ||
-    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/teams') ||
     pathname.startsWith('/api/health')
   ) {
     return NextResponse.next();
   }
 
-  // 1. URL bypass: `?password=YYYYMMDD`. If valid, set cookie and 302 to the
-  //    same URL with the param stripped so the password isn't preserved in
-  //    history, referrers, or shared screenshots.
-  const queryPassword = searchParams.get(PASSWORD_QUERY_PARAM);
-  if (queryPassword && verifyPassword(queryPassword)) {
-    const cleaned = nextUrl.clone();
-    cleaned.searchParams.delete(PASSWORD_QUERY_PARAM);
-    const res = NextResponse.redirect(cleaned);
-    res.cookies.set({
-      name: AUTH_COOKIE_NAME,
-      value: getDailyPassword(),
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: Math.floor(msUntilTaipeiMidnight() / 1000),
-    });
-    return res;
-  }
-
-  // 2. Cookie check.
-  const cookieValue = req.cookies.get(AUTH_COOKIE_NAME)?.value;
-  if (verifyPassword(cookieValue)) {
+  const teamId = req.cookies.get(TEAM_COOKIE_NAME)?.value;
+  if (teamId) {
     return NextResponse.next();
   }
 
-  // 3. Not authed.
+  // Not authed.
   if (pathname.startsWith('/api/')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

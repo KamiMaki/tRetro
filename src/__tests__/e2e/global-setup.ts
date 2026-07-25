@@ -1,7 +1,6 @@
 import { request } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { getDailyPassword } from '../../lib/utils/dailyPassword';
 
 const E2E_TEAM_NAME = 'e2e-team';
 const E2E_TEAM_PASS = 'e2e-test-pass';
@@ -12,32 +11,23 @@ interface TeamSummary {
 }
 
 /**
- * Authenticate Ring 1 (daily password) AND Ring 2 (team cookie), then
- * persist BOTH cookies to a storageState file so every E2E test starts
- * already past both gates.
+ * Authenticate the team cookie, then persist it to a storageState file so
+ * every E2E test starts already past the gate.
  *
  * Idempotent: the test team is created once on first run and reused on
  * subsequent runs. The `data/test-e2e.db` SQLite file is shared, so the
  * team row survives between invocations.
  */
 export default async function globalSetup() {
-  const baseURL = 'http://localhost:3000';
+  // Must match playwright.config.ts — both honour E2E_PORT.
+  const baseURL = `http://localhost:${process.env.E2E_PORT ?? 3000}`;
   const storagePath = path.resolve('playwright/.auth/user.json');
 
   fs.mkdirSync(path.dirname(storagePath), { recursive: true });
 
   const ctx = await request.newContext({ baseURL });
 
-  // Ring 1: daily password.
-  const dailyAuthRes = await ctx.post('/api/auth', {
-    data: { password: getDailyPassword() },
-  });
-  if (!dailyAuthRes.ok()) {
-    const body = await dailyAuthRes.text();
-    throw new Error(`E2E Ring-1 auth setup failed: ${dailyAuthRes.status()} ${body}`);
-  }
-
-  // Ring 2: ensure the test team exists, then sign in to it.
+  // Ensure the test team exists, then sign in to it.
   const teamsRes = await ctx.get('/api/teams');
   if (!teamsRes.ok()) {
     throw new Error(`E2E /api/teams GET failed: ${teamsRes.status()}`);
@@ -59,10 +49,10 @@ export default async function globalSetup() {
   });
   if (!teamAuthRes.ok()) {
     const body = await teamAuthRes.text();
-    throw new Error(`E2E Ring-2 auth setup failed: ${teamAuthRes.status()} ${body}`);
+    throw new Error(`E2E team auth setup failed: ${teamAuthRes.status()} ${body}`);
   }
 
-  // Persist cookies (both auth rings) AND seed localStorage so the first-run
+  // Persist the team cookie AND seed localStorage so the first-run
   // onboarding tour (src/components/room/OnboardingTour.tsx) never auto-opens
   // during E2E — its full-screen backdrop would otherwise intercept every
   // board interaction. The API request context can't set localStorage, so we

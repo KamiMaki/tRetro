@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AuroraBg, GlassPanel, Logo } from '@/components/ui/Aurora';
+import { PasswordField } from '@/components/ui/PasswordField';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { CreateTeamModal } from './CreateTeamModal';
 
@@ -140,14 +141,13 @@ export function TeamPicker({ onAuthed }: Props) {
                 <label className="text-mono fg-2" style={{ display: 'block', marginBottom: 6, fontSize: 11 }} htmlFor="team-password">
                   Password
                 </label>
-                <input
+                <PasswordField
                   id="team-password"
-                  type="password"
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="field"
-                  style={{ marginBottom: 14, letterSpacing: '0.12em' }}
+                  style={{ marginBottom: 14 }}
                   placeholder="••••••••"
                   disabled={submitting}
                 />

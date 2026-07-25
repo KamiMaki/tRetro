@@ -79,7 +79,8 @@ expect tears the day someone deletes the namespace.
 
 ```bash
 docker run --rm -p 3000:3000 -v "$PWD/data:/data" penguin88428/tretro:latest
-# → http://localhost:3000 — gate prompts for today's Taipei date.
+# → http://localhost:3000 — gate prompts for a team login (pick or create a
+# team, then enter its password).
 ```
 
 ## Connection-timeout notes for Socket.IO behind ingress-nginx

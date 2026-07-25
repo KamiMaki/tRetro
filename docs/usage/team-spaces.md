@@ -25,8 +25,7 @@ join).
 
 ## Create your first team
 
-1. After entering today’s password, you’ll land on the **Pick your
-   team** screen.
+1. On first visit you’ll land on the **Pick your team** screen.
 2. Click **+ Create new team** (or, if you’re the first user, the big
    **+ Create a team** button).
 3. Enter:
@@ -52,9 +51,7 @@ join).
 3. Click **Enter team**.
 
 Your team session lasts **30 days** — you stay signed in across browser
-restarts. The daily password (Ring 1) still rotates nightly, so you’ll
-re-enter the daily code each morning even though the team cookie
-persists.
+restarts.
 
 If you mistype the password 5 times within a minute, that IP is
 rate-limited for 5 minutes.
@@ -64,9 +61,7 @@ rate-limited for 5 minutes.
 ## Switch teams
 
 In the header next to the team name, click **switch**. This clears
-your team cookie and sends you back to the team picker. Your daily
-password cookie is unaffected — you don’t need to re-enter today’s
-code.
+your team cookie and sends you back to the team picker.
 
 ---
 
@@ -146,9 +141,6 @@ There is no recovery flow. Your options:
 
 **Can two teams have the same name?** No — team names are unique
 across the whole RetroXpert instance.
-
-**Can the daily password be different per team?** No — Ring 1 is a
-single instance-wide gate. Teams only differ in Ring 2.
 
 **Does my team need a password if we’re the only team?** Yes. The
 team password is what stops a future second team from accidentally
