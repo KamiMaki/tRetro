@@ -14,6 +14,13 @@ export const SOCKET_EVENTS = {
   ROOM_REOPENED: 'room:reopened',
   PHASE_SET: 'phase:set',
   PHASE_UPDATED: 'phase:updated',
+  // Follow the facilitator. Every participant here is a Scrum Master, so
+  // presenting is *claimed*, not granted: one person takes the wheel, their
+  // card is mirrored to the room, and anyone may take over or step aside.
+  FOCUS_CLAIM: 'focus:claim',
+  FOCUS_RELEASE: 'focus:release',
+  FOCUS_SET: 'focus:set',
+  FOCUS_UPDATED: 'focus:updated',
 
   // Cards
   CARD_CREATE: 'card:create',
@@ -58,6 +65,11 @@ export const SOCKET_EVENTS = {
   // Reactions
   REACTION_TOGGLE: 'reaction:toggle',
   REACTION_UPDATED: 'reaction:updated',
+
+  // Cheers (ephemeral discussion-mode effects — never persisted)
+  CHEER_SEND: 'cheer:send',
+  CHEER_BURST: 'cheer:burst',
+  CHEER_COMBO: 'cheer:combo',
 
   // Votes
   VOTE_TOGGLE: 'vote:toggle',

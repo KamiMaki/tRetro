@@ -24,6 +24,12 @@ import type {
   OwnMetricScores,
   RoomPhase,
   RoomPhaseState,
+  CheerEffect,
+  CheerBurstPayload,
+  CheerComboPayload,
+  LiveCheer,
+  LiveCombo,
+  FocusUpdatedPayload,
 } from '@/lib/types';
 import { METRIC_KEYS } from '@/lib/types';
 import { DEFAULT_REACTION_EMOJIS } from '@/lib/constants/reactions';
@@ -34,6 +40,20 @@ import type {
 } from '@/lib/types';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+
+// A cheer burst outlives its animation by a hair, then it is dropped: 2.6s
+// sits just above CheerBurst's 2.2s budget, so cleanup can never truncate the
+// longest archetype (rain) mid-fall. The cap is a render-storm guard: a room
+// mashing cheers can never queue more than 20 live DOM groups no matter how
+// fast bursts arrive.
+const CHEER_TTL_MS = 2600;
+const CHEER_MAX_LIVE = 20;
+
+// A combo is the mega version of a burst: 3× the particles, so it needs a
+// little longer on screen than a single cheer. Same shape of guard — TTL
+// above the animation budget, and a hard cap on how many can coexist.
+const COMBO_TTL_MS = 3200;
+const COMBO_MAX_LIVE = 4;
 
 interface ParticipantSummary {
   id: string;
@@ -72,6 +92,20 @@ interface UseRoomReturn {
   deleteComment: (commentId: string) => void;
   updateComment: (commentId: string, content: string, imageData?: string | null) => void;
   toggleReaction: (cardId: string, emoji: string) => void;
+  cheers: LiveCheer[];
+  combos: LiveCombo[];
+  sendCheer: (cardId: string, effect: CheerEffect) => void;
+  /** Our own participant id — used to tell "I am presenting" from "they are". */
+  participantId: string | null;
+  /** Who is presenting the discussion, or null when nobody has the wheel. */
+  presenterId: string | null;
+  /** The card the presenter is on, or null when nobody is presenting. */
+  facilitatorFocus: string | null;
+  /** Take (or take over) the wheel, optionally naming the card to open on. */
+  claimPresenter: (cardId?: string) => void;
+  /** Stop presenting. Ignored server-side unless we hold the wheel. */
+  releasePresenter: () => void;
+  setFocus: (cardId: string) => void;
   toggleVote: (cardId: string) => void;
   addDrawing: (cardId: string, data: string) => void;
   deleteDrawing: (drawingId: string) => void;
@@ -130,6 +164,15 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     })),
   );
   const [ownMetricScores, setOwnMetricScores] = useState<OwnMetricScores>({});
+  // Cheers are transient: each burst lives in state only long enough to play,
+  // then a timer drops it. Nothing about them is persisted or refetched.
+  const [cheers, setCheers] = useState<LiveCheer[]>([]);
+  const [combos, setCombos] = useState<LiveCombo[]>([]);
+  const [facilitatorFocus, setFacilitatorFocus] = useState<string | null>(null);
+  const [presenterId, setPresenterId] = useState<string | null>(null);
+  const [participantId, setParticipantId] = useState<string | null>(null);
+  const cheerTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const cheerSeqRef = useRef(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -150,6 +193,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
 
     socketRef.current = socket;
     setConnectionStatus('connecting');
+
+    // Captured once so the cleanup below closes over this exact Set rather
+    // than re-reading the ref after unmount.
+    const cheerTimers = cheerTimeoutsRef.current;
 
     socket.on('connect', () => {
       setIsConnected(true);
@@ -179,6 +226,18 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       setActionItems(payload.actionItems);
       if (payload.phaseState) {
         setPhaseState(payload.phaseState);
+      }
+      // Who we are, so the discussion panel can tell "I am presenting" from
+      // "someone else is". Every participant is a Scrum Master here, so the
+      // isScrumMaster flag cannot answer that question.
+      if (payload.participant?.id) {
+        setParticipantId(payload.participant.id);
+      }
+      // Late joiners inherit the presenter and their card, same as they
+      // inherit the phase — undefined (older server) means nobody is presenting.
+      if (payload.focusState) {
+        setPresenterId(payload.focusState.presenterId);
+        setFacilitatorFocus(payload.focusState.cardId);
       }
       if (Array.isArray(payload.metricsAggregate)) {
         setMetricsAggregate(payload.metricsAggregate);
@@ -313,6 +372,56 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
       );
     });
 
+    // V2: Cheers — ephemeral, never written to `cards` or anywhere else.
+    socket.on(SOCKET_EVENTS.CHEER_BURST, (payload: CheerBurstPayload) => {
+      if (!payload?.cardId || !payload?.effect) return;
+      const id =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `cheer-${Date.now()}-${cheerSeqRef.current++}`;
+      setCheers((prev) => [...prev, { ...payload, id }].slice(-CHEER_MAX_LIVE));
+      // The burst also carries `cardCheerTotal`. Nothing reads it any more:
+      // heat counts comments and reactions only, because a cheer is one click
+      // and would spam any threshold. Left in the payload as a server-side
+      // contract rather than churned out of it.
+      const timer = setTimeout(() => {
+        cheerTimers.delete(timer);
+        setCheers((prev) => prev.filter((c) => c.id !== id));
+      }, CHEER_TTL_MS);
+      cheerTimers.add(timer);
+    });
+
+    // V2: Cheer combos — the room cheered together. Same transient shape as a
+    // burst, its own TTL, and it shares the burst timer set so unmount clears
+    // both at once.
+    socket.on(SOCKET_EVENTS.CHEER_COMBO, (payload: CheerComboPayload) => {
+      if (!payload?.effect) return;
+      const id =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `combo-${Date.now()}-${cheerSeqRef.current++}`;
+      setCombos((prev) => [...prev, { ...payload, id }].slice(-COMBO_MAX_LIVE));
+      const timer = setTimeout(() => {
+        cheerTimers.delete(timer);
+        setCombos((prev) => prev.filter((c) => c.id !== id));
+      }, COMBO_TTL_MS);
+      cheerTimers.add(timer);
+    });
+
+    // Follow the facilitator — who holds the wheel and where they are.
+    // Clients decide for themselves whether to follow. A release arrives as
+    // presenterId: null; we keep the last card so nobody's view jumps when
+    // the presenter simply steps aside.
+    socket.on(SOCKET_EVENTS.FOCUS_UPDATED, (payload: FocusUpdatedPayload) => {
+      if (!payload) return;
+      setPresenterId(payload.presenterId ?? null);
+      if (payload.presenterId && typeof payload.cardId === 'string' && payload.cardId.length > 0) {
+        setFacilitatorFocus(payload.cardId);
+      } else if (!payload.presenterId) {
+        setFacilitatorFocus(null);
+      }
+    });
+
     // V2: Votes
     socket.on(SOCKET_EVENTS.VOTE_UPDATED, (payload: { cardId: string; voteCount: number; hasVoted: boolean }) => {
       setCards((prev) =>
@@ -370,6 +479,10 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      // Drop any burst timers still pending so they can't fire into an
+      // unmounted tree.
+      for (const timer of cheerTimers) clearTimeout(timer);
+      cheerTimers.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, sessionToken]);
@@ -469,6 +582,22 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     socketRef.current?.emit(SOCKET_EVENTS.REACTION_TOGGLE, { cardId, emoji });
   }, []);
 
+  const sendCheer = useCallback((cardId: string, effect: CheerEffect) => {
+    socketRef.current?.emit(SOCKET_EVENTS.CHEER_SEND, { cardId, effect });
+  }, []);
+
+  const setFocus = useCallback((cardId: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.FOCUS_SET, { cardId });
+  }, []);
+
+  const claimPresenter = useCallback((cardId?: string) => {
+    socketRef.current?.emit(SOCKET_EVENTS.FOCUS_CLAIM, cardId ? { cardId } : {});
+  }, []);
+
+  const releasePresenter = useCallback(() => {
+    socketRef.current?.emit(SOCKET_EVENTS.FOCUS_RELEASE);
+  }, []);
+
   const toggleVote = useCallback((cardId: string) => {
     socketRef.current?.emit(SOCKET_EVENTS.VOTE_TOGGLE, { cardId });
   }, []);
@@ -515,6 +644,15 @@ export function useRoom({ roomId, sessionToken }: UseRoomOptions): UseRoomReturn
     deleteComment,
     updateComment,
     toggleReaction,
+    cheers,
+    combos,
+    sendCheer,
+    participantId,
+    presenterId,
+    facilitatorFocus,
+    claimPresenter,
+    releasePresenter,
+    setFocus,
     toggleVote,
     addDrawing,
     deleteDrawing,

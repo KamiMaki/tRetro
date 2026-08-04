@@ -283,6 +283,9 @@ export interface RoomJoinedPayload {
   metricsAggregate: MetricAggregate[];
   ownMetricScores: OwnMetricScores;
   phaseState?: RoomPhaseState;
+  /** Who is presenting and which card they are on, so a late joiner lands on
+   *  the same card as everyone else. Null when nobody is presenting. */
+  focusState?: RoomFocusState | null;
   /** The room's customised board sections, ordered by position. Optional for
    *  back-compat; clients fall back to the built-in default layout. */
   sections?: RoomSection[];
@@ -390,6 +393,87 @@ export interface ToggleVotePayload {
 export interface CreateDrawingPayload {
   cardId: string;
   data: string; // base64
+}
+
+// ───── Cheers ─────
+// Ephemeral discussion-mode celebrations. Nothing is stored: the server
+// validates and fans the burst out, every client plays it and forgets it.
+
+// Spans 喜怒哀樂 — celebration, anger, sorrow and delight all get a button.
+export type CheerEffect =
+  | 'confetti'
+  | 'clap'
+  | 'laugh'
+  | 'love'
+  | 'fire'
+  | 'mindblown'
+  | 'angry'
+  | 'cry';
+
+export interface SendCheerPayload {
+  cardId: string;
+  effect: CheerEffect;
+}
+
+/**
+ * Deliberately carries no sender: cheering is meant to feel free, not tracked,
+ * so the server never tells anyone who pressed the button.
+ */
+export interface CheerBurstPayload {
+  cardId: string;
+  effect: CheerEffect;
+  /**
+   * How many cheers this card has collected since the server started. Still
+   * anonymous — it is a per-card tally, never a per-person one — and it feeds
+   * the card heat glow so the most-celebrated cards read as hot.
+   */
+  cardCheerTotal: number;
+}
+
+/** A burst queued for playback client-side; `id` keys its DOM group. */
+export interface LiveCheer extends CheerBurstPayload {
+  id: string;
+}
+
+/**
+ * The room cheered together: ≥3 of one effect inside the combo window, from
+ * ≥2 different people. Carries no cardId on purpose — a combo celebrates the
+ * room, not a card, and the cheers may well have landed on several.
+ */
+export interface CheerComboPayload {
+  effect: CheerEffect;
+  /**
+   * Cheers in the window that triggered it. Part of the server contract but
+   * currently unread by the client: the combo is shown as a particle storm
+   * and a backdrop pulse, with no "COMBO ×N" banner to put the number in.
+   */
+  count: number;
+}
+
+/** A combo queued for playback client-side; `id` keys its DOM group. */
+export interface LiveCombo extends CheerComboPayload {
+  id: string;
+}
+
+// ───── Follow the facilitator ─────
+// Who is presenting, and which card they are on. Ephemeral like phase state:
+// losing it on restart just means nobody is presenting yet.
+//
+// Presenting is *claimed*, not granted: every participant in this app is a
+// Scrum Master (participant.repo.ts), so there is no single facilitator to
+// gate on. Anyone may take the wheel, the newest claim wins, and only the
+// holder can move the room.
+
+export interface RoomFocusState {
+  presenterId: string;
+  /** null right after a claim that named no card. */
+  cardId: string | null;
+}
+
+/** Broadcast on claim, takeover, move and release (`presenterId: null`). */
+export interface FocusUpdatedPayload {
+  presenterId: string | null;
+  cardId: string | null;
 }
 
 // ───── Sprint Metrics ─────

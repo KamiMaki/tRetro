@@ -12,6 +12,7 @@ import { toCardDTOv2 } from '../dto';
 import type { SocketData } from '../middleware';
 import { sendActionItemDigest } from '../../integrations/digest';
 import { getPhaseState, setPhaseState } from '../phase-store';
+import { getFocusState } from '../focus-store';
 import { DEFAULT_REACTION_EMOJIS } from '../../constants/reactions';
 import type { RoomPhase } from '../../types';
 
@@ -47,6 +48,10 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const metricsAggregate = metricRepo.getAggregateByRoomId(roomId);
     const ownMetricScores = metricRepo.getOwnScores(roomId, participantId);
     const phaseState = getPhaseState(roomId);
+    // Same delivery path as phase: a late joiner reads the facilitator's
+    // current card straight out of the in-memory store, so they land on the
+    // card everyone else is already looking at instead of card #1.
+    const focusState = getFocusState(roomId);
     // Resolve the reaction palette from the room's team (teamless → defaults).
     const reactionEmojis =
       (room?.teamId ? teamRepo.getSettings(room.teamId)?.reactionEmojis : null) ??
@@ -63,6 +68,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       metricsAggregate,
       ownMetricScores,
       phaseState,
+      focusState,
       reactionEmojis,
     });
 

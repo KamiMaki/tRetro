@@ -10,6 +10,7 @@ import { DrawingThumbnail } from '@/components/board/DrawingThumbnail';
 import { DrawingModal } from '@/components/board/DrawingModal';
 import { Avatar } from '@/components/ui/Aurora';
 import { computeConsensus } from '@/lib/utils/consensus';
+import { cardHeatClass } from '@/lib/utils/heat';
 
 interface CardProps {
   card: CardDTOv2;
@@ -234,7 +235,7 @@ export function Card({
   return (
     <>
       <div
-        className="sticky-card"
+        className={['sticky-card', cardHeatClass(card)].filter(Boolean).join(' ')}
         data-tone={tone}
         data-consensus={showConsensus ? consensus.level : undefined}
         draggable

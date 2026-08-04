@@ -541,6 +541,285 @@ body {
   animation: fade-in 0.3s ease-out both;
 }
 
+/* ───── Cheer bursts (discussion mode) ─────
+   Each particle carries its own trajectory in custom properties set inline by
+   CheerBurst.tsx, so one keyframe serves every particle of every burst. Four
+   archetypes give the eight effects distinct personalities — burst / rain /
+   rise / shake — and every one of them stays inside a 2.2s budget so the
+   client TTL in useRoom.ts can never cut an animation short. */
+.cheer-particle {
+  will-change: transform, opacity;
+}
+
+/* burst — 👏 🤯 (and 😡's shrapnel): explodes outward, sags on the tail. */
+@keyframes cheer-burst {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(0.3); }
+  10%  { opacity: 1; }
+  70%  {
+    opacity: 1;
+    transform:
+      translate(var(--cheer-dx, 0), var(--cheer-dy, -60px))
+      rotate(calc(var(--cheer-rot, 180deg) * 0.8))
+      scale(var(--cheer-scale, 1));
+  }
+  100% {
+    opacity: 0;
+    transform:
+      translate(var(--cheer-dx, 0), calc(var(--cheer-dy, -60px) + var(--cheer-fall, 40px)))
+      rotate(var(--cheer-rot, 180deg))
+      scale(calc(var(--cheer-scale, 1) * 0.9));
+  }
+}
+.cheer-particle--burst {
+  animation: cheer-burst 1.5s cubic-bezier(0.15, 0.85, 0.35, 1) both;
+}
+
+/* laugh — 😂: same explosion, but the particles bounce their way out on
+   three decreasing peaks instead of tracing one clean arc. */
+@keyframes cheer-laugh {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(0.3); }
+  8%   { opacity: 1; }
+  25%  { transform: translate(calc(var(--cheer-dx, 0) * 0.30), var(--cheer-bounce-1, -120px)) rotate(calc(var(--cheer-rot, 180deg) * 0.30)) scale(var(--cheer-scale, 1)); }
+  45%  { transform: translate(calc(var(--cheer-dx, 0) * 0.55), 0) rotate(calc(var(--cheer-rot, 180deg) * 0.50)) scale(var(--cheer-scale, 1)); }
+  62%  { transform: translate(calc(var(--cheer-dx, 0) * 0.72), var(--cheer-bounce-2, -70px)) rotate(calc(var(--cheer-rot, 180deg) * 0.68)) scale(var(--cheer-scale, 1)); }
+  78%  { transform: translate(calc(var(--cheer-dx, 0) * 0.86), 0) rotate(calc(var(--cheer-rot, 180deg) * 0.84)) scale(var(--cheer-scale, 1)); }
+  91%  { opacity: 1; transform: translate(var(--cheer-dx, 0), var(--cheer-bounce-3, -28px)) rotate(var(--cheer-rot, 180deg)) scale(var(--cheer-scale, 1)); }
+  100% { opacity: 0; transform: translate(var(--cheer-dx, 0), 0) rotate(var(--cheer-rot, 180deg)) scale(calc(var(--cheer-scale, 1) * 0.9)); }
+}
+.cheer-particle--laugh {
+  animation: cheer-laugh 1.6s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+/* rain — 🎉 😢: spawns across the full width above the card and pours down,
+   swaying and tumbling. Over-travel is clipped by the overlay's overflow. */
+@keyframes cheer-rain {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  8%   { opacity: 1; }
+  50%  {
+    transform:
+      translate(var(--cheer-sway, 20px), calc(var(--cheer-fall, 440px) * 0.5))
+      rotate(calc(var(--cheer-rot, 180deg) * 0.5));
+  }
+  85%  { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform:
+      translate(calc(var(--cheer-sway, 20px) * -0.6), var(--cheer-fall, 440px))
+      rotate(var(--cheer-rot, 180deg));
+  }
+}
+.cheer-particle--rain {
+  animation: cheer-rain 1.85s linear both;
+}
+
+/* rise — ❤️ 🔥: floats up from the bottom edge, scaling in then fading. */
+@keyframes cheer-rise {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.2); }
+  15%  { opacity: 1; }
+  50%  {
+    transform:
+      translate(var(--cheer-sway, 14px), calc(var(--cheer-lift, -280px) * 0.5))
+      scale(var(--cheer-scale, 1));
+  }
+  100% {
+    opacity: 0;
+    transform:
+      translate(calc(var(--cheer-sway, 14px) * -1), var(--cheer-lift, -280px))
+      scale(calc(var(--cheer-scale, 1) * 0.75));
+  }
+}
+.cheer-particle--rise {
+  animation: cheer-rise 1.7s cubic-bezier(0.25, 0.6, 0.35, 1) both;
+}
+/* 🔥 rides the same trajectory with a blur pulse layered on top, which reads
+   as heat shimmer. Two animations, so neither has to fight for `transform`. */
+@keyframes cheer-shimmer {
+  from { filter: blur(0px)   brightness(1); }
+  to   { filter: blur(1.3px) brightness(1.25); }
+}
+.cheer-particle--fire {
+  animation:
+    cheer-rise 1.7s cubic-bezier(0.25, 0.6, 0.35, 1) both,
+    cheer-shimmer 0.42s ease-in-out infinite alternate;
+}
+
+/* 🤯 shockwave — one ring per burst, expanding through the particle cloud. */
+@keyframes cheer-shock {
+  0%   { opacity: 0.85; transform: translate(-50%, -50%) scale(0.15); border-width: 4px; }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(3);    border-width: 1px; }
+}
+.cheer-shockwave {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 4px solid var(--aurora-violet);
+  animation: cheer-shock 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* 😢 tint wash — a short cold flush over the card, under the droplets. */
+@keyframes cheer-tint {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.cheer-tint {
+  animation: cheer-tint 600ms ease-out both;
+}
+
+/* shake — 😡: the focused card itself rattles and flashes red. Applied by
+   DiscussionPanel to the card wrapper, and only when the cheer targets the
+   card on screen; corner floats never shake anything. Declared after
+   .drop-in so it wins the `animation` shorthand on the same element. */
+@keyframes cheer-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-6px); }
+  20% { transform: translateX(5px); }
+  30% { transform: translateX(-5px); }
+  40% { transform: translateX(4px); }
+  55% { transform: translateX(-3px); }
+  70% { transform: translateX(2px); }
+  85% { transform: translateX(-1px); }
+}
+@keyframes cheer-rage-flash {
+  0%   { box-shadow: 0 24px 60px oklch(0 0 0 / 0.4); }
+  25%  {
+    box-shadow:
+      0 24px 60px oklch(0 0 0 / 0.4),
+      0 0 0 4px oklch(0.65 0.18 25 / 0.45),
+      0 0 34px 8px oklch(0.65 0.18 25 / 0.35);
+  }
+  100% { box-shadow: 0 24px 60px oklch(0 0 0 / 0.4); }
+}
+.cheer-shake {
+  animation: cheer-shake 0.5s ease-in-out both;
+}
+.cheer-shake > .sticky-card {
+  animation: cheer-rage-flash 0.6s ease-out both;
+}
+
+@keyframes cheer-chip {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.9); }
+  14%  { opacity: 1; transform: translateY(0) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+.cheer-chip {
+  animation: cheer-chip 1.9s ease-out both;
+}
+/* Reduced motion: no particle storm at all — every archetype collapses to the
+   single chip, which fades in and out in place with no transform. The angry
+   shake, its red flash and the cry tint wash are suppressed with it.
+   Mirrors the `animation: none` opt-out used by the .btn-primary fallback. */
+@keyframes cheer-chip-static {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cheer-particle,
+  .cheer-shockwave,
+  .cheer-tint {
+    display: none;
+    animation: none;
+  }
+  .cheer-shake,
+  .cheer-shake > .sticky-card {
+    animation: none;
+    transform: none;
+    box-shadow: 0 24px 60px oklch(0 0 0 / 0.4);
+  }
+  .cheer-chip {
+    animation: cheer-chip-static 1.9s ease-out both;
+  }
+}
+
+/* ───── Cheer combo (the room cheered together) ─────
+   A short radial pulse washes the whole discussion panel behind the mega
+   burst. Kept well under a second: a combo should read as a flash of shared
+   energy, not a strobe, and several can overlap when the room is on fire. */
+@keyframes combo-flash {
+  0%   { opacity: 0; }
+  22%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.combo-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 45%,
+    oklch(0.72 0.20 330 / 0.28),
+    oklch(0.68 0.20 285 / 0.14) 55%,
+    transparent 78%
+  );
+  animation: combo-flash 700ms ease-out both;
+}
+
+/* ───── Card heat glow ─────
+   comments + emoji reactions, thresholded in lib/utils/heat.ts (votes and
+   cheers deliberately excluded). Warm (≥6) breathes violet-pink; hot (≥12)
+   burns amber, brighter and faster. Everything lives in box-shadow so the
+   hover lift, the selection border and the consensus ring underneath all keep
+   working — an animated box-shadow simply wins the cascade while it plays,
+   and nothing else about the card moves. */
+@keyframes heat-breathe-warm {
+  0%, 100% {
+    box-shadow:
+      0 1px 0 var(--glass-highlight) inset,
+      0 0 0 1px oklch(0.72 0.20 330 / 0.38),
+      0 8px 26px oklch(0.72 0.20 330 / 0.18);
+  }
+  50% {
+    box-shadow:
+      0 1px 0 var(--glass-highlight) inset,
+      0 0 0 2px oklch(0.72 0.20 330 / 0.58),
+      0 14px 36px oklch(0.68 0.20 285 / 0.34);
+  }
+}
+@keyframes heat-breathe-hot {
+  0%, 100% {
+    box-shadow:
+      0 1px 0 var(--glass-highlight) inset,
+      0 0 0 1px oklch(0.85 0.14 75 / 0.50),
+      0 10px 30px oklch(0.85 0.14 75 / 0.26);
+  }
+  50% {
+    box-shadow:
+      0 1px 0 var(--glass-highlight) inset,
+      0 0 0 3px oklch(0.85 0.14 75 / 0.72),
+      0 18px 46px oklch(0.85 0.14 75 / 0.48);
+  }
+}
+.heat-warm {
+  animation: heat-breathe-warm 2.8s ease-in-out infinite;
+}
+.heat-hot {
+  animation: heat-breathe-hot 2s ease-in-out infinite;
+}
+/* Reduced motion: keep the signal, drop the breathing — a static tinted ring.
+   Scoped through .sticky-card too so it outranks the consensus ring above. */
+@media (prefers-reduced-motion: reduce) {
+  .heat-warm,
+  .sticky-card.heat-warm {
+    animation: none;
+    box-shadow: 0 0 0 2px oklch(0.72 0.20 330 / 0.55);
+  }
+  .heat-hot,
+  .sticky-card.heat-hot {
+    animation: none;
+    box-shadow: 0 0 0 3px oklch(0.85 0.14 75 / 0.7);
+  }
+  .combo-flash {
+    animation: none;
+    display: none;
+  }
+}
+
 /* ───── Live pulse dot ───── */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 var(--status-live-fg); }

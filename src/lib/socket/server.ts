@@ -8,6 +8,8 @@ import { registerActionItemHandlers } from './handlers/action-item.handler';
 import { registerCommentHandlers } from './handlers/comment.handler';
 import { registerSectionHandlers } from './handlers/section.handler';
 import { registerReactionHandlers } from './handlers/reaction.handler';
+import { registerCheerHandlers } from './handlers/cheer.handler';
+import { registerFocusHandlers } from './handlers/focus.handler';
 import { registerVoteHandlers } from './handlers/vote.handler';
 import { registerDrawingHandlers } from './handlers/drawing.handler';
 import { registerMetricHandlers } from './handlers/metric.handler';
@@ -31,6 +33,8 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
     registerCommentHandlers(io!, socket);
     registerSectionHandlers(io!, socket);
     registerReactionHandlers(io!, socket);
+    registerCheerHandlers(io!, socket);
+    registerFocusHandlers(io!, socket);
     registerVoteHandlers(io!, socket);
     registerDrawingHandlers(io!, socket);
     registerMetricHandlers(io!, socket);

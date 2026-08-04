@@ -105,6 +105,15 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
     deleteComment,
     updateComment,
     toggleReaction,
+    cheers,
+    combos,
+    sendCheer,
+    participantId,
+    presenterId,
+    facilitatorFocus,
+    claimPresenter,
+    releasePresenter,
+    setFocus,
     toggleVote,
     addDrawing,
     deleteDrawing,
@@ -555,6 +564,16 @@ export function RoomBoard({ roomId }: RoomBoardProps) {
               onUpdateComment={(commentId, _cardId, content, imageData) => updateComment(commentId, content, imageData)}
               isScrumMaster={isScrumMaster}
               onCreateActionItem={(description) => addActionItem({ description })}
+              cheers={cheers}
+              combos={combos}
+              onSendCheer={sendCheer}
+              facilitatorFocus={facilitatorFocus}
+              presenterId={presenterId}
+              participantId={participantId}
+              onSetFocus={setFocus}
+              onClaimPresenter={claimPresenter}
+              onReleasePresenter={releasePresenter}
+              isActive={activeTab === 'discussion'}
             />
           </div>
 

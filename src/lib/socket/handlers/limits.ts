@@ -30,3 +30,43 @@ export const SECTION_TONE_VALUES = ['mint', 'cyan', 'violet', 'pink', 'amber'] a
 export function isValidSectionTone(tone: unknown): tone is (typeof SECTION_TONE_VALUES)[number] {
   return typeof tone === 'string' && (SECTION_TONE_VALUES as readonly string[]).includes(tone);
 }
+
+// Cheer effects. A cheer is a toy: nothing is stored, so the only guard that
+// matters is that the effect name is one we know how to animate (mirrors
+// CheerEffect) and that no one can turn the room into a strobe light.
+// The set spans 喜怒哀樂 on purpose: a retro needs an outlet for a bad sprint
+// as much as for a good one, so anger and sorrow sit next to celebration.
+export const CHEER_EFFECT_VALUES = [
+  'confetti',
+  'clap',
+  'laugh',
+  'love',
+  'fire',
+  'mindblown',
+  'angry',
+  'cry',
+] as const;
+
+/** True when `effect` is one of the eight allowed CheerEffect values. */
+export function isValidCheerEffect(effect: unknown): effect is (typeof CHEER_EFFECT_VALUES)[number] {
+  return typeof effect === 'string' && (CHEER_EFFECT_VALUES as readonly string[]).includes(effect);
+}
+
+// Sliding-window cheer budget per participant: 8 bursts per 4 seconds. Enough
+// for enthusiastic mashing, low enough that a script can't flood every client
+// with animation work. Excess is dropped silently — no error event, because a
+// cheer is not a workflow step and a red toast would be worse than the drop.
+export const CHEER_RATE_MAX = 8;
+export const CHEER_RATE_WINDOW_MS = 4_000;
+
+// Cheer combos. A combo is the room cheering *together*: three of the same
+// effect inside 5 seconds, from at least two different people. The
+// two-participant floor is the whole point — one person mashing a button is
+// enthusiasm, two or more is a moment, and only the second kind deserves a
+// full-panel takeover. The cooldown then keeps a hot room from chaining
+// combos back to back; the room can still cheer freely, it just gets one
+// mega celebration per effect per 8 seconds.
+export const COMBO_WINDOW_MS = 5_000;
+export const COMBO_MIN_CHEERS = 3;
+export const COMBO_MIN_PARTICIPANTS = 2;
+export const COMBO_COOLDOWN_MS = 8_000;
