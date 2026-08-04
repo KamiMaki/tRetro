@@ -7,6 +7,9 @@ import { commentRepo } from '@/lib/db/repositories/comment.repo';
 import { tagRepo } from '@/lib/db/repositories/tag.repo';
 import { actionItemRepo } from '@/lib/db/repositories/action-item.repo';
 import { participantRepo } from '@/lib/db/repositories/participant.repo';
+import { voteRepo } from '@/lib/db/repositories/vote.repo';
+import { reactionRepo } from '@/lib/db/repositories/reaction.repo';
+import { metricRepo } from '@/lib/db/repositories/metric.repo';
 import { exportToMarkdown, exportToHtml } from '@/lib/utils/export';
 import { buildAiSummaryMarkdown } from '@/lib/utils/aiExportTemplate';
 import { buildRetroCsv } from '@/lib/utils/csvExport';
@@ -100,7 +103,19 @@ export async function GET(
     const summaryPrompt = room.teamId
       ? teamRepo.getSettings(room.teamId)?.summaryPrompt ?? null
       : null;
-    const aiMd = buildAiSummaryMarkdown(room, cardsWithMeta, tags, actionItems, denom, sections, summaryPrompt);
+    // Per-card votes/reactions are only needed for the AI summary — loaded
+    // here rather than into the shared cardsWithMeta so the md/html/csv
+    // paths don't pay for data they don't render.
+    const cardsWithSignals = cardsWithMeta.map((card) => ({
+      ...card,
+      voteCount: voteRepo.getCountByCardId(card.id),
+      reactions: reactionRepo.getByCardId(card.id).map((r) => ({ emoji: r.emoji, count: r.count })),
+    }));
+    const metrics = metricRepo.getAggregateByRoomId(roomId);
+    const aiMd = buildAiSummaryMarkdown(room, cardsWithSignals, tags, actionItems, denom, sections, summaryPrompt, {
+      participantCount: participants.length,
+      metrics,
+    });
     return new Response(aiMd, {
       headers: {
         'Content-Type': 'text/markdown; charset=utf-8',

@@ -50,6 +50,7 @@ export function RoomHeader({
 }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [aiCopied, setAiCopied] = useState(false);
+  const [aiCopyError, setAiCopyError] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const onlineCount = participants.filter((p) => p.isOnline).length;
@@ -83,13 +84,20 @@ export function RoomHeader({
   const handleCopyAiPrompt = async () => {
     try {
       const res = await fetch(`/api/rooms/${roomId}/export?format=ai`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        setAiCopyError(true);
+        setTimeout(() => setAiCopyError(false), 2200);
+        return;
+      }
       const text = await res.text();
       await navigator.clipboard.writeText(text);
       setAiCopied(true);
       setTimeout(() => setAiCopied(false), 2200);
     } catch {
-      // clipboard may fail in iframe / insecure context — silently no-op
+      // Fetch or clipboard failed (e.g. clipboard blocked in iframe /
+      // insecure context) — surface it instead of failing silently.
+      setAiCopyError(true);
+      setTimeout(() => setAiCopyError(false), 2200);
     }
   };
 
@@ -240,12 +248,24 @@ export function RoomHeader({
             type="button"
             className="btn"
             onClick={handleCopyAiPrompt}
-            title="Copy a ready-to-paste summary prompt + retro content to your clipboard. Paste into ChatGPT / Claude / Gemini for theme synthesis."
+            title={
+              aiCopyError
+                ? 'Could not copy the summary prompt — please try again.'
+                : 'Copy a ready-to-paste summary prompt + retro content to your clipboard. Paste into ChatGPT / Claude / Gemini for theme synthesis.'
+            }
             data-tour="summary"
             style={{
-              background: aiCopied ? 'oklch(0.78 0.15 175 / 0.20)' : undefined,
-              borderColor: aiCopied ? 'oklch(0.78 0.15 175 / 0.45)' : undefined,
-              color: aiCopied ? 'oklch(0.92 0.12 175)' : undefined,
+              background: aiCopied
+                ? 'oklch(0.78 0.15 175 / 0.20)'
+                : aiCopyError
+                  ? 'oklch(0.65 0.18 25 / 0.18)'
+                  : undefined,
+              borderColor: aiCopied
+                ? 'oklch(0.78 0.15 175 / 0.45)'
+                : aiCopyError
+                  ? 'oklch(0.65 0.18 25 / 0.4)'
+                  : undefined,
+              color: aiCopied ? 'oklch(0.92 0.12 175)' : aiCopyError ? 'oklch(0.92 0.10 25)' : undefined,
             }}
           >
             {/* Sparkle / wand icon — fits the "summary prompt" intent */}
@@ -254,7 +274,7 @@ export function RoomHeader({
               <path d="M19 4l.8 1.6L21.4 6.4 19.8 7.2 19 9l-.8-1.8L16.6 6.4 18.2 5.6z" />
               <path d="M5.5 17l.6 1.2 1.2.6-1.2.6-.6 1.2-.6-1.2-1.2-.6 1.2-.6z" />
             </svg>
-            {aiCopied ? 'Copied · paste into AI' : 'Summary Prompt'}
+            {aiCopied ? 'Copied · paste into AI' : aiCopyError ? 'Copy failed — retry' : 'Summary Prompt'}
           </button>
           <button type="button" className="btn" onClick={handleExportMD} title="Export Markdown">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
