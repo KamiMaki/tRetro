@@ -70,7 +70,7 @@ docker buildx imagetools inspect penguin88428/retroxpert:v1.1
 - 每次發佈用 `vMAJOR.MINOR` 當 tag，並同步更新 `latest`。
 - 進版：取現有最高 `vX.Y`（忽略 git-SHA 等非版本 tag）後 MINOR +1（v1.1 → v1.2 → …）；MAJOR 僅在明確要求時進。
 - 查目前版本：`curl -s "https://hub.docker.com/v2/repositories/penguin88428/retroxpert/tags?page_size=100"`，找 `"name":"v…"`。
-- 目前最新：**v1.2**（2026-06-15）。
+- 目前最新：**v1.3**（2026-08-05）。
 
 ## 注意事項（Caveats）
 - **單一平台**：目前推送的是 `linux/amd64`（外加一個 attestation/SBOM manifest，inspect 會顯示為 `unknown/unknown`，屬正常）。要支援 arm64 需用 `docker buildx build --platform linux/amd64,linux/arm64 --push`。

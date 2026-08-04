@@ -6,16 +6,16 @@ Docker Hub：**`penguin88428/retroxpert`**
 | 引用方式 | 範例 | 特性 |
 |----------|------|------|
 | tag `latest` | `penguin88428/retroxpert:latest` | 永遠指向最新一次 push（**可變**，會隨改版移動） |
-| tag 版本號 | `penguin88428/retroxpert:v1.2` | **目前最新版本**；每次發佈會進版（v1.2 → v1.3 → …） |
-| digest（釘死） | `penguin88428/retroxpert@sha256:a9d92c08…f62b0` | **不可變**，永遠是這一版（用 `@sha256:`，非 `:`） |
+| tag 版本號 | `penguin88428/retroxpert:v1.3` | **目前最新版本**；每次發佈會進版（v1.3 → v1.4 → …） |
+| digest（釘死） | `penguin88428/retroxpert@sha256:c65a4e75…f1ab` | **不可變**，永遠是這一版（用 `@sha256:`，非 `:`） |
 
-目前 `:latest`、`:v1.2`、`@sha256:a9d92c08…` 指向同一個 image。要可重現部署，建議用版本號或 digest，不要只依賴 `latest`。
+目前 `:latest`、`:v1.3`、`@sha256:c65a4e75…` 指向同一個 image。要可重現部署，建議用版本號或 digest，不要只依賴 `latest`。
 
 ### 版本標籤政策
 - 固定 repo：`penguin88428/retroxpert`（Docker Hub）。
 - 每次發佈用 **`vMAJOR.MINOR`** 版本號當 tag，並同步更新 `latest`。
 - **進版規則**：取目前最高的 `vX.Y` 版本，MINOR +1（v1.1 → v1.2 → … → v1.9 → v1.10）。MAJOR 只有明確要求時才進。
-- 目前最新版本：**v1.2**（2026-06-15）。docker 版本號與 `package.json` 的 npm 版本各自獨立。
+- 目前最新版本：**v1.3**（2026-08-05）。docker 版本號與 `package.json` 的 npm 版本各自獨立。
 
 ## 最快上手
 ```bash
